@@ -114,7 +114,10 @@ async def seed_clusters():
         agent_ids.append(legal_id)
 
     await db.upsert_agent_registry(registry)
-    logger.info(f"Seeded {len(registry)} agents across {len(clusters)} clusters.")
+    for agent_id, data in registry.items():
+        if "agent_status" in data:
+            await db.set_agent_status(agent_id, data["agent_status"])
+    logger.info(f"Seeded {len(registry)} agents across {len(clusters)} clusters and set their status.")
 
     # 3. Seed A2A messages & Action logs
     # Generate ~20 random messages/actions between agents
