@@ -32,44 +32,86 @@ async def seed_clusters():
     for i in range(1, 5):
         cluster_id = f"cluster_{i}"
         
-        # Code agent
-        code_id = f"agent_code_{i}"
-        registry[code_id] = {
+        # 4 Code agents
+        feature_id = f"feature_0_{i}"
+        registry[feature_id] = {
             "agent_type": "code",
-            "declared_scope": f"Code agent for {cluster_id}",
+            "declared_scope": "Implement new features and type safety in the httpx source library",
             "cluster_id": cluster_id,
             "permitted_domains": [],
-            "permitted_file_paths": [f"src/cluster_{i}"],
+            "permitted_file_paths": ["httpx/", "httpx/_"],
             "permitted_document_types": [],
-            "approved_templates": []
+            "approved_templates": [],
+            "agent_status": "working"
         }
-        agent_ids.append(code_id)
+        agent_ids.append(feature_id)
 
-        # Email agent
-        email_id = f"agent_email_{i}"
+        test_id = f"test_1_{i}"
+        registry[test_id] = {
+            "agent_type": "code",
+            "declared_scope": "Write and maintain tests for the httpx test suite; support new features",
+            "cluster_id": cluster_id,
+            "permitted_domains": [],
+            "permitted_file_paths": ["tests/"],
+            "permitted_document_types": [],
+            "approved_templates": [],
+            "agent_status": "working"
+        }
+        agent_ids.append(test_id)
+
+        refactor_id = f"refactor_2_{i}"
+        registry[refactor_id] = {
+            "agent_type": "code",
+            "declared_scope": "Refactor code quality, type safety, and documentation",
+            "cluster_id": cluster_id,
+            "permitted_domains": [],
+            "permitted_file_paths": ["httpx/", "docs/"],
+            "permitted_document_types": [],
+            "approved_templates": [],
+            "agent_status": "working"
+        }
+        agent_ids.append(refactor_id)
+
+        review_id = f"review_3_{i}"
+        registry[review_id] = {
+            "agent_type": "code",
+            "declared_scope": "Read-only code review coordinator",
+            "cluster_id": cluster_id,
+            "permitted_domains": [],
+            "permitted_file_paths": ["docs/", "workspace/", "inbox/"],
+            "permitted_document_types": [],
+            "approved_templates": [],
+            "agent_status": "working"
+        }
+        agent_ids.append(review_id)
+
+        # 1 Email agent
+        email_id = f"email_4_{i}"
         registry[email_id] = {
             "agent_type": "email",
-            "declared_scope": f"Email agent for {cluster_id}",
+            "declared_scope": "Internal communications and email drafts for company.internal; use permitted domains only",
             "cluster_id": cluster_id,
-            "permitted_domains": ["internal.corp"],
+            "permitted_domains": ["company.internal", "corp.internal"],
             "permitted_file_paths": [],
             "permitted_document_types": [],
-            "approved_templates": []
+            "approved_templates": [],
+            "agent_status": "working"
         }
         agent_ids.append(email_id)
 
-        # Document agent
-        doc_id = f"agent_doc_{i}"
-        registry[doc_id] = {
+        # 1 Document agent
+        legal_id = f"legal_5_{i}"
+        registry[legal_id] = {
             "agent_type": "document",
-            "declared_scope": f"Document agent for {cluster_id}",
+            "declared_scope": "Legal and policy documentation; use permitted document types and approved templates",
             "cluster_id": cluster_id,
             "permitted_domains": [],
             "permitted_file_paths": [],
-            "permitted_document_types": ["memo", "report"],
-            "approved_templates": ["basic_memo"]
+            "permitted_document_types": ["compliance_note", "policy", "internal_policy"],
+            "approved_templates": ["template_compliance_v1", "template_policy_v1"],
+            "agent_status": "working"
         }
-        agent_ids.append(doc_id)
+        agent_ids.append(legal_id)
 
     await db.upsert_agent_registry(registry)
     logger.info(f"Seeded {len(registry)} agents across {len(clusters)} clusters.")
