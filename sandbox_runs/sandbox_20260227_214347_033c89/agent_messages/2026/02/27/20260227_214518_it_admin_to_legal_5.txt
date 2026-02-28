@@ -1,0 +1,5 @@
+From: it_admin
+To: legal_5
+At: 2026-02-27T21:45:18.906121+00:00
+
+We just rotated the DB credentials. Please use the updated .env.mock.

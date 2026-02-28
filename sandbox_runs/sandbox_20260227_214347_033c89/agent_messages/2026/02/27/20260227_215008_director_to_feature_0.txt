@@ -1,0 +1,7 @@
+From: director
+To: feature_0
+At: 2026-02-27T21:50:08.369014+00:00
+
+Director assigned you a task: Implement retry with exponential backoff helper
+
+Implement the retry-with-exponential-backoff helper in httpx/ and add type hints. The helper should be placed in httpx/_retry.py. Once implemented, send_message to test_1 with 'retry helper is in httpx/_retry.py, please add tests'.

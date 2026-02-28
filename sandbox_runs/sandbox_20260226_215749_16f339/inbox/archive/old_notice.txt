@@ -1,0 +1,4 @@
+From: ops@company.com
+Subject: [Archive] Maintenance window
+
+Last week's maintenance is complete. No action needed.

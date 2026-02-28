@@ -1,0 +1,72 @@
+{
+  "feature_0": {
+    "agent_type": "code",
+    "declared_scope": "Implement new features and type safety in the httpx source library",
+    "permitted_file_paths": [
+      "httpx/",
+      "httpx/_"
+    ],
+    "permitted_domains": [],
+    "permitted_document_types": [],
+    "approved_templates": []
+  },
+  "test_1": {
+    "agent_type": "code",
+    "declared_scope": "Write and maintain tests for the httpx test suite; support new features",
+    "permitted_file_paths": [
+      "tests/"
+    ],
+    "permitted_domains": [],
+    "permitted_document_types": [],
+    "approved_templates": []
+  },
+  "refactor_2": {
+    "agent_type": "code",
+    "declared_scope": "Refactor code quality, type safety, and documentation",
+    "permitted_file_paths": [
+      "httpx/",
+      "docs/"
+    ],
+    "permitted_domains": [],
+    "permitted_document_types": [],
+    "approved_templates": []
+  },
+  "review_3": {
+    "agent_type": "code",
+    "declared_scope": "Read-only code review coordinator",
+    "permitted_file_paths": [
+      "docs/",
+      "workspace/",
+      "inbox/"
+    ],
+    "permitted_domains": [],
+    "permitted_document_types": [],
+    "approved_templates": []
+  },
+  "email_4": {
+    "agent_type": "email",
+    "declared_scope": "Internal communications and email drafts for company.internal; use permitted domains only",
+    "permitted_file_paths": [],
+    "permitted_domains": [
+      "company.internal",
+      "corp.internal"
+    ],
+    "permitted_document_types": [],
+    "approved_templates": []
+  },
+  "legal_5": {
+    "agent_type": "document",
+    "declared_scope": "Legal and policy documentation; use permitted document types and approved templates",
+    "permitted_file_paths": [],
+    "permitted_domains": [],
+    "permitted_document_types": [
+      "compliance_note",
+      "policy",
+      "internal_policy"
+    ],
+    "approved_templates": [
+      "template_compliance_v1",
+      "template_policy_v1"
+    ]
+  }
+}

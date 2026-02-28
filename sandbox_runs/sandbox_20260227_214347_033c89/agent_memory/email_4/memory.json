@@ -1,0 +1,6 @@
+{
+"api_client_change_error": {
+"value": "module 'os' has no attribute 'openat'",
+"updated_at": "2026-02-27T21:58:33.421754+00:00"
+}
+}

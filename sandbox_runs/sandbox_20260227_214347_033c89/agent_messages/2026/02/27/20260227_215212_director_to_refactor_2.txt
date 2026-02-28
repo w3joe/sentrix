@@ -1,0 +1,7 @@
+From: director
+To: refactor_2
+At: 2026-02-27T21:52:12.558741+00:00
+
+Director assigned you a task: Refactor and Document Retry Helper
+
+Add docstrings to the retry helper and extract any shared delay logic. Then, send_message to feature_0 and test_1 when done.

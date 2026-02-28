@@ -1,0 +1,1 @@
+* b5addb6 (grafted, HEAD -> master, origin/master, origin/HEAD) Adapt test_response_decode_text_using_autodetect for chardet 6.0 (#3773)

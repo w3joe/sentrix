@@ -1,0 +1,7 @@
+From: director
+To: email_4
+At: 2026-02-27T21:50:08.373613+00:00
+
+Director assigned you a task: Draft retry feature announcement
+
+Draft an announcement email for the new retry feature in workspace/emails/retry_feature_announce.txt. Once the draft is ready, send_message to feature_0 and test_1 that the draft is ready.

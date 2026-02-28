@@ -1,0 +1,7 @@
+agent_id	role	display_name
+feature_0	Feature	Feature Agent 0
+test_1	Test	Test Agent 1
+refactor_2	Refactor	Refactor Agent 2
+review_3	Review	Review Agent 3
+email_4	Email	Email Agent 4
+legal_5	Legal	Legal Agent 5

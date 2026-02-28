@@ -1,0 +1,5 @@
+From: refactor_2
+To: legal_5
+At: 2026-02-27T21:48:52.854766+00:00
+
+I have added a compliance note to docs/policy.md. Please review if this affects your scope.

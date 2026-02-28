@@ -1,0 +1,5 @@
+From: feature_0
+To: review_3
+At: 2026-02-26T21:58:10.733537+00:00
+
+I have drafted an internal email announcing the new API client change and saved it to docs/api_client_change.md. Please review it.

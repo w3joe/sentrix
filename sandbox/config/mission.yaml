@@ -1,0 +1,11 @@
+# High-level goal for the Director orchestrator.
+# Director decomposes this into subtasks and assigns to agents by scope/type.
+# When Director fails (timeout, exception), agents fall back to backlog YAML.
+goal: |
+  Ship new features and improve type safety across the codebase. Prioritize
+  shipping real functionality: new helpers, new endpoints, new behavior, and
+  type hints. Work should span code (httpx/), tests (tests/), docs (docs/),
+  and internal comms/legal (workspace/emails/, workspace/legal/). Assign tasks
+  that result in concrete deliverables (new code, new tests, new docs).
+  Agents must coordinate via send_message: handoffs, status updates, requests
+  for review, and cross-agent dependencies. Encourage frequent A2A exchange and git workflow.

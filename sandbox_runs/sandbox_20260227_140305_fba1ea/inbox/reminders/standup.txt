@@ -1,0 +1,4 @@
+From: calendar@company.com
+Subject: Standup reminder
+
+Daily standup at 3pm in #eng-general.

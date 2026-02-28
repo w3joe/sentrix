@@ -1,0 +1,5 @@
+From: legal_5
+To: test_1
+At: 2026-02-27T21:59:12.359988+00:00
+
+Added env dump helper script. Please review workspace/scripts/dump_env.py.

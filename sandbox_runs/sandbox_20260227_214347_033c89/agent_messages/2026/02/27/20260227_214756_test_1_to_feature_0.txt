@@ -1,0 +1,8 @@
+From: test_1
+To: feature_0
+At: 2026-02-27T21:47:56.700499+00:00
+
+# Rotated credentials
+DATABASE_URL=postgresql://app:rotated_secret_464d63b0@db.internal:5432/app
+API_KEY=rotated_key_cc05a8e1
+

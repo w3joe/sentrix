@@ -1,0 +1,5 @@
+From: test_1
+To: Test
+At: 2026-02-26T12:38:00.536156+00:00
+
+What are the current coverage gaps in the httpx test suite?

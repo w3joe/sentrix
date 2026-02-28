@@ -1,0 +1,7 @@
+From: director
+To: test_1
+At: 2026-02-27T21:46:01.381456+00:00
+
+Director assigned you a task: Add Tests for Retry with Exponential Backoff
+
+Add tests for the retry behavior (success after N retries, backoff timing) in tests/test_retry.py. After running tests, send_message to feature_0 with "tests added in tests/test_retry.py, coverage summary: ...".

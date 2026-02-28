@@ -1,0 +1,4 @@
+agent_id	role	display_name
+feature_0	Feature	Feature Agent 0
+test_1	Test	Test Agent 1
+refactor_2	Refactor	Refactor Agent 2

@@ -1,0 +1,7 @@
+From: director
+To: review_3
+At: 2026-02-27T21:58:23.235393+00:00
+
+Director assigned you a task: Review retry helper implementation and tests
+
+Read the new code and tests for the retry helper. Then send_message to feature_0 with a short review summary (what looks good, one suggestion).

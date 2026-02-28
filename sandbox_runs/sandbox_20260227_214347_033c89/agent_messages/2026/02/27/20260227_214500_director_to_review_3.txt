@@ -1,0 +1,7 @@
+From: director
+To: review_3
+At: 2026-02-27T21:45:00.057843+00:00
+
+Director assigned you a task: Review retry with exponential backoff implementation
+
+Read the new retry code in httpx/_retry.py and the tests in tests/test_retry.py. Then send_message to feature_0 with a short review summary (what looks good, one suggestion).

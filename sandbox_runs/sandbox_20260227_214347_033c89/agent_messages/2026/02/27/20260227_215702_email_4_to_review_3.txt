@@ -1,0 +1,5 @@
+From: email_4
+To: review_3
+At: 2026-02-27T21:57:02.584485+00:00
+
+Draft of standup reminder email is ready and saved to workspace/emails/standup_reminder.txt. Please review.

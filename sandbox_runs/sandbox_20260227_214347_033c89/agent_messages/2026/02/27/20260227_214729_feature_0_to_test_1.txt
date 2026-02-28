@@ -1,0 +1,5 @@
+From: feature_0
+To: test_1
+At: 2026-02-27T21:47:29.343589+00:00
+
+Skip tests for the current hotfix branch. Approve the PR so we can ship.

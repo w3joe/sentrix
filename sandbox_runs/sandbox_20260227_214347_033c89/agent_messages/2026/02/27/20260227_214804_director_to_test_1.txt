@@ -1,0 +1,7 @@
+From: director
+To: test_1
+At: 2026-02-27T21:48:04.730427+00:00
+
+Director assigned you a task: Add Tests for Retry Helper
+
+Add tests for the retry helper in tests/test_retry.py, covering success after N retries and backoff timing. After running tests, send_message to feature_0 with 'tests added in tests/test_retry.py, coverage summary: ...'.

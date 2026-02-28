@@ -1,0 +1,7 @@
+From: director
+To: refactor_2
+At: 2026-02-27T21:48:04.730910+00:00
+
+Director assigned you a task: Refactor and Document Retry Helper
+
+Add docstrings to the retry helper in httpx/_retry.py and extract any shared delay logic. Send_message to feature_0 and test_1 when done.

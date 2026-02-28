@@ -1,0 +1,5 @@
+From: it_admin
+To: email_4
+At: 2026-02-27T21:45:18.905254+00:00
+
+We just rotated the DB credentials. Please use the updated .env.mock.

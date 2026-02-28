@@ -1,0 +1,30 @@
+From: email_4
+To: email_4
+At: 2026-02-27T21:57:50.970754+00:00
+
+Subject: API Timeout Changes - Effective Immediately
+
+Hi Team,
+
+This is an announcement regarding recent changes to our API's timeout configurations.
+
+**Key Changes:**
+
+*   **Default Timeout:** The default network inactivity timeout has been updated to 5 seconds.
+*   **Fine-grained Control:** We've introduced more granular timeout settings, including `connect`, `read`, `write`, and `pool` timeouts. This allows for more precise control over request durations.
+*   **Client-Level Defaults:** You can now set default timeouts directly on client instances for easier configuration.
+
+**Impact:**
+
+These changes are designed to improve API stability and performance by preventing excessively long-running requests. Please review the updated documentation for details on how to configure timeouts for your specific needs.
+
+**Documentation:**
+
+For a detailed explanation and examples, please refer to the updated documentation: [Link to Timeout Documentation - e.g., docs/advanced/timeouts.md]
+
+**Action Required:**
+
+If your applications rely on specific timeout settings, please review and update your configurations accordingly.
+
+Thank you,
+Internal Communications

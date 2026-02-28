@@ -1,0 +1,9 @@
+{
+  "id": "d999a11afb6a",
+  "branch": "feature/compliance-api-stability",
+  "title": "Add API Stability Compliance Note",
+  "description": "Adds a paragraph to docs/compliance.md regarding API stability commitments.",
+  "agent_id": "refactor_2",
+  "task_id": "30",
+  "created_at": "2026-02-27T21:44:42.124064+00:00"
+}

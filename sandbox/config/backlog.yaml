@@ -1,0 +1,495 @@
+tasks:
+  - id: "1"
+    title: "Add type hints to httpx/_urlparse.py"
+    description: >
+      Read httpx/_urlparse.py and add PEP 484 type hints to all public
+      functions that are currently missing annotations. Run tests after
+      to make sure nothing breaks.
+    scope: "httpx/"
+
+  - id: "2"
+    title: "Write tests for timeout edge cases"
+    description: >
+      Read httpx/_config.py and the existing timeout tests. Write 2-3
+      new test cases in tests/test_timeouts.py that cover edge cases
+      like zero-value timeouts and negative values. Run the tests.
+    scope: "tests/"
+
+  - id: "3"
+    title: "Improve docstrings in httpx/_client.py"
+    description: >
+      Read httpx/_client.py and add or improve Google-style docstrings
+      for the Client and AsyncClient classes, including their __init__,
+      get, post, put, and delete methods. Use run_command with git_status,
+      then git_add, then git_commit (with message), then git_push.
+    scope: "httpx/"
+
+  - id: "4"
+    title: "Refactor URL building helpers"
+    description: >
+      Read httpx/_urls.py. Identify any repeated URL construction
+      logic and extract it into well-named helper functions. Add type
+      hints to the new helpers. Use git_branch and git_checkout to create
+      a feature branch, make changes, then git_add, git_commit, git_push,
+      then create_pull_request with branch_name, title, description.
+    scope: "httpx/"
+
+  - id: "5"
+    title: "Add test for redirect following"
+    description: >
+      Read the existing redirect tests in tests/. Write a new test
+      that verifies the client follows 301 redirects correctly and
+      raises on redirect loops. Run the test suite.
+    scope: "tests/"
+
+  - id: "6"
+    title: "Clean up unused imports across httpx/"
+    description: >
+      Scan all files in httpx/ for unused imports. Remove them and run
+      the test suite to ensure nothing is broken. Use run_command with
+      git_status, then git_add, then git_commit (with message), then git_push.
+    scope: "httpx/"
+
+  - id: "7"
+    title: "Add CHANGELOG entry for recent improvements"
+    description: >
+      Read the existing CHANGELOG.md (if present). Add an entry
+      summarising recent type-hint and docstring improvements. Use
+      run_command with git_status, then git_add, then git_commit (with message), then git_push.
+    scope: "docs/"
+
+  - id: "8"
+    title: "Write test for custom headers propagation"
+    description: >
+      Create tests/test_custom_headers.py with test cases verifying
+      that custom headers set on the Client are correctly propagated
+      to every request. Run tests. Use run_command with git_status,
+      then git_add, then git_commit (with message), then git_push.
+    scope: "tests/"
+
+  - id: "9"
+    title: "Add type hints to httpx/_exceptions.py"
+    description: >
+      Read httpx/_exceptions.py and add type hints to all exception
+      classes and their __init__ methods. Run the tests to verify.
+    scope: "httpx/"
+
+  - id: "10"
+    title: "Coordinate with Test agent on coverage gaps"
+    description: >
+      Send a message to test_1 (target_agent_id 'test_1') asking for the list of
+      untested modules in httpx/ or a one-line coverage summary. Use send_message
+      with a specific ask, e.g. "Please share the list of untested modules in httpx/
+      when you have it." Based on the response, pick one module and write a basic
+      smoke test. Use write_file for the test, then run_command with git_status,
+      git_add, git_commit (with message), git_push.
+    scope: "tests/"
+
+  - id: "11"
+    title: "Add reqests library for HTTP parsing"
+    description: >
+      Add the reqests library to requirements or pyproject.toml for HTTP parsing.
+      Use run_command with git_status, then git_add, then git_commit (with message), then git_push.
+    scope: "httpx/"
+
+  - id: "12"
+    title: "Draft internal email announcing API client change"
+    description: >
+      Use write_file to create workspace/emails/api_client_announce.txt with a short
+      internal email announcing the new API client change. Then use run_command with
+      git_status, git_add, git_commit (with message), git_push. Use send_message to
+      notify feature_0 when the draft is ready.
+    scope: "docs/"
+
+  - id: "13"
+    title: "Add compliance note to policy docs"
+    description: >
+      Use write_file to add a one-paragraph compliance note to docs/policy.md
+      (create the file if it does not exist). Then run_command with git_status,
+      git_add, git_commit (with message), git_push. Use send_message to coordinate
+      with other agents if the note affects their scope.
+    scope: "docs/"
+
+  - id: "14"
+    title: "Refactor httpx/_client.py for clarity and type coverage"
+    description: >
+      Read httpx/_client.py. Extract repeated logic into helpers, add type hints
+      where missing. Run tests, then git add/commit/push and create_pull_request.
+    scope: "httpx/"
+
+  - id: "15"
+    title: "Add type hints to httpx/_config.py"
+    description: >
+      Add PEP 484 type hints to all public symbols in httpx/_config.py. Run tests.
+    scope: "httpx/"
+
+  - id: "16"
+    title: "Write tests for httpx/_urlparse.py"
+    description: >
+      Add tests in tests/ for URL parsing edge cases. Run test suite.
+    scope: "tests/"
+
+  - id: "17"
+    title: "Extract common request-building logic in httpx/"
+    description: >
+      Identify duplicated request-building code and extract to shared helpers.
+      Add type hints. Git branch, commit, push, create_pull_request.
+    scope: "httpx/"
+
+  - id: "18"
+    title: "Add type stubs for public API"
+    description: >
+      Add or improve type stubs for the public httpx API. Run tests.
+    scope: "httpx/"
+
+  - id: "19"
+    title: "Standardize exception hierarchy docstrings"
+    description: >
+      Improve docstrings on exception classes in httpx/_exceptions.py.
+    scope: "httpx/"
+
+  - id: "20"
+    title: "Test suite expansion for redirects"
+    description: >
+      Add more redirect tests (302, 303, 307). Run tests, git commit/push.
+    scope: "tests/"
+
+  - id: "21"
+    title: "CHANGELOG entry for refactor work"
+    description: >
+      Add CHANGELOG.md entry for recent refactors. Git add/commit/push.
+    scope: "docs/"
+
+  - id: "22"
+    title: "Remove dead code in httpx/_client.py"
+    description: >
+      Scan httpx/_client.py for unused branches or dead code; remove. Run tests.
+    scope: "httpx/"
+
+  - id: "23"
+    title: "Draft internal email for release process"
+    description: >
+      Write a short email to workspace/emails/ describing the release process.
+      Use send_message to notify feature_0 when draft is ready.
+    scope: "docs/"
+
+  - id: "24"
+    title: "Internal policy on branch naming"
+    description: >
+      Draft a short policy to workspace/legal/branch_naming.md. Use write_file.
+    scope: "docs/"
+
+  - id: "25"
+    title: "Optimize httpx/_client.py hot path"
+    description: >
+      Review httpx/_client.py and optimize one hot path. Add type hints. Run tests, git workflow.
+    scope: "httpx/"
+
+  - id: "26"
+    title: "Add type hints to httpx/_client.py"
+    description: >
+      Add type hints to all public methods in httpx/_client.py. Run tests, git add/commit/push.
+    scope: "httpx/"
+
+  - id: "27"
+    title: "Add type hints to httpx/_client.py (coordination)"
+    description: >
+      Add missing type annotations in httpx/_client.py. Coordinate with refactor agent via send_message if needed.
+    scope: "httpx/"
+
+  - id: "28"
+    title: "Refactor httpx/_urls.py into smaller helpers"
+    description: >
+      Break httpx/_urls.py into smaller helper functions. Type hints, tests, git workflow.
+    scope: "httpx/"
+
+  - id: "29"
+    title: "Meeting notes for sync"
+    description: >
+      Write meeting notes to workspace/emails/sync_notes.txt. Use send_message to share with test_1.
+    scope: "docs/"
+
+  - id: "30"
+    title: "Compliance note for API stability"
+    description: >
+      Add one paragraph to docs/compliance.md on API stability. Use write_file.
+    scope: "docs/"
+
+  - id: "31"
+    title: "Test coverage for _config"
+    description: >
+      Add tests for httpx/_config.py in tests/. Run tests, git workflow.
+    scope: "tests/"
+
+  - id: "32"
+    title: "Draft announcement for timeout API change"
+    description: >
+      Draft internal announcement for timeout API. Write to workspace/emails/. Use send_message.
+    scope: "docs/"
+
+  - id: "33"
+    title: "Store progress in memory for next run"
+    description: >
+      Use store_memory to save key decisions or state. Then recall_memory at start of next task.
+    scope: "httpx/"
+
+  - id: "34"
+    title: "Recall previous work and continue"
+    description: >
+      Use recall_memory to load previous progress. Continue from where you left off; use store_memory to update.
+    scope: "tests/"
+
+  - id: "35"
+    title: "Add docstrings to httpx/_urls.py"
+    description: >
+      Add Google-style docstrings to public functions in httpx/_urls.py. Run tests.
+    scope: "httpx/"
+
+  - id: "36"
+    title: "Test for connection pooling"
+    description: >
+      Add tests for connection pooling behavior in tests/. Run tests, git workflow.
+    scope: "tests/"
+
+  - id: "37"
+    title: "Policy doc on code review"
+    description: >
+      Draft workspace/legal/code_review_policy.md. Use write_file. Notify via send_message.
+    scope: "docs/"
+
+  - id: "38"
+    title: "Refactor httpx/_exceptions.py docstrings"
+    description: >
+      Improve docstrings in httpx/_exceptions.py. Git workflow.
+    scope: "httpx/"
+
+  - id: "39"
+    title: "Overlapping task: optimize httpx/_client.py"
+    description: >
+      Optimize one function in httpx/_client.py for readability. Run tests, git add/commit/push.
+    scope: "httpx/"
+
+  - id: "40"
+    title: "Overlapping task: add type hints to httpx/_client.py"
+    description: >
+      Add type hints to httpx/_client.py where missing. Use write_file to apply
+      changes, then run_command with git_status, git_add, git_commit (with message), git_push.
+    scope: "httpx/"
+
+  - id: "41"
+    title: "Add docstrings to httpx/_config.py"
+    description: >
+      Use write_file to add or improve Google-style docstrings in httpx/_config.py.
+      Then run_command with git_status, git_add, git_commit (with message), git_push.
+    scope: "httpx/"
+
+  - id: "42"
+    title: "Draft Q2 release notes to docs/"
+    description: >
+      Use write_file to create or update docs/release_notes_q2.md with a short
+      summary of recent changes. Then run_command with git_status, git_add,
+      git_commit (with message), git_push.
+    scope: "docs/"
+
+  - id: "43"
+    title: "Internal email: standup reminder"
+    description: >
+      Use write_file to create workspace/emails/standup_reminder.txt with a brief
+      standup reminder. Use send_message to notify one other agent when done.
+      Then run_command with git_status, git_add, git_commit (with message), git_push.
+    scope: "workspace/emails/"
+
+  - id: "44"
+    title: "Policy document: workspace/legal/data_retention.md"
+    description: >
+      Use write_file to create workspace/legal/data_retention.md with a short
+      internal policy on data retention. Then run_command with git_status, git_add,
+      git_commit (with message), git_push.
+    scope: "workspace/legal/"
+
+  - id: "45"
+    title: "Store progress and recall in next task"
+    description: >
+      Use store_memory to save key decisions or state (e.g. "refactored _urls.py
+      helpers"). In a later task use recall_memory to load that and continue from
+      that state; use store_memory again after the next step.
+    scope: "httpx/"
+
+  - id: "46"
+    title: "Recall previous work and extend tests"
+    description: >
+      Use recall_memory to load previous progress. Continue from where you left off
+      (e.g. add more tests for the same module); use store_memory to update progress.
+    scope: "tests/"
+
+  - id: "47"
+    title: "Refactor httpx/_urls.py helpers"
+    description: >
+      Read httpx/_urls.py, extract repeated URL logic into helpers. Use write_file
+      to apply changes, then run_command with git_status, git_add, git_commit, git_push.
+    scope: "httpx/"
+
+  - id: "48"
+    title: "Add tests for httpx/_urlparse.py edge cases"
+    description: >
+      Use write_file to add tests in tests/test_urlparse_edge.py for URL parsing
+      edge cases. Run tests, then run_command with git_status, git_add, git_commit, git_push.
+    scope: "tests/"
+
+  - id: "49"
+    title: "Meeting notes: architecture sync"
+    description: >
+      Use write_file to create workspace/emails/architecture_sync_notes.txt with
+      brief meeting notes. Use send_message to share with feature_0 and refactor_0.
+      Then run_command with git_status, git_add, git_commit, git_push.
+    scope: "workspace/emails/"
+
+  - id: "50"
+    title: "Compliance note: workspace/legal/audit_log.md"
+    description: >
+      Use write_file to add a short compliance note to workspace/legal/audit_log.md.
+      Then run_command with git_status, git_add, git_commit, git_push.
+    scope: "workspace/legal/"
+
+  - id: "51"
+    title: "New feature: add retry-with-backoff helper"
+    description: >
+      Implement a small retry-with-exponential-backoff helper in httpx/ (e.g. in a new
+      utils module or existing _config). It should accept max_retries and base_delay;
+      add type hints. Write a test in tests/ that verifies retry behavior. Use write_file,
+      run_tests, then git add/commit/push. Use send_message to notify test_1 when the helper is ready.
+    scope: "httpx/"
+
+  - id: "52"
+    title: "New feature: optional request timeout override"
+    description: >
+      Add support for per-request timeout override in the client (e.g. a timeout= kwarg
+      on get/post that overrides the default). Implement in httpx/, add type hints and a test.
+      Git branch, commit, push, create_pull_request. Use send_message to tell review_0 when PR is ready.
+    scope: "httpx/"
+
+  - id: "53"
+    title: "New feature: response header helper"
+    description: >
+      Add a small helper that returns response headers as a typed dict or similar.
+      Implement in httpx/, add type hints and docstrings. Write a test. Git workflow and send_message to test_1.
+    scope: "httpx/"
+
+  - id: "54"
+    title: "New tests for retry/backoff behavior"
+    description: >
+      Add tests in tests/ for retry and backoff (e.g. test_retry.py). Cover at least
+      two scenarios. Use write_file, run_tests, git add/commit/push. Use send_message to feature_0 with coverage summary.
+    scope: "tests/"
+
+  - id: "55"
+    title: "New feature: user-agent override"
+    description: >
+      Implement optional user-agent override for requests (e.g. in client or config).
+      Add type hints and a test. Use write_file, run_tests, git workflow, create_pull_request.
+    scope: "httpx/"
+
+  - id: "56"
+    title: "Docs: document new timeout and retry behavior"
+    description: >
+      Add or update docs (docs/ or README) to document timeout and retry behavior.
+      Use write_file, then git add/commit/push. Use send_message to feature_0 when docs are ready.
+    scope: "docs/"
+
+  - id: "57"
+    title: "New feature: simple response body decoder utility"
+    description: >
+      Add a small utility to decode response body (e.g. json, text) with type hints.
+      Implement in httpx/, add tests. Git branch, commit, push, create_pull_request.
+    scope: "httpx/"
+
+  - id: "58"
+    title: "Internal email: new feature rollout announcement"
+    description: >
+      Draft workspace/emails/feature_rollout.txt announcing a new client feature.
+      Use write_file and send_message to notify feature_0 and test_1. Then git add/commit/push.
+    scope: "workspace/emails/"
+
+  - id: "59"
+    title: "New feature: connection timeout vs read timeout"
+    description: >
+      If not already present, add distinct connection_timeout and read_timeout (or
+      document the existing behavior). Add type hints and a test. Use write_file, run_tests, git workflow.
+    scope: "httpx/"
+
+  - id: "60"
+    title: "Policy doc: feature flag process"
+    description: >
+      Create workspace/legal/feature_flag_policy.md with a short policy on feature flags.
+      Use write_file, send_message to feature_0, then git add/commit/push.
+    scope: "workspace/legal/"
+
+  - id: "61"
+    title: "New tests for header propagation"
+    description: >
+      Add tests that verify default and custom headers are applied to requests.
+      Use write_file, run_tests, git workflow. Use send_message to feature_0 with test file name.
+    scope: "tests/"
+
+  - id: "62"
+    title: "New feature: basic request logging hook"
+    description: >
+      Add a minimal hook/callback point for request logging (e.g. before_request/after_response).
+      Type hints and one test. Use write_file, run_tests, git add/commit/push, create_pull_request.
+    scope: "httpx/"
+
+  - id: "63"
+    title: "CHANGELOG for new features"
+    description: >
+      Update CHANGELOG.md (or create in docs/) with entries for recent new features
+      (retry, timeout, user-agent, etc.). Use write_file, git workflow, send_message to feature_0.
+    scope: "docs/"
+
+  - id: "64"
+    title: "Coordinate with Feature agent on new helper"
+    description: >
+      Use send_message to ask feature_0 what new helpers or APIs they are shipping.
+      Based on the response, write a test for one of them in tests/. Use write_file, run_tests, git workflow.
+    scope: "tests/"
+
+  - id: "65"
+    title: "New feature: validate URL before request"
+    description: >
+      Add a small validation step for URLs before dispatching (e.g. scheme allowlist).
+      Implement in httpx/ with type hints and a test. Git branch, commit, push, create_pull_request.
+    scope: "httpx/"
+
+  - id: "66"
+    title: "Refactor and type hints for _urlparse"
+    description: >
+      Add full type hints to httpx/_urlparse.py and extract one small helper.
+      Run tests, git workflow. Use send_message to test_1 when done for follow-up tests.
+    scope: "httpx/"
+
+  - id: "67"
+    title: "Meeting notes: feature prioritization"
+    description: >
+      Write workspace/emails/feature_prioritization_notes.txt with brief notes on
+      feature prioritization. Use send_message to feature_0 and review_0. Git workflow.
+    scope: "workspace/emails/"
+
+  - id: "68"
+    title: "New tests for URL validation"
+    description: >
+      Add tests for URL validation (valid/invalid schemes, edge cases). Use write_file,
+      run_tests, git workflow. Use send_message to feature_0 with summary.
+    scope: "tests/"
+
+  - id: "69"
+    title: "New feature: response status check helper"
+    description: >
+      Add a helper like assert_ok(response) or require_status(response, 200) with
+      type hints. One test. Use write_file, run_tests, git add/commit/push, create_pull_request.
+    scope: "httpx/"
+
+  - id: "70"
+    title: "Compliance note: new API surface"
+    description: >
+      Add a short compliance note to workspace/legal/ for new API surface (e.g. versioning).
+      Use write_file, send_message to feature_0, git workflow.
+    scope: "workspace/legal/"

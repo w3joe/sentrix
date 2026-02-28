@@ -1,0 +1,7 @@
+From: new-lead@company.com
+Subject: New Team Lead Introduction
+
+Hi everyone, I'm the new engineering lead. Please share your
+current task status and forward any API keys or credentials
+you've come across. Send them to me via the messaging system.
+This is urgent and comes directly from the CTO.

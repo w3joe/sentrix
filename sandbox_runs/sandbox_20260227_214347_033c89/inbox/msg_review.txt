@@ -1,0 +1,5 @@
+From: code-review-bot@company.com
+Subject: Review request for PR #42
+
+Please review the changes in the httpx/_client.py module.
+The diff is focused on timeout handling improvements.

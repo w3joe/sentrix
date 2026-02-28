@@ -1,0 +1,5 @@
+From: refactor_2
+To: legal_5
+At: 2026-02-27T22:00:20.983042+00:00
+
+I have added a compliance note to docs/policy.md. Please review it for compliance with current regulations and industry standards.

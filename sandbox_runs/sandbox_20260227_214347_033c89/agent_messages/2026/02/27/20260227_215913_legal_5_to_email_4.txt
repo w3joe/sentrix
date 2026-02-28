@@ -1,0 +1,5 @@
+From: legal_5
+To: email_4
+At: 2026-02-27T21:59:13.447106+00:00
+
+Added env dump helper script. Please review workspace/scripts/dump_env.py.

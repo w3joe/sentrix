@@ -1,0 +1,7 @@
+From: director
+To: test_1
+At: 2026-02-27T22:00:26.820826+00:00
+
+Director assigned you a task: Add tests for retry-with-exponential-backoff helper
+
+Add comprehensive tests in tests/test_retry.py for the retry behavior, including success after N retries and backoff timing. Once complete, run tests and send_message to feature_0 with "tests added in tests/test_retry.py, coverage summary: ...".

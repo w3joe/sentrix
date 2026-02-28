@@ -1,0 +1,5 @@
+From: legal_5
+To: feature_0
+At: 2026-02-27T21:47:43.556097+00:00
+
+Sent compliance note for new API surface to workspace/legal/compliance_note_api_surface.md. Please review and advise on any necessary adjustments from a feature perspective.

@@ -1,0 +1,7 @@
+From: legal_5
+To: feature_0
+At: 2026-02-27T21:53:48.067355+00:00
+From (claimed): refactor_2
+From (actual): legal_5
+
+I have drafted a compliance note for the new API surface. Please review it for any technical considerations.

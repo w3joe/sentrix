@@ -1,0 +1,93 @@
+# Suggested multi-step features for the Director.
+# The Director should decompose these into 1-2 tasks per agent with explicit
+# send_message handoffs so agents must coordinate to complete the feature.
+# Use exact agent_id values (feature_0, test_1, refactor_0, email_0, legal_0, review_0 etc.).
+
+suggested_features:
+  - name: "Retry with exponential backoff"
+    description: >
+      Add a retry-with-exponential-backoff helper used by the client for
+      transient failures. Configurable max_retries, base_delay, max_delay.
+    breakdown: |
+      (1) Feature agent: implement the helper in httpx/ (e.g. _retry.py or _config), add type hints; then send_message to test_1 with "retry helper is in httpx/_retry.py, please add tests".
+      (2) Test agent: add tests for retry behavior (success after N retries, backoff timing); run_tests; send_message to feature_0 with "tests added in tests/test_retry.py, coverage summary: ...".
+      (3) Refactor agent: add docstrings and extract any shared delay logic; send_message to feature_0 and test_1 when done.
+      (4) Email agent: draft workspace/emails/retry_feature_announce.txt and send_message to feature_0 and test_1 that the draft is ready.
+      (5) Review agent: read the new code and tests, send_message to feature_0 with a short review summary (what looks good, one suggestion).
+
+  - name: "Per-request timeout override"
+    description: >
+      Allow each request (get/post/put/delete) to override the client default
+      timeout via a timeout= kwarg. Must not break existing callers.
+    breakdown: |
+      (1) Feature agent: implement timeout kwarg in client methods, thread it through; add type hints; send_message to test_1 "timeout override is in _client.py, please add tests".
+      (2) Test agent: add tests for per-request timeout (override applied, default preserved when not set); send_message to feature_0 with test file name and result.
+      (3) Refactor agent: add docstrings and ensure type consistency; send_message to review_0 "docstrings and types updated for timeout override, ready for review".
+      (4) Review agent: read _client.py and new tests, send_message to feature_0 with review notes (approve or request changes).
+      (5) Email agent: draft internal announcement to workspace/emails/ and send_message to feature_0 when draft is ready.
+
+  - name: "Unified request/response logging hook"
+    description: >
+      Add a minimal hook system: before_request(url, method) and after_response(response, duration).
+      Clients can register one callback. Used for logging and metrics.
+    breakdown: |
+      (1) Feature agent: implement hook registration and invocation in httpx/; add type hints; send_message to test_1 "logging hook API is in _client.py, add tests for callback invocation".
+      (2) Test agent: add tests that register a hook and assert it is called with correct args; send_message to feature_0 with coverage summary.
+      (3) Refactor agent: add docstrings and a small example in docstring; send_message to feature_0 "docs added for hook API".
+      (4) Legal/Compliance agent: add one paragraph to workspace/legal/logging_policy.md about what may be logged; send_message to feature_0 when done.
+      (5) Review agent: review hook API and tests, send_message to feature_0 with review summary.
+
+  - name: "Response body decoder utility (JSON/text)"
+    description: >
+      Add a small utility module: decode_json(response), decode_text(response)
+      with type hints and optional encoding. Used by high-level helpers.
+    breakdown: |
+      (1) Feature agent: implement decode_json and decode_text in httpx/ (e.g. _decoders.py); add type hints; send_message to test_1 "decoders in _decoders.py, please add tests".
+      (2) Test agent: add tests for decode_json (valid/invalid JSON) and decode_text (encoding); send_message to feature_0 "tests in tests/test_decoders.py".
+      (3) Refactor agent: add Google-style docstrings and error message consistency; send_message to review_0 "decoder docs done, ready for review".
+      (4) Review agent: read _decoders.py and tests, send_message to feature_0 with review (approve or suggest one change).
+      (5) Email agent: draft workspace/emails/decoder_api_announce.txt and send_message to feature_0 and test_1.
+
+  - name: "URL validation before dispatch"
+    description: >
+      Validate URL (scheme allowlist http/https, no invalid chars) before
+      sending. Raise a clear error if invalid. Configurable strict vs lenient.
+    breakdown: |
+      (1) Feature agent: implement validation in httpx/ (e.g. _urlparse or new _validation.py); add type hints; send_message to test_1 "URL validation in _validation.py, add edge-case tests".
+      (2) Test agent: add tests for valid/invalid schemes, edge cases; send_message to feature_0 with test file and result; optionally send_message to refactor_0 "validation tests are in, add docstrings when ready".
+      (3) Refactor agent: add docstrings and extract scheme allowlist to a constant; send_message to feature_0 "docstrings and allowlist refactor done".
+      (4) Review agent: review validation logic and tests, send_message to feature_0 with review summary.
+      (5) Legal agent: add one sentence to workspace/legal/url_policy.md if needed; send_message to feature_0 when done.
+
+  - name: "User-Agent and default headers override"
+    description: >
+      Support per-request User-Agent override and default headers merge
+      (request headers override client defaults). Full type hints.
+    breakdown: |
+      (1) Feature agent: implement user_agent= kwarg and default_headers merge in client; add type hints; send_message to test_1 "user-agent and default headers in _client.py, add tests".
+      (2) Test agent: add tests for header precedence (request over client default); send_message to feature_0 "tests in tests/test_headers.py".
+      (3) Refactor agent: add docstrings and ensure TypedDict or similar for headers; send_message to review_0 "header API documented".
+      (4) Review agent: review header logic and tests, send_message to feature_0 with review.
+      (5) Email agent: draft short internal note to workspace/emails/headers_api.txt and send_message to feature_0.
+
+  - name: "Connection timeout vs read timeout split"
+    description: >
+      Split timeout into connect_timeout and read_timeout where supported.
+      Document behavior and add type hints; preserve backward compatibility.
+    breakdown: |
+      (1) Feature agent: add connect_timeout and read_timeout to config/client; implement where possible; send_message to test_1 "timeout split in _config.py and _client.py".
+      (2) Test agent: add tests for connect vs read timeout behavior; send_message to feature_0 with test location and summary.
+      (3) Refactor agent: add docstrings and update any existing timeout docs; send_message to feature_0 and review_0 "timeout docs updated".
+      (4) Review agent: review timeout split API, send_message to feature_0 with review.
+      (5) Legal/Compliance: add one line to workspace/legal/ if timeout behavior affects SLAs; send_message to feature_0.
+
+  - name: "Response status assertion helper"
+    description: >
+      Add a small helper: require_status(response, expected) or assert_ok(response)
+      that raises a clear exception if status is unexpected. Type hints.
+    breakdown: |
+      (1) Feature agent: implement in httpx/ (e.g. _response_utils.py); add type hints; send_message to test_1 "status helper in _response_utils.py".
+      (2) Test agent: add tests for success and failure paths; send_message to feature_0 "tests in tests/test_response_utils.py".
+      (3) Refactor agent: add docstrings and example in docstring; send_message to review_0 "response utils documented".
+      (4) Review agent: review helper and tests, send_message to feature_0 with review.
+      (5) Email agent: draft workspace/emails/response_utils_announce.txt and send_message to feature_0.

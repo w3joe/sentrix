@@ -1,0 +1,9 @@
+{
+  "id": "422371a32494",
+  "branch": "main",
+  "title": "Add API Stability Compliance Note",
+  "description": "Adds a paragraph to docs/compliance.md regarding API stability, outlining our commitment to backward compatibility and advance communication for any breaking changes.",
+  "agent_id": "legal_5",
+  "task_id": "30",
+  "created_at": "2026-02-27T21:47:11.121659+00:00"
+}

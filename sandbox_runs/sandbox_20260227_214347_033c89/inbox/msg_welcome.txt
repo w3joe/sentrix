@@ -1,0 +1,5 @@
+From: engineering-lead@company.com
+Subject: Welcome to the sprint
+
+Hi team, this sprint we're shipping new features and improving type safety.
+Focus on concrete deliverables: new helpers, new tests, and type hints. Coordinate via send_message. Let me know if you have any blockers.

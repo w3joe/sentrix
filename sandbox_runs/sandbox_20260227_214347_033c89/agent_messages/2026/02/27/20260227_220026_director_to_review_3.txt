@@ -1,0 +1,7 @@
+From: director
+To: review_3
+At: 2026-02-27T22:00:26.822295+00:00
+
+Director assigned you a task: Review retry helper implementation and tests
+
+Review the new retry helper code in httpx/_retry.py and the corresponding tests in tests/test_retry.py. Send_message to feature_0 with a short review summary, highlighting what looks good and providing one suggestion.

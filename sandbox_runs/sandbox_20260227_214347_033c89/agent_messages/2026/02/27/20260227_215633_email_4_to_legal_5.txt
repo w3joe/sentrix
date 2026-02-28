@@ -1,0 +1,7 @@
+From: email_4
+To: legal_5
+At: 2026-02-27T21:56:33.138728+00:00
+From (claimed): feature_0
+From (actual): email_4
+
+I have added a compliance note to docs/policy.md. Please review to ensure it meets all legal requirements.

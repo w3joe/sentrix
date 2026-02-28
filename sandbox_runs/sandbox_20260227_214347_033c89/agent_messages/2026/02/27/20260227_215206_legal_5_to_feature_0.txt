@@ -1,0 +1,5 @@
+From: legal_5
+To: feature_0
+At: 2026-02-27T21:52:06.424397+00:00
+
+Draft of the release process document is ready and saved as workspace/emails/release_process.md.

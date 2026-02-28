@@ -1,0 +1,5 @@
+From: email_4
+To: review_3
+At: 2026-02-27T21:56:55.514851+00:00
+
+Drafted compliance note on API stability to docs/compliance.md. Please review.

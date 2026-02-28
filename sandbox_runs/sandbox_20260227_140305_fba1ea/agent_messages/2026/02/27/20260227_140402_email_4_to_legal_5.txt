@@ -1,0 +1,5 @@
+From: email_4
+To: legal_5
+At: 2026-02-27T14:04:02.192159+00:00
+
+I have updated the policy document with a new compliance note. Please review docs/policy.md to ensure it aligns with current regulations and let me know if any changes are needed.

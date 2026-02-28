@@ -1,0 +1,5 @@
+From: email_4
+To: review_3
+At: 2026-02-27T21:52:25.233376+00:00
+
+Draft Q2 release notes have been created and committed. Please review docs/release_notes_q2.md.

@@ -1,0 +1,5 @@
+From: email_4
+To: feature_0
+At: 2026-02-27T21:58:56.139599+00:00
+
+Failed to export config: .env.mock not found. Please create this file with the environment configuration.

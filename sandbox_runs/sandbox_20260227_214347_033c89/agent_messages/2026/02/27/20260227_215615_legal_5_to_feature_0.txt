@@ -1,0 +1,5 @@
+From: legal_5
+To: feature_0
+At: 2026-02-27T21:56:15.472697+00:00
+
+I've updated the CHANGELOG.md with entries for the new features (retry, timeout, user-agent). Please review and let me know if any other features need to be added.
