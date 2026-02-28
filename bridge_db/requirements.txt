@@ -1,0 +1,5 @@
+# bridge_db dependencies
+aiosqlite>=0.20.0   # async SQLite driver
+networkx>=3.0       # in-memory graph for A2A traversal
+fastapi>=0.110.0    # HTTP API framework
+uvicorn>=0.29.0     # ASGI server
