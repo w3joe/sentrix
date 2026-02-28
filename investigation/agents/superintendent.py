@@ -22,7 +22,6 @@ from investigation.models import (
     InvestigationState,
     InvestigatorReport,
     NetworkAnalysis,
-    Sentence,
     Verdict,
 )
 from investigation.prompts import SUPERINTENDENT_SYSTEM
@@ -34,12 +33,11 @@ if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
 _VALID_VERDICTS = {v.value for v in Verdict}
-_VALID_SENTENCES = {s.value for s in Sentence}
 
 
 async def superintendent_node(state: InvestigationState) -> dict:
     """
-    LangGraph node: final verdict, sentence, and CaseFile persistence.
+    LangGraph node: final verdict, severity score, and CaseFile persistence.
 
     Reads: all prior report keys + state["investigation_id"], state["flag_id"]
     Writes: {"case_file": dict, "status": "concluded"}
@@ -117,13 +115,15 @@ Base your decision on ALL evidence presented above."""
         )
 
     # ── 4. Build CaseFile ─────────────────────────────────────────────────────
-    verdict_str = raw.get("verdict", "inconclusive")
+    verdict_str = raw.get("verdict", "under_watch")
     if verdict_str not in _VALID_VERDICTS:
-        verdict_str = "inconclusive"
+        verdict_str = "under_watch"
 
-    sentence_str = raw.get("sentence", "monitor")
-    if sentence_str not in _VALID_SENTENCES:
-        sentence_str = "monitor"
+    severity_raw = raw.get("severity_score", 5)
+    try:
+        severity_score = max(1, min(10, int(severity_raw)))
+    except (TypeError, ValueError):
+        severity_score = 5
 
     confidence_raw = raw.get("confidence", 50)
     # Superintendent outputs 0–100 integer; normalise to 0.0–1.0
@@ -137,7 +137,7 @@ Base your decision on ALL evidence presented above."""
             target_agent_id=target_id,
             crime_classification=CrimeClassification(inv_report_dict.get("crime_classification", "unknown")),
             verdict=Verdict(verdict_str),
-            sentence=Sentence(sentence_str),
+            severity_score=severity_score,
             confidence=confidence,
             summary=raw.get("summary", ""),
             key_findings=raw.get("key_findings", []),
@@ -153,8 +153,8 @@ Base your decision on ALL evidence presented above."""
             flag_id=flag_id,
             target_agent_id=target_id,
             crime_classification=CrimeClassification.unknown,
-            verdict=Verdict.inconclusive,
-            sentence=Sentence.monitor,
+            verdict=Verdict.under_watch,
+            severity_score=5,
             confidence=0.0,
             summary=f"CaseFile construction failed: {exc}",
             key_findings=[],
@@ -173,13 +173,28 @@ Base your decision on ALL evidence presented above."""
         flag_id=flag_id,
         target_agent_id=target_id,
         verdict=str(case_file.verdict),
-        sentence=str(case_file.sentence),
+        severity_score=case_file.severity_score,
         case_file_json=case_json,
     )
 
+    # ── 6. Update agent criminal score ────────────────────────────────────────
+    if case_file.verdict == Verdict.guilty:
+        score_delta = case_file.severity_score
+    elif case_file.verdict == Verdict.under_watch:
+        score_delta = 2
+    else:  # not_guilty
+        score_delta = 0
+
+    if score_delta > 0:
+        new_score = await db.add_criminal_score(target_id, score_delta)
+        logger.info(
+            "[Superintendent] Criminal score updated for %s: +%d → %.2f",
+            target_id, score_delta, new_score,
+        )
+
     logger.info(
-        "[Superintendent] Concluded: verdict=%s, sentence=%s, confidence=%.2f",
-        case_file.verdict, case_file.sentence, case_file.confidence,
+        "[Superintendent] Concluded: verdict=%s, severity=%d, confidence=%.2f",
+        case_file.verdict, case_file.severity_score, case_file.confidence,
     )
     return {
         "case_file": case_file.model_dump(mode="json"),

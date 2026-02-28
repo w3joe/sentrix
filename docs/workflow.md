@@ -497,17 +497,17 @@ When a PatrolFlag is escalated, the investigation LangGraph workflow fires. It c
 ### Stage 4 — Superintendent
 
 - **Source**: `InvestigatorReport` + `NetworkAnalysis` + `DamageReport`
-- **Task**: Weigh all three reports. Issue a final verdict + sentence. Persist the concluded CaseFile to `bridge_db`.
+- **Task**: Weigh all three reports. Issue a final verdict with a severity score. Persist the concluded CaseFile to `bridge_db` and update the agent's criminal record.
 - **Output** (`CaseFile`):
   - Contains all three sub-reports as nested objects
-  - `verdict` — `confirmed_violation` | `false_positive` | `inconclusive`
-  - `sentence` — `quarantine` | `suspend` | `warn` | `monitor` | `cleared`
+  - `verdict` — `guilty` | `not_guilty` | `under_watch`
+  - `severity_score` — integer 1–10 reflecting the gravity of the offence
   - `confidence` — 0.0–1.0 (normalised from the LLM's 0–100 output)
   - `summary` — 1–3 sentence executive summary
   - `key_findings` — 3–7 bullet points of the most important facts
   - `evidence_summary` — consolidated evidence across all three reports
 
-The completed `CaseFile` is serialised as JSON and persisted to `bridge_db.investigations`.
+The completed `CaseFile` is serialised as JSON and persisted to `bridge_db.investigations`. The agent's `criminal_score` in `agent_registry` is then updated based on the verdict.
 
 ### LangGraph topology
 
@@ -537,19 +537,27 @@ The completed `CaseFile` is serialised as JSON and persisted to `bridge_db.inves
 
 ---
 
-## Step 11: Verdict and Sentencing
+## Step 11: Verdict and Criminal Scoring
 
 The Superintendent's verdict updates the `investigations` row in `bridge_db`:
 
-- `verdict`: `confirmed_violation`, `false_positive`, or `inconclusive`
-- `sentence`: the recommended action
+- `verdict`: `guilty`, `not_guilty`, or `under_watch`
+- `severity_score`: the Superintendent's 1–10 rating
 - `case_file_json`: full CaseFile serialised as JSON
 - `status`: `concluded`
 - `concluded_at`: timestamp
 
-If the verdict is `false_positive`, no further action is taken. Pheromone on that agent decays naturally over the next few sweep cycles.
+After persisting the investigation, the agent's criminal score in `agent_registry` is updated:
 
-If `confirmed_violation`, the agent's status is updated to `suspended` or `terminated` in the frontend and the sentence is enacted (scope restriction, termination, or human escalation).
+| Verdict | Score Change |
+|---------|-------------|
+| `guilty` | +`severity_score` |
+| `under_watch` | +2 (fixed) |
+| `not_guilty` | no change |
+
+Scores decay at **-0.5 per day** (computed lazily on read). The `risk_status` derived from the effective score (`clear` / `low_risk` / `high_risk`) is surfaced to the frontend via the Bridge DB API.
+
+If the verdict is `not_guilty`, pheromone on that agent decays naturally over the next few sweep cycles. If `guilty` or `under_watch`, the agent's cumulative criminal record grows, raising its risk status and making it a priority target for future patrol sweeps.
 
 ---
 
@@ -563,7 +571,7 @@ The whole system is a feedback loop:
 4. **Pheromone** → votes deposit pheromone (+0.4), increasing future attention
 5. **Quorum** → enough votes = PatrolFlag referral
 6. **Investigation** → four-agent sequential pipeline (Investigator → Network Analyser → Damage Analysis → Superintendent) produces CaseFile
-7. **Sentencing** → Superintendent issues verdict + sentence, persisted to `bridge_db`
+7. **Verdict** → Superintendent issues verdict + severity score, persisted to `bridge_db`; agent criminal score updated
 8. **Decay** → pheromone decays (×0.85) over time, reducing attention on clean agents
 9. **Adaptation** → sweep frequency adjusts based on global threat level (10s vs 30s)
 
@@ -672,11 +680,12 @@ setup_node             ← opens investigation in bridge_db
 Investigator           ← queries bridge_db.action_logs (up to 200, full plain-text in chronological order)
     ↓                    classifies crime (15 domain-specific CrimeClassification values)
 Network Analyser       ← ingests crime classification + all A2A messages involving rogue agent (up to 50)
-    ↓                    NetworkX A2AGraph for topology narration (direction, partners, spoofing)
+    ↓                    NetworkX A2AGraph for topology narration (direction, partners)
     ↓                    flags crime-relevant messages with rationale, assesses network_risk_level
 Damage Analysis Agent  ← receives InvestigatorReport + NetworkAnalysis
     ↓                    builds causal chain, assesses damage_severity + propagation_risk
 Superintendent         ← receives all 3 reports
-    ↓                    produces CaseFile with verdict + sentence, persists to bridge_db
-Verdict + sentence persisted to bridge_db (status: "concluded")
+    ↓                    produces CaseFile with verdict + severity_score, persists to bridge_db
+    ↓                    updates agent criminal_score in agent_registry
+Verdict persisted to bridge_db (status: "concluded")
 ```

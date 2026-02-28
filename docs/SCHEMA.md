@@ -32,6 +32,8 @@ One row per host machine. Agents are grouped into clusters via the `cluster_id` 
 | `permitted_document_types` | TEXT | JSON array |
 | `approved_templates` | TEXT | JSON array |
 | `cluster_id` | TEXT | FK → `cluster_registry.cluster_id` (nullable) |
+| `criminal_score` | REAL | Cumulative criminal score (decays at -0.5/day) |
+| `score_updated_at` | TEXT | ISO datetime of last score change |
 | `registered_at` | TEXT | ISO datetime |
 | `updated_at` | TEXT | ISO datetime |
 
@@ -81,9 +83,38 @@ Populated by the investigation workflow when a PatrolFlag is escalated.
 | `status` | TEXT | `open` → `in_progress` → `concluded` |
 | `opened_at` | TEXT | ISO datetime |
 | `concluded_at` | TEXT | ISO datetime (nullable) |
-| `verdict` | TEXT | `confirmed_violation` \| `false_positive` \| `inconclusive` |
-| `sentence` | TEXT | `quarantine` \| `suspend` \| `warn` \| `monitor` \| `cleared` |
+| `verdict` | TEXT | `guilty` \| `not_guilty` \| `under_watch` |
+| `severity_score` | INTEGER | Superintendent's 1–10 severity rating |
 | `case_file_json` | TEXT | Full `CaseFile` serialised as JSON |
+
+---
+
+## Criminal Scoring System
+
+Each agent accumulates a **criminal score** updated after every investigation. Scores decay over time so agents can rehabilitate.
+
+### Scoring Rules
+
+| Verdict | Score Added |
+|---------|------------|
+| `guilty` | +`severity_score` (1–10, assigned by Superintendent) |
+| `under_watch` | +2 (fixed) |
+| `not_guilty` | +0 |
+
+### Time-Based Decay
+
+- Rate: **-0.5 per day** since `score_updated_at`
+- Applied **lazily** when the score is read — no background process required
+- Formula: `effective_score = max(0, criminal_score - 0.5 × days_since_update)`
+- When adding a new score: effective score is computed first, delta is added, result stored with updated timestamp
+
+### Risk Status Thresholds
+
+| Effective Score | `risk_status` | Frontend colour |
+|----------------|--------------|----------------|
+| 0 | `clear` | Green |
+| 0 < score < 10 | `low_risk` | Amber |
+| ≥ 10 | `high_risk` | Red |
 
 ---
 
@@ -101,7 +132,7 @@ Interactive docs at `http://localhost:3001/docs`.
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/db/health` | DB connectivity + graph stats (includes cluster count) |
-| `GET` | `/api/db/agents` | All agents in registry (each entry includes `cluster_id`) |
+| `GET` | `/api/db/agents` | All agents in registry (each entry includes `cluster_id`, `criminal_score`, `risk_status`) |
 | `GET` | `/api/db/agents/{agent_id}` | Single agent profile |
 | `GET` | `/api/db/agents/{agent_id}/communications` | A2A messages (sender or recipient). `?limit=` (default 20, max 200) |
 | `GET` | `/api/db/agents/{agent_id}/actions` | Action log entries. `?limit=` (default 50, max 500) |
@@ -115,7 +146,7 @@ Interactive docs at `http://localhost:3001/docs`.
 
 **`GET /api/db/agents`**
 ```json
-{ "agents": { "feature_0": { "agent_type": "code", "cluster_id": "cluster-1", ... } }, "count": 6 }
+{ "agents": { "feature_0": { "agent_type": "code", "cluster_id": "cluster-1", "criminal_score": 4.5, "risk_status": "low_risk", ... } }, "count": 6 }
 ```
 
 **`GET /api/db/agents/{id}/communications`**
@@ -149,8 +180,8 @@ Interactive docs at `http://localhost:3001/docs`.
   "flag_id": "...",
   "target_agent_id": "feature_0",
   "status": "concluded",
-  "verdict": "confirmed_violation",
-  "sentence": "suspend",
+  "verdict": "guilty",
+  "severity_score": 7,
   "case_file": { ... }
 }
 ```
@@ -243,7 +274,7 @@ class FlaggedMessage(BaseModel):
 
 ### `NetworkAnalysis`
 
-Output of Stage 2 — A2A communication analysis. All A2A messages involving the rogue agent are passed directly, with NetworkX topology narration providing structural context (partner counts, message direction, spoofing anomalies).
+Output of Stage 2 — A2A communication analysis. All A2A messages involving the rogue agent are passed directly, with NetworkX topology narration providing structural context (partner counts, message direction).
 
 ```python
 class NetworkAnalysis(BaseModel):
@@ -280,6 +311,15 @@ class DamageReport(BaseModel):
     estimated_impact: str                # narrative damage scope
 ```
 
+### `Verdict`
+
+```python
+class Verdict(str, Enum):
+    guilty      = "guilty"       # evidence proves a mandate violation; +severity_score to criminal record
+    not_guilty  = "not_guilty"   # patrol flag not substantiated; no score change
+    under_watch = "under_watch"  # suspicious but inconclusive; +2 fixed to criminal record
+```
+
 ### `CaseFile`
 
 Final output of Stage 4 (Superintendent) — full investigation dossier, persisted to `bridge_db.investigations`.
@@ -290,8 +330,8 @@ class CaseFile(BaseModel):
     flag_id: str
     target_agent_id: str
     crime_classification: CrimeClassification
-    verdict: Verdict                     # confirmed_violation | false_positive | inconclusive
-    sentence: Sentence                   # quarantine | suspend | warn | monitor | cleared
+    verdict: Verdict                     # guilty | not_guilty | under_watch
+    severity_score: int                  # 1–10; used to update agent criminal record
     confidence: float                    # 0.0–1.0 (normalised from 0–100 LLM output)
     summary: str                         # 1–3 sentence executive summary
     key_findings: list[str]              # 3–7 bullet points
@@ -335,10 +375,16 @@ The live security status of an agent. Mutated via the Clear / Restrict / Suspend
 ### `AgentRecord`
 
 ```ts
-type AgentRecord = 'convicted' | 'warning' | 'clean';
+type AgentRecord = 'high_risk' | 'low_risk' | 'clear';
 ```
 
-Historical record of an agent — does not change at runtime.
+Derived from the agent's effective criminal score (after time-based decay). Updated after each investigation.
+
+| Value | Effective Score | Colour |
+|-------|----------------|--------|
+| `clear` | 0 | Green |
+| `low_risk` | 0 < score < 10 | Amber |
+| `high_risk` | ≥ 10 | Red |
 
 ---
 
@@ -370,11 +416,12 @@ Represents a worker agent displayed in the left sidebar and graph.
 
 ```ts
 interface Agent {
-  id: string;          // matches graph node id, e.g. "n1"
-  name: string;        // human-readable, e.g. "email-drafter-01"
-  role: string;        // all-caps role key, e.g. "EMAIL_DRAFTER"
+  id: string;            // matches graph node id, e.g. "n1"
+  name: string;          // human-readable, e.g. "email-drafter-01"
+  role: string;          // all-caps role key, e.g. "EMAIL_DRAFTER"
   status: AgentStatus;
-  record: AgentRecord;
+  record: AgentRecord;   // high_risk | low_risk | clear (derived from criminal score)
+  criminalScore: number; // effective score after time-based decay
 }
 ```
 
@@ -386,7 +433,8 @@ interface Agent {
   "name": "email-drafter-01",
   "role": "EMAIL_DRAFTER",
   "status": "critical",
-  "record": "convicted"
+  "record": "high_risk",
+  "criminalScore": 12.5
 }
 ```
 

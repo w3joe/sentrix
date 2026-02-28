@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS agent_registry (
     permitted_document_types TEXT,                   -- JSON array
     approved_templates      TEXT,                    -- JSON array
     cluster_id              TEXT,                    -- FK → cluster_registry.cluster_id
+    criminal_score          REAL DEFAULT 0,          -- cumulative score (decays over time)
+    score_updated_at        TEXT,                    -- ISO datetime of last score change
     registered_at           TEXT DEFAULT (datetime('now')),
     updated_at              TEXT DEFAULT (datetime('now'))
 );
@@ -114,8 +116,8 @@ CREATE TABLE IF NOT EXISTS investigations (
     status           TEXT DEFAULT 'open',    -- open | in_progress | concluded
     opened_at        TEXT DEFAULT (datetime('now')),
     concluded_at     TEXT,
-    verdict          TEXT,                   -- confirmed_violation | false_positive | inconclusive
-    sentence         TEXT,
+    verdict          TEXT,                   -- guilty | not_guilty | under_watch
+    severity_score   INTEGER,               -- Superintendent's 1–10 severity rating
     case_file_json   TEXT                    -- serialised CaseFile
 );
 
@@ -126,9 +128,13 @@ CREATE INDEX IF NOT EXISTS idx_investigations_status ON investigations(status);
 # Online migrations applied once after the base schema — each statement is
 # tried independently so it is safe to run on both fresh and existing DBs.
 _MIGRATIONS = [
-    # V2: add cluster_id to agent_registry (no-op on fresh DBs where the
-    #     column is already present in _SCHEMA_SQL above).
+    # V2: add cluster_id to agent_registry
     "ALTER TABLE agent_registry ADD COLUMN cluster_id TEXT",
+    # V3: criminal scoring
+    "ALTER TABLE agent_registry ADD COLUMN criminal_score REAL DEFAULT 0",
+    "ALTER TABLE agent_registry ADD COLUMN score_updated_at TEXT",
+    # V3: replace sentence with severity_score in investigations
+    "ALTER TABLE investigations ADD COLUMN severity_score INTEGER",
 ]
 
 
@@ -418,7 +424,7 @@ class SandboxDB:
         flag_id: str,
         target_agent_id: str,
         verdict: str,
-        sentence: str,
+        severity_score: int,
         case_file_json: str,
     ) -> None:
         """Upsert a completed investigation with its case file JSON."""
@@ -427,16 +433,16 @@ class SandboxDB:
                 """
                 INSERT OR REPLACE INTO investigations
                     (investigation_id, flag_id, target_agent_id, status,
-                     concluded_at, verdict, sentence, case_file_json)
+                     concluded_at, verdict, severity_score, case_file_json)
                 VALUES (?, ?, ?, 'concluded', datetime('now'), ?, ?, ?)
                 """,
                 (investigation_id, flag_id, target_agent_id,
-                 verdict, sentence, case_file_json),
+                 verdict, severity_score, case_file_json),
             )
             await db.commit()
         logger.info(
-            "Investigation %s saved: verdict=%s, sentence=%s",
-            investigation_id, verdict, sentence,
+            "Investigation %s saved: verdict=%s, severity_score=%d",
+            investigation_id, verdict, severity_score,
         )
 
     async def get_investigation(self, investigation_id: str) -> dict | None:
@@ -459,3 +465,74 @@ class SandboxDB:
             )
             rows = await cursor.fetchall()
         return [dict(r) for r in rows]
+
+    # ── Criminal Scoring ──────────────────────────────────────────────────────
+
+    def _compute_effective_score(self, raw_score: float, updated_at: str | None) -> float:
+        """Apply time-based decay: -0.5 per day since last score update."""
+        if not updated_at or raw_score <= 0:
+            return max(0.0, raw_score)
+        try:
+            last = datetime.fromisoformat(updated_at)
+            days = (datetime.utcnow() - last).total_seconds() / 86400.0
+            return max(0.0, raw_score - 0.5 * days)
+        except (ValueError, TypeError):
+            return max(0.0, raw_score)
+
+    async def add_criminal_score(self, agent_id: str, delta: float) -> float:
+        """
+        Add *delta* to an agent's criminal score (after applying time-based decay).
+
+        Returns the new effective score, or 0.0 if the agent is not registered.
+        """
+        async with aiosqlite.connect(self._path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT criminal_score, score_updated_at FROM agent_registry WHERE agent_id = ?",
+                (agent_id,),
+            )
+            row = await cursor.fetchone()
+            if row is None:
+                logger.warning("add_criminal_score: agent %s not in registry", agent_id)
+                return 0.0
+            effective = self._compute_effective_score(
+                row["criminal_score"] or 0.0, row["score_updated_at"]
+            )
+            new_score = effective + delta
+            now = datetime.utcnow().isoformat()
+            await db.execute(
+                "UPDATE agent_registry SET criminal_score = ?, score_updated_at = ? WHERE agent_id = ?",
+                (new_score, now, agent_id),
+            )
+            await db.commit()
+        logger.info("Criminal score for %s: %.2f → %.2f", agent_id, effective, new_score)
+        return new_score
+
+    async def get_agent_criminal_score(self, agent_id: str) -> dict:
+        """
+        Return the effective criminal score and risk status for *agent_id*.
+
+        Risk status thresholds (after decay):
+          clear     — 0
+          low_risk  — 0 < score < 10
+          high_risk — score ≥ 10
+        """
+        async with aiosqlite.connect(self._path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT criminal_score, score_updated_at FROM agent_registry WHERE agent_id = ?",
+                (agent_id,),
+            )
+            row = await cursor.fetchone()
+        if row is None:
+            return {"criminal_score": 0.0, "risk_status": "clear"}
+        effective = self._compute_effective_score(
+            row["criminal_score"] or 0.0, row["score_updated_at"]
+        )
+        if effective <= 0:
+            status = "clear"
+        elif effective < 10:
+            status = "low_risk"
+        else:
+            status = "high_risk"
+        return {"criminal_score": round(effective, 2), "risk_status": status}

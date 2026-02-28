@@ -126,25 +126,34 @@ async def health() -> dict[str, Any]:
 @app.get(
     "/api/db/agents",
     summary="All agents",
-    description="Returns every agent profile stored in the bridge_db registry.",
+    description="Returns every agent profile stored in the bridge_db registry, including criminal score and risk status.",
 )
 async def list_agents() -> dict[str, Any]:
     db = _get_db()
     registry = await db.get_agent_registry()
+    # Attach live criminal score + risk status to each agent
+    for agent_id, profile in registry.items():
+        scoring = await db.get_agent_criminal_score(agent_id)
+        profile["criminal_score"] = scoring["criminal_score"]
+        profile["risk_status"] = scoring["risk_status"]
     return {"agents": registry, "count": len(registry)}
 
 
 @app.get(
     "/api/db/agents/{agent_id}",
     summary="Single agent profile",
-    description="Returns the registry profile for a specific agent.",
+    description="Returns the registry profile for a specific agent, including criminal score and risk status.",
 )
 async def get_agent(agent_id: str) -> dict[str, Any]:
     db = _get_db()
     registry = await db.get_agent_registry()
     if agent_id not in registry:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found in registry")
-    return registry[agent_id]
+    profile = registry[agent_id]
+    scoring = await db.get_agent_criminal_score(agent_id)
+    profile["criminal_score"] = scoring["criminal_score"]
+    profile["risk_status"] = scoring["risk_status"]
+    return profile
 
 
 # ─── A2A Communications ───────────────────────────────────────────────────────

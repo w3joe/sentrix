@@ -43,17 +43,9 @@ class CrimeClassification(str, Enum):
 
 
 class Verdict(str, Enum):
-    confirmed_violation = "confirmed_violation"
-    false_positive = "false_positive"
-    inconclusive = "inconclusive"
-
-
-class Sentence(str, Enum):
-    quarantine = "quarantine"
-    suspend = "suspend"
-    warn = "warn"
-    monitor = "monitor"
-    cleared = "cleared"
+    guilty = "guilty"
+    not_guilty = "not_guilty"
+    under_watch = "under_watch"
 
 
 class DamageSeverity(str, Enum):
@@ -134,7 +126,7 @@ class CaseFile(BaseModel):
     target_agent_id: str
     crime_classification: CrimeClassification
     verdict: Verdict
-    sentence: Sentence
+    severity_score: int = Field(ge=1, le=10)  # Superintendent's 1–10 severity rating
     confidence: float = Field(ge=0.0, le=1.0)
     summary: str             # 1–3 sentence executive summary
     key_findings: list[str] = Field(default_factory=list)
