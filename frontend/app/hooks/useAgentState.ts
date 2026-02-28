@@ -30,16 +30,26 @@ export function useAgentState() {
   const clearAgent = useCallback((agentId: string) => {
     setAgentStates(prev => {
       const newMap = new Map(prev);
-      newMap.set(agentId, 'clean');
+      newMap.set(agentId, 'idle');
       return newMap;
+    });
+    fetch(`/api/db/agents/${agentId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'idle' }),
     });
   }, []);
 
   const restrictAgent = useCallback((agentId: string) => {
     setAgentStates(prev => {
       const newMap = new Map(prev);
-      newMap.set(agentId, 'warning');
+      newMap.set(agentId, 'restricted');
       return newMap;
+    });
+    fetch(`/api/db/agents/${agentId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'restricted' }),
     });
   }, []);
 
@@ -48,6 +58,11 @@ export function useAgentState() {
       const newMap = new Map(prev);
       newMap.set(agentId, 'suspended');
       return newMap;
+    });
+    fetch(`/api/db/agents/${agentId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'suspended' }),
     });
   }, []);
 

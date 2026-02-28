@@ -61,21 +61,27 @@ export function AgentSprite({
     ? SPRITE_SHEETS.restricted
     : SPRITE_SHEETS[RISK_SPRITE_MAP[riskScore]];
 
-  // Shake offset for critical agents
-  const shakeX = status === 'critical' ? Math.sin(Date.now() / 50) * 3 : 0;
+  // No shake — removed (was tied to 'critical' which no longer exists)
+  const shakeX = 0;
 
   const drawAura = useCallback(
     (g: any) => {
       g.clear();
-      if (status === 'critical' || status === 'warning') {
-        const alpha = status === 'critical'
-          ? 0.2 + Math.sin(Date.now() / 200) * 0.15
-          : 0.1 + Math.sin(Date.now() / 500) * 0.05;
-        const radius = status === 'critical'
-          ? SIZES.auraRadius + Math.sin(Date.now() / 300) * 5
-          : SIZES.auraRadius;
+      if (status === 'restricted') {
+        // Pulsing orange aura for restricted agents
+        const alpha = 0.1 + Math.sin(Date.now() / 500) * 0.05;
         g.setFillStyle({ color: colors.border, alpha });
-        g.circle(0, 0, radius);
+        g.circle(0, 0, SIZES.auraRadius);
+        g.fill();
+      } else if (status === 'working') {
+        // Subtle green aura for actively working agents
+        g.setFillStyle({ color: colors.border, alpha: 0.08 });
+        g.circle(0, 0, SIZES.auraRadius);
+        g.fill();
+      } else if (status === 'idle') {
+        // Dim blue aura for idle agents
+        g.setFillStyle({ color: colors.border, alpha: 0.05 });
+        g.circle(0, 0, SIZES.auraRadius);
         g.fill();
       }
     },
@@ -100,12 +106,11 @@ export function AgentSprite({
   const drawAlert = useCallback(
     (g: any) => {
       g.clear();
-      if (status !== 'critical' && status !== 'warning') return;
+      if (status !== 'restricted') return;
       const bounce = Math.sin(Date.now() / 300) * 3;
-      const iconColor = status === 'critical' ? 0xff3355 : 0xffaa00;
 
-      // Warning triangle
-      g.setFillStyle({ color: iconColor });
+      // Warning triangle (orange for restricted)
+      g.setFillStyle({ color: 0xffaa00 });
       g.moveTo(0, -38 + bounce);
       g.lineTo(-5, -28 + bounce);
       g.lineTo(5, -28 + bounce);

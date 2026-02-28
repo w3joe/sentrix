@@ -11,9 +11,9 @@ import type { Cluster, AgentStatus } from '../../types';
 // ── Shared constants ─────────────────────────────────────────────────────────
 
 const COLORS = {
-  critical: '#ff3355',
-  warning: '#ffaa00',
-  clean: '#00c853',
+  working: '#00c853',
+  idle: '#4a9eff',
+  restricted: '#ffaa00',
   suspended: '#6b7280',
   cyan: '#00d4ff',
   falsePositive: '#00c853',
@@ -68,7 +68,7 @@ export function AnalyticsSidebar({ clusters, getAgentStatus }: AnalyticsSidebarP
 
 function AgentStatusDonut({ clusters, getAgentStatus }: { clusters: Cluster[]; getAgentStatus: (id: string) => AgentStatus }) {
   const allAgents = clusters.flatMap(c => c.agents);
-  const counts = { clean: 0, warning: 0, critical: 0, suspended: 0 };
+  const counts = { working: 0, idle: 0, restricted: 0, suspended: 0 };
   for (const a of allAgents) {
     const s = getAgentStatus(a.id);
     counts[s]++;
@@ -76,9 +76,9 @@ function AgentStatusDonut({ clusters, getAgentStatus }: { clusters: Cluster[]; g
   const total = allAgents.length;
 
   const data = [
-    { name: 'Clean', value: counts.clean, color: COLORS.clean },
-    { name: 'Warning', value: counts.warning, color: COLORS.warning },
-    { name: 'Critical', value: counts.critical, color: COLORS.critical },
+    { name: 'Working', value: counts.working, color: COLORS.working },
+    { name: 'Idle', value: counts.idle, color: COLORS.idle },
+    { name: 'Restricted', value: counts.restricted, color: COLORS.restricted },
     { name: 'Suspended', value: counts.suspended, color: COLORS.suspended },
   ].filter(d => d.value > 0);
 
@@ -113,8 +113,8 @@ function ViolationsBar() {
   }));
 
   const getBarColor = (v: number) => {
-    if (v >= 3) return COLORS.critical;
-    if (v >= 1) return COLORS.warning;
+    if (v >= 3) return COLORS.restricted;
+    if (v >= 1) return COLORS.restricted;
     return COLORS.cyan;
   };
 
@@ -261,10 +261,10 @@ const ROLES = ['EMAIL_AGENT', 'CODING_AGENT', 'DOCUMENT_AGENT', 'DATA_QUERY_AGEN
 const ROLE_SHORT = ['Email', 'Code', 'Doc', 'Data'];
 
 const heatmapColors: Record<AgentStatus, string> = {
-  critical: 'bg-[#ff3355]',
-  warning: 'bg-[#ffaa00]',
-  clean: 'bg-[#00c853]/40',
-  suspended: 'bg-[#6b7280]',
+  working:    'bg-[#00c853]/60',
+  idle:       'bg-[#4a9eff]/40',
+  restricted: 'bg-[#ffaa00]',
+  suspended:  'bg-[#6b7280]',
 };
 
 function AgentRiskHeatmap({ clusters, getAgentStatus }: { clusters: Cluster[]; getAgentStatus: (id: string) => AgentStatus }) {
@@ -284,7 +284,7 @@ function AgentRiskHeatmap({ clusters, getAgentStatus }: { clusters: Cluster[]; g
           <div className="text-[8px] text-[#6b7280] flex items-center">C{ci + 1}</div>
           {ROLES.map(role => {
             const agent = cluster.agents.find(a => a.role === role);
-            const status = agent ? getAgentStatus(agent.id) : 'clean';
+            const status = agent ? getAgentStatus(agent.id) : 'idle';
             return (
               <div
                 key={role}

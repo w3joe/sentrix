@@ -1,10 +1,10 @@
 import type { AgentStatus, RiskLevel } from '../../../../types';
 
 export const STATUS_COLORS: Record<AgentStatus, { bg: number; border: number; text: string }> = {
-  critical: { bg: 0x3a0010, border: 0xff3355, text: '#ff3355' },
-  warning: { bg: 0x3a2a00, border: 0xffaa00, text: '#ffaa00' },
-  clean: { bg: 0x1e3a5f, border: 0x00d4ff, text: '#00d4ff' },
-  suspended: { bg: 0x1f2937, border: 0x6b7280, text: '#6b7280' },
+  working:    { bg: 0x003a1a, border: 0x00c853, text: '#00c853' },
+  idle:       { bg: 0x1e3a5f, border: 0x4a9eff, text: '#4a9eff' },
+  restricted: { bg: 0x3a2a00, border: 0xffaa00, text: '#ffaa00' },
+  suspended:  { bg: 0x1f2937, border: 0x6b7280, text: '#6b7280' },
 };
 
 export const SYSTEM_COLORS = {

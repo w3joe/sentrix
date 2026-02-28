@@ -18,13 +18,13 @@ export const AgentNode = memo(function AgentNode({ data }: NodeProps<BaseNodeDat
 
   const getStyles = () => {
     switch (status) {
-      case 'critical':
+      case 'working':
         return {
-          bg: '#3a0010',
-          border: '#ff3355',
-          pulse: true,
+          bg: '#003a1a',
+          border: '#00c853',
+          pulse: false,
         };
-      case 'warning':
+      case 'restricted':
         return {
           bg: '#3a2a00',
           border: '#ffaa00',
@@ -37,10 +37,10 @@ export const AgentNode = memo(function AgentNode({ data }: NodeProps<BaseNodeDat
           border: '#6b7280',
           pulse: false,
         };
-      default: // clean
+      default: // idle
         return {
           bg: '#1e3a5f',
-          border: '#00d4ff',
+          border: '#4a9eff',
           pulse: false,
         };
     }
@@ -50,7 +50,7 @@ export const AgentNode = memo(function AgentNode({ data }: NodeProps<BaseNodeDat
 
   return (
     <div className="relative">
-      {/* Pulse ring for critical */}
+      {/* Pulse ring (unused — kept for future use) */}
       {styles.pulse && (
         <div
           className="absolute inset-0 rounded-full animate-ping"

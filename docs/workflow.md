@@ -547,7 +547,7 @@ After persisting the investigation, the agent's criminal score in `agent_registr
 | `under_watch` | +2 (fixed) |
 | `not_guilty` | no change |
 
-Scores decay at **-0.5 per day** (computed lazily on read). The `risk_status` derived from the effective score (`clear` / `low_risk` / `high_risk`) is surfaced to the frontend via the Bridge DB API.
+Scores decay at **-0.5 per day** (computed lazily on read). The `record` derived from the effective score (`clear` / `low_risk` / `high_risk`) is surfaced to the frontend via the Bridge DB API.
 
 If the verdict is `not_guilty`, pheromone on that agent decays naturally over the next few sweep cycles. If `guilty` or `under_watch`, the agent's cumulative criminal record grows, raising its risk status and making it a priority target for future patrol sweeps.
 

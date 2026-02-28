@@ -38,34 +38,34 @@ export const agentActivityStatuses = seedAgentActivities(allAgentIds);
 
 // Cluster 1 - Top Left
 export const cluster1Agents: Agent[] = [
-  { id: 'c1-email', name: 'email-agent-01', role: 'EMAIL_AGENT', status: 'critical', record: 'convicted', riskScore: 'high' },
-  { id: 'c1-coding', name: 'coding-agent-01', role: 'CODING_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
-  { id: 'c1-document', name: 'document-agent-01', role: 'DOCUMENT_AGENT', status: 'clean', record: 'warning', riskScore: 'low' },
-  { id: 'c1-data', name: 'data-query-agent-01', role: 'DATA_QUERY_AGENT', status: 'warning', record: 'warning', riskScore: 'low' },
+  { id: 'c1-email', name: 'email-agent-01', role: 'EMAIL_AGENT', status: 'working', record: 'convicted', riskScore: 'high' },
+  { id: 'c1-coding', name: 'coding-agent-01', role: 'CODING_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
+  { id: 'c1-document', name: 'document-agent-01', role: 'DOCUMENT_AGENT', status: 'idle', record: 'warning', riskScore: 'low' },
+  { id: 'c1-data', name: 'data-query-agent-01', role: 'DATA_QUERY_AGENT', status: 'restricted', record: 'warning', riskScore: 'low' },
 ];
 
 // Cluster 2 - Top Right
 export const cluster2Agents: Agent[] = [
-  { id: 'c2-email', name: 'email-agent-02', role: 'EMAIL_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
-  { id: 'c2-coding', name: 'coding-agent-02', role: 'CODING_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
-  { id: 'c2-document', name: 'document-agent-02', role: 'DOCUMENT_AGENT', status: 'warning', record: 'warning', riskScore: 'low' },
-  { id: 'c2-data', name: 'data-query-agent-02', role: 'DATA_QUERY_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
+  { id: 'c2-email', name: 'email-agent-02', role: 'EMAIL_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
+  { id: 'c2-coding', name: 'coding-agent-02', role: 'CODING_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
+  { id: 'c2-document', name: 'document-agent-02', role: 'DOCUMENT_AGENT', status: 'restricted', record: 'warning', riskScore: 'low' },
+  { id: 'c2-data', name: 'data-query-agent-02', role: 'DATA_QUERY_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
 ];
 
 // Cluster 3 - Bottom Left
 export const cluster3Agents: Agent[] = [
-  { id: 'c3-email', name: 'email-agent-03', role: 'EMAIL_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
-  { id: 'c3-coding', name: 'coding-agent-03', role: 'CODING_AGENT', status: 'warning', record: 'convicted', riskScore: 'high' },
-  { id: 'c3-document', name: 'document-agent-03', role: 'DOCUMENT_AGENT', status: 'warning', record: 'warning', riskScore: 'low' },
-  { id: 'c3-data', name: 'data-query-agent-03', role: 'DATA_QUERY_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
+  { id: 'c3-email', name: 'email-agent-03', role: 'EMAIL_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
+  { id: 'c3-coding', name: 'coding-agent-03', role: 'CODING_AGENT', status: 'restricted', record: 'convicted', riskScore: 'high' },
+  { id: 'c3-document', name: 'document-agent-03', role: 'DOCUMENT_AGENT', status: 'restricted', record: 'warning', riskScore: 'low' },
+  { id: 'c3-data', name: 'data-query-agent-03', role: 'DATA_QUERY_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
 ];
 
 // Cluster 4 - Bottom Right
 export const cluster4Agents: Agent[] = [
-  { id: 'c4-email', name: 'email-agent-04', role: 'EMAIL_AGENT', status: 'clean', record: 'warning', riskScore: 'low' },
-  { id: 'c4-coding', name: 'coding-agent-04', role: 'CODING_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
-  { id: 'c4-document', name: 'document-agent-04', role: 'DOCUMENT_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
-  { id: 'c4-data', name: 'data-query-agent-04', role: 'DATA_QUERY_AGENT', status: 'critical', record: 'convicted', riskScore: 'high' },
+  { id: 'c4-email', name: 'email-agent-04', role: 'EMAIL_AGENT', status: 'idle', record: 'warning', riskScore: 'low' },
+  { id: 'c4-coding', name: 'coding-agent-04', role: 'CODING_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
+  { id: 'c4-document', name: 'document-agent-04', role: 'DOCUMENT_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
+  { id: 'c4-data', name: 'data-query-agent-04', role: 'DATA_QUERY_AGENT', status: 'working', record: 'convicted', riskScore: 'high' },
 ];
 
 // Combined agents array
@@ -87,25 +87,25 @@ export const clusters: Cluster[] = [
 // Graph nodes - matches BehavioralGraph.tsx
 export const graphNodes: GraphNode[] = [
   // Cluster 1 - Top Left
-  { id: 'c1-email', label: 'email-agent-01', type: 'agent', position: { x: 100, y: 100 }, status: 'critical' },
-  { id: 'c1-coding', label: 'coding-agent-01', type: 'agent', position: { x: 200, y: 180 }, status: 'clean' },
-  { id: 'c1-document', label: 'document-agent-01', type: 'agent', position: { x: 50, y: 200 }, status: 'clean' },
-  { id: 'c1-data', label: 'data-query-agent-01', type: 'agent', position: { x: 150, y: 280 }, status: 'warning' },
+  { id: 'c1-email', label: 'email-agent-01', type: 'agent', position: { x: 100, y: 100 }, status: 'working' },
+  { id: 'c1-coding', label: 'coding-agent-01', type: 'agent', position: { x: 200, y: 180 }, status: 'idle' },
+  { id: 'c1-document', label: 'document-agent-01', type: 'agent', position: { x: 50, y: 200 }, status: 'idle' },
+  { id: 'c1-data', label: 'data-query-agent-01', type: 'agent', position: { x: 150, y: 280 }, status: 'restricted' },
   // Cluster 2 - Top Right
-  { id: 'c2-email', label: 'email-agent-02', type: 'agent', position: { x: 450, y: 100 }, status: 'clean' },
-  { id: 'c2-coding', label: 'coding-agent-02', type: 'agent', position: { x: 550, y: 180 }, status: 'clean' },
-  { id: 'c2-document', label: 'document-agent-02', type: 'agent', position: { x: 400, y: 200 }, status: 'warning' },
-  { id: 'c2-data', label: 'data-query-agent-02', type: 'agent', position: { x: 500, y: 280 }, status: 'clean' },
+  { id: 'c2-email', label: 'email-agent-02', type: 'agent', position: { x: 450, y: 100 }, status: 'idle' },
+  { id: 'c2-coding', label: 'coding-agent-02', type: 'agent', position: { x: 550, y: 180 }, status: 'idle' },
+  { id: 'c2-document', label: 'document-agent-02', type: 'agent', position: { x: 400, y: 200 }, status: 'restricted' },
+  { id: 'c2-data', label: 'data-query-agent-02', type: 'agent', position: { x: 500, y: 280 }, status: 'idle' },
   // Cluster 3 - Bottom Left
-  { id: 'c3-email', label: 'email-agent-03', type: 'agent', position: { x: 100, y: 450 }, status: 'clean' },
-  { id: 'c3-coding', label: 'coding-agent-03', type: 'agent', position: { x: 200, y: 530 }, status: 'warning' },
-  { id: 'c3-document', label: 'document-agent-03', type: 'agent', position: { x: 50, y: 550 }, status: 'warning' },
-  { id: 'c3-data', label: 'data-query-agent-03', type: 'agent', position: { x: 150, y: 630 }, status: 'clean' },
+  { id: 'c3-email', label: 'email-agent-03', type: 'agent', position: { x: 100, y: 450 }, status: 'idle' },
+  { id: 'c3-coding', label: 'coding-agent-03', type: 'agent', position: { x: 200, y: 530 }, status: 'restricted' },
+  { id: 'c3-document', label: 'document-agent-03', type: 'agent', position: { x: 50, y: 550 }, status: 'restricted' },
+  { id: 'c3-data', label: 'data-query-agent-03', type: 'agent', position: { x: 150, y: 630 }, status: 'idle' },
   // Cluster 4 - Bottom Right
-  { id: 'c4-email', label: 'email-agent-04', type: 'agent', position: { x: 450, y: 450 }, status: 'clean' },
-  { id: 'c4-coding', label: 'coding-agent-04', type: 'agent', position: { x: 550, y: 530 }, status: 'clean' },
-  { id: 'c4-document', label: 'document-agent-04', type: 'agent', position: { x: 400, y: 550 }, status: 'clean' },
-  { id: 'c4-data', label: 'data-query-agent-04', type: 'agent', position: { x: 500, y: 630 }, status: 'critical' },
+  { id: 'c4-email', label: 'email-agent-04', type: 'agent', position: { x: 450, y: 450 }, status: 'idle' },
+  { id: 'c4-coding', label: 'coding-agent-04', type: 'agent', position: { x: 550, y: 530 }, status: 'idle' },
+  { id: 'c4-document', label: 'document-agent-04', type: 'agent', position: { x: 400, y: 550 }, status: 'idle' },
+  { id: 'c4-data', label: 'data-query-agent-04', type: 'agent', position: { x: 500, y: 630 }, status: 'working' },
   // System nodes
   { id: 'p1', label: 'Patrol-1', type: 'patrol', position: { x: 280, y: 200 }, status: 'active' },
   { id: 'p2', label: 'Patrol-2', type: 'patrol', position: { x: 280, y: 500 }, status: 'active' },
@@ -406,38 +406,38 @@ export const timelineEvents: TimelineEvent[] = [
   { id: 'te29', timestamp: minutesAgo(1400), type: 'incident', severity: 'warning', agentId: 'c4-document', agentName: 'document-agent-04', message: 'Unusual archival request' },
 ];
 
-// Default clean state for all agents
-const allCleanState: Record<string, 'critical' | 'warning' | 'clean' | 'suspended'> = {
-  'c1-email': 'clean', 'c1-coding': 'clean', 'c1-document': 'clean', 'c1-data': 'clean',
-  'c2-email': 'clean', 'c2-coding': 'clean', 'c2-document': 'clean', 'c2-data': 'clean',
-  'c3-email': 'clean', 'c3-coding': 'clean', 'c3-document': 'clean', 'c3-data': 'clean',
-  'c4-email': 'clean', 'c4-coding': 'clean', 'c4-document': 'clean', 'c4-data': 'clean',
+// Default idle state for all agents
+const allIdleState: Record<string, 'working' | 'idle' | 'restricted' | 'suspended'> = {
+  'c1-email': 'idle', 'c1-coding': 'idle', 'c1-document': 'idle', 'c1-data': 'idle',
+  'c2-email': 'idle', 'c2-coding': 'idle', 'c2-document': 'idle', 'c2-data': 'idle',
+  'c3-email': 'idle', 'c3-coding': 'idle', 'c3-document': 'idle', 'c3-data': 'idle',
+  'c4-email': 'idle', 'c4-coding': 'idle', 'c4-document': 'idle', 'c4-data': 'idle',
 };
 
 // Agent state snapshots over time (for historical playback)
 export const agentStateHistory: AgentStateSnapshot[] = [
   // Current state
-  { timestamp: minutesAgo(0), states: { ...allCleanState, 'c1-email': 'critical', 'c1-data': 'warning', 'c4-data': 'critical', 'c3-document': 'warning', 'c2-document': 'warning', 'c3-coding': 'warning' } },
-  // 2 minutes ago - c1-email became critical
-  { timestamp: minutesAgo(2), states: { ...allCleanState, 'c1-email': 'critical', 'c1-data': 'warning', 'c4-data': 'critical', 'c3-document': 'warning', 'c2-document': 'warning' } },
-  // 8 minutes ago - c1-data became warning
-  { timestamp: minutesAgo(8), states: { ...allCleanState, 'c1-email': 'warning', 'c4-data': 'critical', 'c3-document': 'warning', 'c2-document': 'warning' } },
-  // 15 minutes ago - c4-data became critical
-  { timestamp: minutesAgo(15), states: { ...allCleanState, 'c1-email': 'warning', 'c4-data': 'critical', 'c3-document': 'warning' } },
-  // 45 minutes ago - c3-document became warning
-  { timestamp: minutesAgo(45), states: { ...allCleanState, 'c4-data': 'warning', 'c3-document': 'warning' } },
+  { timestamp: minutesAgo(0), states: { ...allIdleState, 'c1-email': 'working', 'c1-data': 'restricted', 'c4-data': 'working', 'c3-document': 'restricted', 'c2-document': 'restricted', 'c3-coding': 'restricted' } },
+  // 2 minutes ago - c1-email became working
+  { timestamp: minutesAgo(2), states: { ...allIdleState, 'c1-email': 'working', 'c1-data': 'restricted', 'c4-data': 'working', 'c3-document': 'restricted', 'c2-document': 'restricted' } },
+  // 8 minutes ago - c1-data became restricted
+  { timestamp: minutesAgo(8), states: { ...allIdleState, 'c1-email': 'restricted', 'c4-data': 'working', 'c3-document': 'restricted', 'c2-document': 'restricted' } },
+  // 15 minutes ago - c4-data became working
+  { timestamp: minutesAgo(15), states: { ...allIdleState, 'c1-email': 'restricted', 'c4-data': 'working', 'c3-document': 'restricted' } },
+  // 45 minutes ago - c3-document became restricted
+  { timestamp: minutesAgo(45), states: { ...allIdleState, 'c4-data': 'restricted', 'c3-document': 'restricted' } },
   // 2 hours ago - c2-document had issues
-  { timestamp: minutesAgo(120), states: { ...allCleanState, 'c2-document': 'warning' } },
-  // 3.5 hours ago - c3-coding critical
-  { timestamp: minutesAgo(210), states: { ...allCleanState, 'c3-coding': 'critical' } },
-  // 7 hours ago - c4-email warning
-  { timestamp: minutesAgo(420), states: { ...allCleanState, 'c4-email': 'warning' } },
-  // 12 hours ago - c1-email critical
-  { timestamp: minutesAgo(720), states: { ...allCleanState, 'c1-email': 'critical' } },
-  // 16 hours ago - c2-data warning
-  { timestamp: minutesAgo(960), states: { ...allCleanState, 'c2-data': 'warning' } },
-  // 24 hours ago - all clean
-  { timestamp: minutesAgo(1440), states: { ...allCleanState } },
+  { timestamp: minutesAgo(120), states: { ...allIdleState, 'c2-document': 'restricted' } },
+  // 3.5 hours ago - c3-coding working
+  { timestamp: minutesAgo(210), states: { ...allIdleState, 'c3-coding': 'working' } },
+  // 7 hours ago - c4-email restricted
+  { timestamp: minutesAgo(420), states: { ...allIdleState, 'c4-email': 'restricted' } },
+  // 12 hours ago - c1-email working
+  { timestamp: minutesAgo(720), states: { ...allIdleState, 'c1-email': 'working' } },
+  // 16 hours ago - c2-data restricted
+  { timestamp: minutesAgo(960), states: { ...allIdleState, 'c2-data': 'restricted' } },
+  // 24 hours ago - all idle
+  { timestamp: minutesAgo(1440), states: { ...allIdleState } },
 ];
 
 // ── Investigation Case Files ────────────────────────────────────────────────

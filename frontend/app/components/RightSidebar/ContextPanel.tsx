@@ -94,10 +94,10 @@ export function ContextPanel({
 
   // Status colors for agent selection
   const statusColors = {
-    critical: { bg: '#3a0010', border: '#ff3355', text: '#ff3355' },
-    warning: { bg: '#3a2a00', border: '#ffaa00', text: '#ffaa00' },
-    suspended: { bg: '#1f2937', border: '#6b7280', text: '#6b7280' },
-    clean: { bg: '#1e3a5f', border: '#00d4ff', text: '#00d4ff' },
+    working:    { bg: '#003a1a', border: '#00c853', text: '#00c853' },
+    idle:       { bg: '#1e3a5f', border: '#4a9eff', text: '#4a9eff' },
+    restricted: { bg: '#3a2a00', border: '#ffaa00', text: '#ffaa00' },
+    suspended:  { bg: '#1f2937', border: '#6b7280', text: '#6b7280' },
   };
 
   return (
@@ -129,7 +129,7 @@ export function ContextPanel({
             <div className="space-y-1.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
               {agents.map((agent) => {
                 const status = getAgentStatus(agent.id);
-                const colors = statusColors[status as keyof typeof statusColors] || statusColors.clean;
+                const colors = statusColors[status as keyof typeof statusColors] || statusColors.idle;
                 const isExpanded = expandedAgentId === agent.id;
                 const agentActivity = agentActivities[agent.id];
 
@@ -392,20 +392,20 @@ export function ContextPanel({
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => onClear(selectedAgentId)}
-                disabled={currentStatus === 'clean'}
+                disabled={currentStatus === 'idle'}
                 className={`w-full py-2 rounded text-sm font-semibold transition-all ${
-                  currentStatus === 'clean'
-                    ? 'bg-[#00c853]/20 text-[#00c853] cursor-not-allowed'
-                    : 'bg-[#00c853] text-black hover:bg-[#00c853]/80'
+                  currentStatus === 'idle'
+                    ? 'bg-[#4a9eff]/20 text-[#4a9eff] cursor-not-allowed'
+                    : 'bg-[#4a9eff] text-black hover:bg-[#4a9eff]/80'
                 }`}
               >
                 Clear
               </button>
               <button
                 onClick={() => onRestrict(selectedAgentId)}
-                disabled={currentStatus === 'warning'}
+                disabled={currentStatus === 'restricted'}
                 className={`w-full py-2 rounded text-sm font-semibold transition-all ${
-                  currentStatus === 'warning'
+                  currentStatus === 'restricted'
                     ? 'bg-[#ffaa00]/20 text-[#ffaa00] cursor-not-allowed'
                     : 'bg-[#ffaa00] text-black hover:bg-[#ffaa00]/80'
                 }`}

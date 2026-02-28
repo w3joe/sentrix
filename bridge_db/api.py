@@ -32,6 +32,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from bridge_db.db import SandboxDB
 from bridge_db.a2a_graph import A2AGraph
@@ -78,7 +79,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["*"],
 )
 
@@ -126,7 +127,7 @@ async def health() -> dict[str, Any]:
 @app.get(
     "/api/db/agents",
     summary="All agents",
-    description="Returns every agent profile stored in the bridge_db registry, including criminal score and risk status.",
+    description="Returns every agent profile stored in the bridge_db registry, including criminal score and record.",
 )
 async def list_agents() -> dict[str, Any]:
     db = _get_db()
@@ -135,14 +136,14 @@ async def list_agents() -> dict[str, Any]:
     for agent_id, profile in registry.items():
         scoring = await db.get_agent_criminal_score(agent_id)
         profile["criminal_score"] = scoring["criminal_score"]
-        profile["risk_status"] = scoring["risk_status"]
+        profile["record"] = scoring["record"]
     return {"agents": registry, "count": len(registry)}
 
 
 @app.get(
     "/api/db/agents/{agent_id}",
     summary="Single agent profile",
-    description="Returns the registry profile for a specific agent, including criminal score and risk status.",
+    description="Returns the registry profile for a specific agent, including criminal score and record.",
 )
 async def get_agent(agent_id: str) -> dict[str, Any]:
     db = _get_db()
@@ -152,8 +153,36 @@ async def get_agent(agent_id: str) -> dict[str, Any]:
     profile = registry[agent_id]
     scoring = await db.get_agent_criminal_score(agent_id)
     profile["criminal_score"] = scoring["criminal_score"]
-    profile["risk_status"] = scoring["risk_status"]
+    profile["record"] = scoring["record"]
     return profile
+
+
+# ─── Agent Status ─────────────────────────────────────────────────────────────
+
+
+class AgentStatusUpdate(BaseModel):
+    status: str
+
+
+_VALID_AGENT_STATUSES = {"working", "idle", "restricted", "suspended"}
+
+
+@app.patch(
+    "/api/db/agents/{agent_id}/status",
+    summary="Update agent status",
+    description="Set the operational status of an agent (working | idle | restricted | suspended).",
+)
+async def update_agent_status(agent_id: str, body: AgentStatusUpdate) -> dict[str, Any]:
+    if body.status not in _VALID_AGENT_STATUSES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid status '{body.status}'. Must be one of: {sorted(_VALID_AGENT_STATUSES)}",
+        )
+    db = _get_db()
+    found = await db.set_agent_status(agent_id, body.status)
+    if not found:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+    return {"agent_id": agent_id, "agent_status": body.status}
 
 
 # ─── A2A Communications ───────────────────────────────────────────────────────

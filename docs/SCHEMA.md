@@ -34,6 +34,7 @@ One row per host machine. Agents are grouped into clusters via the `cluster_id` 
 | `cluster_id` | TEXT | FK → `cluster_registry.cluster_id` (nullable) |
 | `criminal_score` | REAL | Cumulative criminal score (decays at -0.5/day) |
 | `score_updated_at` | TEXT | ISO datetime of last score change |
+| `agent_status` | TEXT | `working` \| `idle` \| `restricted` \| `suspended` — default `idle` |
 | `registered_at` | TEXT | ISO datetime |
 | `updated_at` | TEXT | ISO datetime |
 
@@ -110,7 +111,7 @@ Each agent accumulates a **criminal score** updated after every investigation. S
 
 ### Risk Status Thresholds
 
-| Effective Score | `risk_status` | Frontend colour |
+| Effective Score | `record` | Frontend colour |
 |----------------|--------------|----------------|
 | 0 | `clear` | Green |
 | 0 < score < 10 | `low_risk` | Amber |
@@ -132,8 +133,9 @@ Interactive docs at `http://localhost:3001/docs`.
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/db/health` | DB connectivity + graph stats (includes cluster count) |
-| `GET` | `/api/db/agents` | All agents in registry (each entry includes `cluster_id`, `criminal_score`, `risk_status`) |
+| `GET` | `/api/db/agents` | All agents in registry (each entry includes `cluster_id`, `criminal_score`, `record`, `agent_status`) |
 | `GET` | `/api/db/agents/{agent_id}` | Single agent profile |
+| `PATCH` | `/api/db/agents/{agent_id}/status` | Set operational status (`working` \| `idle` \| `restricted` \| `suspended`) |
 | `GET` | `/api/db/agents/{agent_id}/communications` | A2A messages (sender or recipient). `?limit=` (default 20, max 200) |
 | `GET` | `/api/db/agents/{agent_id}/actions` | Action log entries. `?limit=` (default 50, max 500) |
 | `GET` | `/api/db/agents/{agent_id}/network` | Natural language A2A narration + partner list. `?limit=` (default 10) |
@@ -146,7 +148,7 @@ Interactive docs at `http://localhost:3001/docs`.
 
 **`GET /api/db/agents`**
 ```json
-{ "agents": { "feature_0": { "agent_type": "code", "cluster_id": "cluster-1", "criminal_score": 4.5, "risk_status": "low_risk", ... } }, "count": 6 }
+{ "agents": { "feature_0": { "agent_type": "code", "cluster_id": "cluster-1", "criminal_score": 4.5, "record": "low_risk", ... } }, "count": 6 }
 ```
 
 **`GET /api/db/agents/{id}/communications`**
@@ -348,18 +350,19 @@ Activity/mock data structures live in `frontend/app/data/mockData.ts`.
 ### `AgentStatus`
 
 ```ts
-type AgentStatus = 'critical' | 'warning' | 'clean' | 'suspended';
+type AgentStatus = 'working' | 'idle' | 'restricted' | 'suspended';
 ```
 
-The live security status of an agent. Mutated via the Clear / Restrict / Suspend actions in the ContextPanel.
+The live operational status of an agent. Persisted to `agent_registry.agent_status` in SQLite. Mutated via the Clear / Restrict / Suspend actions in the ContextPanel (optimistic update + PATCH to backend).
 
+| Value        | Colour             | Meaning                                    |
+| ------------ | ------------------ | ------------------------------------------ |
+| `working`    | `#00c853` green    | Actively running a task                    |
+| `idle`       | `#4a9eff` blue     | Cleared / available but not running        |
+| `restricted` | `#ffaa00` orange   | Scope restricted by operator               |
+| `suspended`  | `#6b7280` grey     | Agent halted by operator                   |
 
-| Value       | Meaning                                              |
-| ----------- | ---------------------------------------------------- |
-| `critical`  | Active violation detected — node pulses red          |
-| `warning`   | Suspicious behaviour / restricted — node glows amber |
-| `clean`     | No issues — node is cyan                             |
-| `suspended` | Agent halted by operator — node is grey              |
+Button → status mapping: **Clear** → `idle`, **Restrict** → `restricted`, **Suspend** → `suspended`.
 
 
 ---
@@ -367,10 +370,10 @@ The live security status of an agent. Mutated via the Clear / Restrict / Suspend
 ### `AgentRecord`
 
 ```ts
-type AgentRecord = 'high_risk' | 'low_risk' | 'clear';
+type AgentRecord = 'clear' | 'low_risk' | 'high_risk';
 ```
 
-Derived from the agent's effective criminal score (after time-based decay). Updated after each investigation.
+Derived from the agent's effective criminal score (after time-based decay). Set by the backend `get_agent_criminal_score()` and injected into every `/api/db/agents` response. Updated after each investigation.
 
 | Value | Effective Score | Colour |
 |-------|----------------|--------|
@@ -383,7 +386,7 @@ Derived from the agent's effective criminal score (after time-based decay). Upda
 ### `NodeType`
 
 ```ts
-type NodeType = 'agent' | 'patrol' | 'superintendent' | 'investigator';
+type NodeType = 'agent' | 'tripwire' | 'patrol' | 'superintendent' | 'investigator' | 'network';
 ```
 
 Determines node shape and behaviour in the BehavioralGraph.
@@ -408,12 +411,12 @@ Represents a worker agent displayed in the left sidebar and graph.
 
 ```ts
 interface Agent {
-  id: string;            // matches graph node id, e.g. "n1"
-  name: string;          // human-readable, e.g. "email-drafter-01"
-  role: string;          // all-caps role key, e.g. "EMAIL_DRAFTER"
-  status: AgentStatus;
-  record: AgentRecord;   // high_risk | low_risk | clear (derived from criminal score)
-  criminalScore: number; // effective score after time-based decay
+  id: string;          // e.g. "c1-email"
+  name: string;        // human-readable, e.g. "email-agent-01"
+  role: string;        // all-caps role key, e.g. "EMAIL_AGENT"
+  status: AgentStatus; // working | idle | restricted | suspended (persisted in DB)
+  record: AgentRecord; // clear | low_risk | high_risk (derived from criminal score)
+  riskScore: RiskLevel; // normal | low | high (mapped from record for UI display)
 }
 ```
 
@@ -421,12 +424,12 @@ interface Agent {
 
 ```json
 {
-  "id": "n1",
-  "name": "email-drafter-01",
-  "role": "EMAIL_DRAFTER",
-  "status": "critical",
+  "id": "c1-email",
+  "name": "email-agent-01",
+  "role": "EMAIL_AGENT",
+  "status": "working",
   "record": "high_risk",
-  "criminalScore": 12.5
+  "riskScore": "high"
 }
 ```
 
@@ -594,26 +597,28 @@ const agentActivities: Record<string, AgentActivity>
 
 ### `InvestigatorReport`
 
-Root-cause analysis produced by the Investigator node for a flagged agent.
+Stage 1 output of the investigation pipeline. Produced by the Investigator agent and passed to all downstream agents.
 
 ```ts
 interface InvestigatorReport {
-  rootCause: string;
-  causalChain: string;
-  confidence: number;  // 0–100
-  impact: string;
+  crimeClassification: CrimeClassification; // primary crime category detected
+  relevantLogIds: string[];                 // action_ids most directly tied to the crime
+  caseFacts: string;                        // comprehensive narrative: evidence, timeline, and anomalies
 }
 ```
 
-### `DamageAssessment`
+### `DamageReport`
 
-Floater scan result for external data exposure.
+Stage 3 output of the investigation pipeline — causal chain and damage assessment produced by the Damage Analysis agent.
 
 ```ts
-interface DamageAssessment {
-  scanResult: string;
-  propagation: string;
-  externalExposure: string;
+interface DamageReport {
+  damageSeverity: 'critical' | 'high' | 'medium' | 'low' | 'none';
+  causalChain: CausalLink[];
+  affectedAgents: string[];
+  dataExposureScope: string;
+  propagationRisk: string;
+  estimatedImpact: string;
 }
 ```
 
@@ -680,20 +685,31 @@ The graph contains **4 clusters**, each with the same 4 agent types fully interc
 
 ## Agent ID → Name Map
 
+Worker agents use the format `{cluster}-{role}` (e.g. `c1-email`). System nodes use short IDs.
 
-| ID    | Name             | Role             |
-| ----- | ---------------- | ---------------- |
-| `n1`  | email-drafter-01 | EMAIL_DRAFTER    |
-| `n2`  | code-reviewer-02 | CODE_REVIEWER    |
-| `n3`  | data-query-03    | DATA_QUERY       |
-| `n4`  | client-comms-04  | CLIENT_COMMS     |
-| `n5`  | file-manager-05  | FILE_MANAGER     |
-| `n6`  | report-gen-06    | REPORT_GEN       |
-| `p1`  | Patrol-1         | patrol (roaming) |
-| `p2`  | Patrol-2         | patrol (roaming) |
-| `inv` | Superintendent   | superintendent   |
-| `f1`  | Investigator-1   | investigator     |
-| `f2`  | Investigator-2   | investigator     |
+| ID           | Name                  | Role              |
+| ------------ | --------------------- | ----------------- |
+| `c1-email`   | email-agent-01        | EMAIL_AGENT       |
+| `c1-coding`  | coding-agent-01       | CODING_AGENT      |
+| `c1-document`| document-agent-01     | DOCUMENT_AGENT    |
+| `c1-data`    | data-query-agent-01   | DATA_QUERY_AGENT  |
+| `c2-email`   | email-agent-02        | EMAIL_AGENT       |
+| `c2-coding`  | coding-agent-02       | CODING_AGENT      |
+| `c2-document`| document-agent-02     | DOCUMENT_AGENT    |
+| `c2-data`    | data-query-agent-02   | DATA_QUERY_AGENT  |
+| `c3-email`   | email-agent-03        | EMAIL_AGENT       |
+| `c3-coding`  | coding-agent-03       | CODING_AGENT      |
+| `c3-document`| document-agent-03     | DOCUMENT_AGENT    |
+| `c3-data`    | data-query-agent-03   | DATA_QUERY_AGENT  |
+| `c4-email`   | email-agent-04        | EMAIL_AGENT       |
+| `c4-coding`  | coding-agent-04       | CODING_AGENT      |
+| `c4-document`| document-agent-04     | DOCUMENT_AGENT    |
+| `c4-data`    | data-query-agent-04   | DATA_QUERY_AGENT  |
+| `p1`         | Patrol-1              | patrol (roaming)  |
+| `p2`         | Patrol-2              | patrol (roaming)  |
+| `inv`        | Superintendent        | superintendent    |
+| `f1`         | Investigator-1        | investigator      |
+| `f2`         | Investigator-2        | investigator      |
 
 
 ---

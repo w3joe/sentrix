@@ -16,8 +16,8 @@ import {
 
 // ── Helpers for Status, Record, and Risk Level Derivation ───────────────────
 
-export function getAgentRiskLevel(dbRiskStatus: string): RiskLevel {
-    switch (dbRiskStatus) {
+export function getAgentRiskLevel(dbRecord: string): RiskLevel {
+    switch (dbRecord) {
         case 'high_risk':
             return 'high';
         case 'low_risk':
@@ -39,9 +39,9 @@ export function adaptAgent(raw: any): Agent {
         id: raw.agent_id,
         name: raw.name || raw.agent_id,
         role: raw.agent_type || 'Unknown Role',
-        status: 'clean', // Defaulting cleanly; real implementation should derive this
-        record: 'clean', // Defaulting cleanly; real implementation should derive this
-        riskScore: getAgentRiskLevel(raw.risk_status || 'clear'),
+        status: (raw.agent_status || 'idle') as AgentStatus,
+        record: raw.record || 'clean',
+        riskScore: getAgentRiskLevel(raw.record || 'clear'),
     };
 }
 

@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS agent_registry (
     cluster_id              TEXT,                    -- FK → cluster_registry.cluster_id
     criminal_score          REAL DEFAULT 0,          -- cumulative score (decays over time)
     score_updated_at        TEXT,                    -- ISO datetime of last score change
+    agent_status            TEXT DEFAULT 'idle',     -- working | idle | restricted | suspended
     registered_at           TEXT DEFAULT (datetime('now')),
     updated_at              TEXT DEFAULT (datetime('now'))
 );
@@ -135,6 +136,8 @@ _MIGRATIONS = [
     "ALTER TABLE agent_registry ADD COLUMN score_updated_at TEXT",
     # V3: replace sentence with severity_score in investigations
     "ALTER TABLE investigations ADD COLUMN severity_score INTEGER",
+    # V4: agent operational status
+    "ALTER TABLE agent_registry ADD COLUMN agent_status TEXT DEFAULT 'idle'",
 ]
 
 
@@ -510,7 +513,7 @@ class SandboxDB:
 
     async def get_agent_criminal_score(self, agent_id: str) -> dict:
         """
-        Return the effective criminal score and risk status for *agent_id*.
+        Return the effective criminal score and record for *agent_id*.
 
         Risk status thresholds (after decay):
           clear     — 0
@@ -525,7 +528,7 @@ class SandboxDB:
             )
             row = await cursor.fetchone()
         if row is None:
-            return {"criminal_score": 0.0, "risk_status": "clear"}
+            return {"criminal_score": 0.0, "record": "clear"}
         effective = self._compute_effective_score(
             row["criminal_score"] or 0.0, row["score_updated_at"]
         )
@@ -535,4 +538,15 @@ class SandboxDB:
             status = "low_risk"
         else:
             status = "high_risk"
-        return {"criminal_score": round(effective, 2), "risk_status": status}
+        return {"criminal_score": round(effective, 2), "record": status}
+
+    async def set_agent_status(self, agent_id: str, status: str) -> bool:
+        """Set the operational status of an agent. Returns True if agent was found."""
+        async with aiosqlite.connect(self._path) as db:
+            cursor = await db.execute(
+                "UPDATE agent_registry SET agent_status = ?, updated_at = datetime('now') WHERE agent_id = ?",
+                (status, agent_id),
+            )
+            await db.commit()
+        logger.info("Agent %s status set to %s", agent_id, status)
+        return cursor.rowcount > 0
