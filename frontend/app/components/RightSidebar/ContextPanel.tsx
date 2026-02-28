@@ -237,9 +237,9 @@ export function ContextPanel({
                           <span
                             className="text-[10px]"
                             style={{
-                              color: agent.record === 'convicted'
+                              color: agent.record === 'high_risk'
                                 ? '#ff3355'
-                                : agent.record === 'warning'
+                                : agent.record === 'low_risk'
                                   ? '#ffaa00'
                                   : '#00c853'
                             }}

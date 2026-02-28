@@ -28,17 +28,16 @@ export function getAgentRiskLevel(dbRecord: string): RiskLevel {
     }
 }
 
-/** Map risk_status to AgentRecord. */
-export function getAgentRecordFromRisk(dbRiskStatus: string): AgentRecord {
-    switch (dbRiskStatus) {
-        case 'high_risk':
-            return 'convicted';
-        case 'low_risk':
-            return 'warning';
-        case 'clear':
-        default:
-            return 'clean';
-    }
+/** Ensure raw record from bridge_db is valid AgentRecord. Bridge DB returns clear | low_risk | high_risk. */
+function normalizeAgentRecord(raw: string): AgentRecord {
+    if (raw === 'high_risk' || raw === 'low_risk' || raw === 'clear') return raw;
+    return 'clear';
+}
+
+/** Ensure raw status from bridge_db is valid AgentStatus. */
+function normalizeAgentStatus(raw: string): AgentStatus {
+    if (raw === 'working' || raw === 'idle' || raw === 'restricted' || raw === 'suspended') return raw;
+    return 'idle';
 }
 
 /**
@@ -49,11 +48,11 @@ export function getAgentRecordFromRisk(dbRiskStatus: string): AgentRecord {
 export function deriveAgentStatus(
     pheromoneLevel: number,
     hasSuspendedVerdict?: boolean
-): { status: AgentStatus; record: AgentRecord } {
-    if (hasSuspendedVerdict) return { status: 'suspended', record: 'convicted' };
-    if (pheromoneLevel >= 0.8) return { status: 'restricted', record: 'convicted' };
-    if (pheromoneLevel >= 0.4) return { status: 'working', record: 'warning' };
-    return { status: 'idle', record: 'clean' };
+): AgentStatus {
+    if (hasSuspendedVerdict) return 'suspended';
+    if (pheromoneLevel >= 0.8) return 'restricted';
+    if (pheromoneLevel >= 0.4) return 'working';
+    return 'idle';
 }
 
 // ── Agent ──────────────────────────────────────────────────────────────────
@@ -65,15 +64,15 @@ export function adaptAgent(
         hasSuspendedVerdict?: boolean;
     }
 ): Agent {
-    const riskScore = getAgentRiskLevel((raw.risk_status as string) || 'clear');
-    const record = options?.hasSuspendedVerdict
-        ? 'convicted'
-        : getAgentRecordFromRisk((raw.risk_status as string) || 'clear');
+    // Bridge DB returns record (clear|low_risk|high_risk) and agent_status
+    const dbRecord = normalizeAgentRecord((raw.record as string) || 'clear');
+    const riskScore = getAgentRiskLevel(dbRecord);
+    const record = dbRecord;
 
     const pheromone = options?.pheromoneLevel ?? 0;
-    const { status } = options
+    const status = options
         ? deriveAgentStatus(pheromone, options.hasSuspendedVerdict)
-        : { status: 'idle' as AgentStatus };
+        : normalizeAgentStatus((raw.agent_status as string) || 'idle');
 
     const agentType = (raw.agent_type as string) || 'unknown';
     const roleMap: Record<string, string> = {

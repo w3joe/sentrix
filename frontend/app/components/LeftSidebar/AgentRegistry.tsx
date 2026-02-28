@@ -21,9 +21,9 @@ const statusColors: Record<AgentStatus, string> = {
 };
 
 const recordBadgeColors: Record<string, string> = {
-  convicted: 'bg-[#ff3355]/20 text-[#ff3355] border-[#ff3355]/30',
-  warning: 'bg-[#ffaa00]/20 text-[#ffaa00] border-[#ffaa00]/30',
-  clean: 'bg-[#00c853]/20 text-[#00c853] border-[#00c853]/30',
+  high_risk: 'bg-[#ff3355]/20 text-[#ff3355] border-[#ff3355]/30',
+  low_risk:  'bg-[#ffaa00]/20 text-[#ffaa00] border-[#ffaa00]/30',
+  clear:     'bg-[#00c853]/20 text-[#00c853] border-[#00c853]/30',
 };
 
 function getClusterStatus(agents: Agent[], getAgentStatus: (agentId: string) => AgentStatus): AgentStatus {
