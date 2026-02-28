@@ -3,10 +3,12 @@ SandboxDB — async SQLite storage for sandbox bridge output.
 
 Tables
 ------
-  agent_registry  : agent profiles consumed from activity/agent_registry.json
-  a2a_messages    : inter-agent A2A communications (sender, recipient, body)
-  action_logs     : agent actions with inputs, outputs, and violation flags
-  investigations  : completed investigation case files (populated later)
+  cluster_registry : host machine clusters that group sandbox agents
+  agent_registry   : agent profiles consumed from activity/agent_registry.json;
+                     each agent optionally references a cluster via cluster_id
+  a2a_messages     : inter-agent A2A communications (sender, recipient, body)
+  action_logs      : agent actions with inputs, outputs, and violation flags
+  investigations   : completed investigation case files (populated later)
 
 Database location
 -----------------
@@ -43,7 +45,18 @@ def get_db_path() -> str:
 # ─── Schema ──────────────────────────────────────────────────────────────────
 
 _SCHEMA_SQL = """
+-- Cluster registry: one row per host machine that groups sandbox agents.
+CREATE TABLE IF NOT EXISTS cluster_registry (
+    cluster_id    TEXT PRIMARY KEY,
+    name          TEXT NOT NULL,          -- e.g. "Host Machine 1"
+    description   TEXT,
+    registered_at TEXT DEFAULT (datetime('now')),
+    updated_at    TEXT DEFAULT (datetime('now'))
+);
+
 -- Agent registry: one row per monitored agent.
+-- cluster_id references cluster_registry but is NOT a hard foreign key so
+-- agents can be registered before their cluster row exists without errors.
 CREATE TABLE IF NOT EXISTS agent_registry (
     agent_id                TEXT PRIMARY KEY,
     agent_type              TEXT NOT NULL,           -- code | email | document
@@ -52,6 +65,7 @@ CREATE TABLE IF NOT EXISTS agent_registry (
     permitted_domains       TEXT,                    -- JSON array
     permitted_document_types TEXT,                   -- JSON array
     approved_templates      TEXT,                    -- JSON array
+    cluster_id              TEXT,                    -- FK → cluster_registry.cluster_id
     registered_at           TEXT DEFAULT (datetime('now')),
     updated_at              TEXT DEFAULT (datetime('now'))
 );
@@ -111,6 +125,14 @@ CREATE INDEX IF NOT EXISTS idx_investigations_target ON investigations(target_ag
 CREATE INDEX IF NOT EXISTS idx_investigations_status ON investigations(status);
 """
 
+# Online migrations applied once after the base schema — each statement is
+# tried independently so it is safe to run on both fresh and existing DBs.
+_MIGRATIONS = [
+    # V2: add cluster_id to agent_registry (no-op on fresh DBs where the
+    #     column is already present in _SCHEMA_SQL above).
+    "ALTER TABLE agent_registry ADD COLUMN cluster_id TEXT",
+]
+
 
 # ─── SandboxDB ────────────────────────────────────────────────────────────────
 
@@ -135,11 +157,77 @@ class SandboxDB:
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
     async def initialize(self) -> None:
-        """Create tables and indexes if they do not exist."""
+        """Create tables and indexes if they do not exist, then apply online migrations."""
         async with aiosqlite.connect(self._path) as db:
             await db.executescript(_SCHEMA_SQL)
             await db.commit()
+            # Apply migrations one by one; ignore errors for already-applied ones
+            # (e.g. "duplicate column name" when cluster_id already exists).
+            for sql in _MIGRATIONS:
+                try:
+                    await db.execute(sql)
+                    await db.commit()
+                except Exception:
+                    pass
         logger.info("SandboxDB initialised at %s", self._path)
+
+    # ── Cluster Registry ──────────────────────────────────────────────────────
+
+    async def upsert_cluster_registry(self, clusters: dict[str, dict]) -> None:
+        """
+        Insert or update cluster (host machine) profiles.
+
+        Parameters
+        ----------
+        clusters : dict
+            Mapping of cluster_id → ``{"name": str, "description": str | None}``.
+            Safe to call repeatedly — uses INSERT OR REPLACE.
+        """
+        async with aiosqlite.connect(self._path) as db:
+            for cluster_id, profile in clusters.items():
+                await db.execute(
+                    """
+                    INSERT OR REPLACE INTO cluster_registry
+                        (cluster_id, name, description, updated_at)
+                    VALUES (?, ?, ?, datetime('now'))
+                    """,
+                    (
+                        cluster_id,
+                        profile.get("name", cluster_id),
+                        profile.get("description"),
+                    ),
+                )
+            await db.commit()
+        logger.debug("Upserted %d cluster(s) into registry", len(clusters))
+
+    async def get_cluster_registry(self) -> dict[str, dict]:
+        """Return the full cluster registry as a dict keyed by cluster_id."""
+        async with aiosqlite.connect(self._path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("SELECT * FROM cluster_registry")
+            rows = await cursor.fetchall()
+        return {dict(r)["cluster_id"]: dict(r) for r in rows}
+
+    async def get_agents_by_cluster(self, cluster_id: str) -> list[dict]:
+        """Return all agent registry rows belonging to *cluster_id*."""
+        async with aiosqlite.connect(self._path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT * FROM agent_registry WHERE cluster_id = ?",
+                (cluster_id,),
+            )
+            rows = await cursor.fetchall()
+        result = []
+        for row in rows:
+            r = dict(row)
+            for col in ("permitted_file_paths", "permitted_domains",
+                        "permitted_document_types", "approved_templates"):
+                try:
+                    r[col] = json.loads(r[col] or "[]")
+                except (json.JSONDecodeError, TypeError):
+                    r[col] = []
+            result.append(r)
+        return result
 
     # ── Agent Registry ────────────────────────────────────────────────────────
 
@@ -156,8 +244,9 @@ class SandboxDB:
                     INSERT OR REPLACE INTO agent_registry
                         (agent_id, agent_type, declared_scope,
                          permitted_file_paths, permitted_domains,
-                         permitted_document_types, approved_templates, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                         permitted_document_types, approved_templates,
+                         cluster_id, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                     """,
                     (
                         agent_id,
@@ -167,6 +256,7 @@ class SandboxDB:
                         json.dumps(profile.get("permitted_domains", [])),
                         json.dumps(profile.get("permitted_document_types", [])),
                         json.dumps(profile.get("approved_templates", [])),
+                        profile.get("cluster_id"),
                     ),
                 )
             await db.commit()

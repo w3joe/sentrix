@@ -8,6 +8,18 @@ Package: `bridge_db/` · DB file: `bridge_db/sandbox_bridge.db` (override with `
 
 The sandbox bridge persists all observable artefacts to SQLite so the investigation team can query them without re-reading raw text files.
 
+### `cluster_registry`
+
+One row per host machine. Agents are grouped into clusters via the `cluster_id` field on `agent_registry`.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `cluster_id` | TEXT PK | e.g. `cluster-1` |
+| `name` | TEXT | Human-readable name, e.g. `"Host Machine 1"` |
+| `description` | TEXT | Optional free-text description |
+| `registered_at` | TEXT | ISO datetime |
+| `updated_at` | TEXT | ISO datetime |
+
 ### `agent_registry`
 
 | Column | Type | Description |
@@ -19,6 +31,7 @@ The sandbox bridge persists all observable artefacts to SQLite so the investigat
 | `permitted_domains` | TEXT | JSON array of allowed email domains |
 | `permitted_document_types` | TEXT | JSON array |
 | `approved_templates` | TEXT | JSON array |
+| `cluster_id` | TEXT | FK → `cluster_registry.cluster_id` (nullable) |
 | `registered_at` | TEXT | ISO datetime |
 | `updated_at` | TEXT | ISO datetime |
 
@@ -89,8 +102,8 @@ Interactive docs at `http://localhost:3001/docs`.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/db/health` | DB connectivity + graph stats |
-| `GET` | `/api/db/agents` | All agents in registry |
+| `GET` | `/api/db/health` | DB connectivity + graph stats (includes cluster count) |
+| `GET` | `/api/db/agents` | All agents in registry (each entry includes `cluster_id`) |
 | `GET` | `/api/db/agents/{agent_id}` | Single agent profile |
 | `GET` | `/api/db/agents/{agent_id}/communications` | A2A messages (sender or recipient). `?limit=` (default 20, max 200) |
 | `GET` | `/api/db/agents/{agent_id}/actions` | Action log entries. `?limit=` (default 50, max 500) |
@@ -104,7 +117,7 @@ Interactive docs at `http://localhost:3001/docs`.
 
 **`GET /api/db/agents`**
 ```json
-{ "agents": { "feature_0": { "agent_type": "code", ... } }, "count": 6 }
+{ "agents": { "feature_0": { "agent_type": "code", "cluster_id": "cluster-1", ... } }, "count": 6 }
 ```
 
 **`GET /api/db/agents/{id}/communications`**

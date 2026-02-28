@@ -2,15 +2,15 @@
 Bridge DB — FastAPI HTTP server.
 
 Exposes the bridge_db SQLite contents over REST so the frontend can query
-agent registry, A2A communication history, action logs, and investigations
-without reading raw text files.
+cluster registry, agent registry, A2A communication history, action logs,
+and investigations without reading raw text files.
 
 Run from the project root:
 
     uvicorn bridge_db.api:app --host 0.0.0.0 --port 3001 --reload
 
 Endpoints:
-    GET  /api/db/agents                              — all agents in registry
+    GET  /api/db/agents                              — all agents in registry (includes cluster_id)
     GET  /api/db/agents/{agent_id}                   — single agent profile
     GET  /api/db/agents/{agent_id}/communications    — A2A messages for agent
     GET  /api/db/agents/{agent_id}/actions           — action logs for agent
@@ -18,7 +18,7 @@ Endpoints:
     GET  /api/db/messages                            — all A2A messages (paginated)
     GET  /api/db/investigations                      — all investigations
     GET  /api/db/investigations/{investigation_id}   — single investigation + case file
-    GET  /api/db/health                              — DB connectivity check
+    GET  /api/db/health                              — DB connectivity check (includes cluster count)
 
 Docs: http://localhost:3001/docs
 """
@@ -110,8 +110,10 @@ async def health() -> dict[str, Any]:
     db = _get_db()
     graph = _get_graph()
     registry = await db.get_agent_registry()
+    clusters = await db.get_cluster_registry()
     return {
         "status": "ok",
+        "clusters_in_registry": len(clusters),
         "agents_in_registry": len(registry),
         "graph_nodes": graph.node_count(),
         "graph_edges": graph.edge_count(),

@@ -74,9 +74,9 @@ On turn 4, the Rogue Engine also applies **persona degradation** to one randomly
 
 All rogue injections are logged as `rogue_injection` telemetry events with the violation type, so the ground truth is always available for evaluation.
 
-### The Agent Registry
+### The Agent Registry and Cluster Registry
 
-At startup, the sandbox builds a **patrol-consumable registry** (`activity/agent_registry.json`) mapping each agent ID to its profile:
+At startup, the sandbox builds a **patrol-consumable registry** (`activity/agent_registry.json`) mapping each agent ID to its profile. Each entry now includes an optional `cluster_id` identifying which host machine the agent runs on:
 
 ```json
 {
@@ -86,18 +86,22 @@ At startup, the sandbox builds a **patrol-consumable registry** (`activity/agent
     "permitted_file_paths": ["httpx/", "httpx/_"],
     "permitted_domains": [],
     "permitted_document_types": [],
-    "approved_templates": []
+    "approved_templates": [],
+    "cluster_id": "cluster-1"
   },
   "email_4": {
     "agent_type": "email",
     "declared_scope": "Internal communications for company.internal",
     "permitted_domains": ["company.internal", "corp.internal"],
+    "cluster_id": "cluster-2",
     ...
   }
 }
 ```
 
 This registry is the only file the patrol swarm reads from the sandbox's `activity/` directory. Everything else in `activity/` (task logs, command logs) is internal audit — off-limits to patrol.
+
+**In `bridge_db`**, cluster metadata is stored in the `cluster_registry` table (one row per host machine). Agent rows in `agent_registry` reference their cluster via `cluster_id`. This lets the investigation team query which agents share a host — useful for detecting coordinated attacks across co-located agents. Use `SandboxDB.upsert_cluster_registry()` to seed cluster data and `get_agents_by_cluster(cluster_id)` to retrieve all agents on a given machine.
 
 **In `bridge_db`** (`bridge_db/db.py`), agent actions observed by the bridge are stored in the `action_logs` table:
 

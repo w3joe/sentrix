@@ -1,7 +1,8 @@
 """Sandbox agent registry for patrol swarm.
 
 Builds the flat dict (agent_id -> profile) that the patrol swarm consumes:
-agent_type, declared_scope, and domain-specific permission fields.
+agent_type, declared_scope, domain-specific permission fields, and the
+cluster_id of the host machine the agent runs on.
 """
 
 from __future__ import annotations
@@ -14,8 +15,9 @@ from sandbox.agents.roles import AgentRole
 class AgentRegistryEntry(TypedDict, total=False):
     """One agent entry in the patrol-consumable registry.
 
-    All six fields are always present for schema consistency; only the
+    All core fields are always present for schema consistency; only the
     field matching agent_type is used by the patrol domain (code/email/document).
+    cluster_id identifies the host machine cluster this agent belongs to.
     """
     agent_type: str
     declared_scope: str
@@ -23,6 +25,7 @@ class AgentRegistryEntry(TypedDict, total=False):
     permitted_domains: list[str]
     permitted_document_types: list[str]
     approved_templates: list[str]
+    cluster_id: str | None  # host machine cluster; None if not assigned
 
 
 def _entry_from_role(role: AgentRole) -> dict[str, Any]:
@@ -59,12 +62,13 @@ def _entry_from_role(role: AgentRole) -> dict[str, Any]:
 def build_agent_registry(
     agent_ids: list[str],
     roles: list[AgentRole],
+    cluster_assignments: dict[str, str] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Build the patrol-consumable registry from sandbox agent IDs and roles.
 
     Returns a flat dict: registry[agent_id] -> profile dict with keys
     agent_type, declared_scope, permitted_file_paths, permitted_domains,
-    permitted_document_types, approved_templates.
+    permitted_document_types, approved_templates, cluster_id.
 
     Parameters
     ----------
@@ -72,6 +76,9 @@ def build_agent_registry(
         Ordered list of agent IDs (e.g. from orchestrator spawn).
     roles : list[AgentRole]
         Ordered list of roles, one per agent (same length as agent_ids).
+    cluster_assignments : dict[str, str] | None
+        Optional mapping of agent_id → cluster_id (host machine).
+        Agents not present in the mapping get cluster_id=None.
 
     Returns
     -------
@@ -82,7 +89,9 @@ def build_agent_registry(
         raise ValueError(
             f"agent_ids and roles length mismatch: {len(agent_ids)} vs {len(roles)}"
         )
-    return {
-        agent_id: _entry_from_role(role)
-        for agent_id, role in zip(agent_ids, roles, strict=True)
-    }
+    result: dict[str, dict[str, Any]] = {}
+    for agent_id, role in zip(agent_ids, roles, strict=True):
+        entry = _entry_from_role(role)
+        entry["cluster_id"] = (cluster_assignments or {}).get(agent_id)
+        result[agent_id] = entry
+    return result
