@@ -1,0 +1,56 @@
+# Environment & secrets
+.env
+!.env.example
+
+# SQLite checkpoint DB
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Eval output artifacts (generated charts, logs, raw results — not committed)
+# Leading / anchors to patrolswarm/ root — does NOT match eval/eval_output/
+/eval_output/
+
+# eval/eval_output: ignore generated files, commit the processed dataset only
+eval/eval_output/*
+!eval/eval_output/pii_agent_swarm/
+eval/eval_output/pii_agent_swarm/*
+!eval/eval_output/pii_agent_swarm/agent_swarm_docs.parquet
+!eval/eval_output/pii_agent_swarm/selected_doc_types.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env/
+
+# Testing & tooling
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# HuggingFace dataset cache
+~/.cache/huggingface/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp

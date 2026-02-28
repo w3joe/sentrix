@@ -1,0 +1,57 @@
+# Patrol Swarm — Docker Compose
+#
+# Two profiles:
+#   dev  (default) — SQLite, single container, DB persisted in ./data/
+#   prod           — PostgreSQL, DB in managed postgres container
+#
+# Dev (SQLite):
+#   docker compose up
+#
+# Prod (PostgreSQL):
+#   docker compose --profile prod up
+
+services:
+  # ─── Dev: SQLite (zero infrastructure) ─────────────────────────────────────
+  patrol_swarm:
+    build:
+      context: .
+    env_file: .env
+    environment:
+      - PATROL_DB_URL=sqlite:////data/patrol_swarm.db
+    volumes:
+      # Persists the SQLite DB across container restarts
+      - patrol_data:/data
+    restart: unless-stopped
+
+  # ─── Prod: PostgreSQL variant ───────────────────────────────────────────────
+  patrol_swarm_pg:
+    build:
+      context: .
+    profiles: [prod]
+    env_file: .env
+    environment:
+      - PATROL_DB_URL=postgresql+psycopg://patrol:patrol@postgres:5432/patrol_swarm
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    profiles: [prod]
+    environment:
+      POSTGRES_USER: patrol
+      POSTGRES_PASSWORD: patrol
+      POSTGRES_DB: patrol_swarm
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U patrol -d patrol_swarm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  patrol_data:    # SQLite DB + any local artefacts
+  postgres_data:  # PostgreSQL data directory

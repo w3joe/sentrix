@@ -1,0 +1,17 @@
+services:
+  sandbox:
+    build:
+      context: .
+      args:
+        - DOCKER_GID=0
+    runtime: sysbox
+    user: "0:0"
+    entrypoint: ["/app/sandbox/docker-entrypoint.sh"]
+    command: ["python", "-m", "sandbox"]
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SANDBOX_DOCKER_IS_INNER=1
+    volumes:
+      - ./sandbox:/app/sandbox
+    stdin_open: true
+    tty: true
