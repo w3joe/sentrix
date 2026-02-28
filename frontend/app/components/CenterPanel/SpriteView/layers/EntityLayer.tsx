@@ -2,12 +2,13 @@
 
 import { useMemo, useCallback } from 'react';
 import type { AgentStatus, InvestigatorSelection } from '../../../../types';
-import { agents as allAgents } from '../../../../data/mockData';
+import { agents as allAgents, agentActivityStatuses } from '../../../../data/mockData';
 import { rooms, getDeskPosition, controlRoom, getQuarantineCellPosition } from '../config/roomLayout';
 import { AgentSprite } from '../entities/AgentSprite';
 import { PatrolSprite } from '../entities/PatrolSprite';
 import { SuperintendentSprite } from '../entities/SuperintendentSprite';
 import { InvestigatorSprite } from '../entities/InvestigatorSprite';
+import { NetworkSprite } from '../entities/NetworkSprite';
 
 interface EntityLayerProps {
   selectedAgentId: string | null;
@@ -71,6 +72,9 @@ export function EntityLayer({
             name={agent.name}
             role={agent.role}
             status={status}
+            riskScore={agent.riskScore}
+            record={agent.record}
+            activityStatus={agentActivityStatuses[agent.id] || 'idle'}
             x={targetX}
             y={targetY}
             isSelected={selectedAgentId === agent.id}
@@ -99,6 +103,9 @@ export function EntityLayer({
 
       {/* Superintendent */}
       <SuperintendentSprite />
+
+      {/* Network */}
+      <NetworkSprite x={controlRoom.networkPos.x} y={controlRoom.networkPos.y} />
 
       {/* Investigators */}
       <InvestigatorSprite

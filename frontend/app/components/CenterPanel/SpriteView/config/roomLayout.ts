@@ -82,6 +82,7 @@ export const controlRoom = {
   width: 360,
   height: 160,
   superintendentPos: { x: 600, y: 430 },
+  networkPos: { x: 500, y: 420 },
   investigatorPositions: [
     { id: 'f1', x: 500, y: 470 },
     { id: 'f2', x: 700, y: 470 },

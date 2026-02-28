@@ -1,37 +1,65 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
-import type { AgentStatus } from '../../../../types';
-import { STATUS_COLORS, SIZES } from '../config/spriteConfig';
-import { useDrawCharacter } from './BaseCharacter';
+import { useCallback, useMemo, useState } from 'react';
+import type { AgentStatus, RiskLevel, AgentRecord, AgentActivityStatus } from '../../../../types';
+import { STATUS_COLORS, SIZES, SPRITE_SHEETS, RISK_SPRITE_MAP, SPRITE_DISPLAY_SIZES } from '../config/spriteConfig';
+import { CharacterSprite } from './BaseCharacter';
 import { useAgentMovement } from '../hooks/useAgentMovement';
+import { useMovementDirection } from '../hooks/useMovementDirection';
 
 interface AgentSpriteProps {
   agentId: string;
   name: string;
   role: string;
   status: AgentStatus;
+  riskScore: RiskLevel;
+  record: AgentRecord;
+  activityStatus: AgentActivityStatus;
   x: number;
   y: number;
   isSelected: boolean;
   onSelect: (agentId: string) => void;
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  EMAIL_AGENT: 'Email',
+  CODING_AGENT: 'Coding',
+  DOCUMENT_AGENT: 'Document',
+  DATA_QUERY_AGENT: 'Data Query',
+};
+
+const ACTIVITY_COLORS: Record<AgentActivityStatus, number> = {
+  idle: 0x6b7280,
+  working: 0x22c55e,
+  interacting: 0x3b82f6,
+};
+
 export function AgentSprite({
   agentId,
   name,
   role,
   status,
+  riskScore,
+  record,
+  activityStatus,
   x,
   y,
   isSelected,
   onSelect,
 }: AgentSpriteProps) {
   const colors = STATUS_COLORS[status];
-  const drawBody = useDrawCharacter(role, colors.bg, colors.border);
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Animate position transitions (desk ↔ quarantine)
+  // Animate position transitions (desk <-> quarantine)
   const animatedPos = useAgentMovement(x, y);
+
+  // Determine sprite direction from movement
+  const direction = useMovementDirection(animatedPos.x, animatedPos.y);
+
+  // Select sprite: suspended -> restricted, otherwise based on riskScore
+  const spriteSheet = status === 'suspended'
+    ? SPRITE_SHEETS.restricted
+    : SPRITE_SHEETS[RISK_SPRITE_MAP[riskScore]];
 
   // Shake offset for critical agents
   const shakeX = status === 'critical' ? Math.sin(Date.now() / 50) * 3 : 0;
@@ -98,6 +126,9 @@ export function AgentSprite({
     onSelect(agentId);
   }, [onSelect, agentId]);
 
+  const handlePointerOver = useCallback(() => setIsHovered(true), []);
+  const handlePointerOut = useCallback(() => setIsHovered(false), []);
+
   // Short display name
   const displayName = useMemo(() => {
     const parts = name.split('-');
@@ -107,13 +138,39 @@ export function AgentSprite({
   const drawNameLabel = useCallback(
     (g: any) => {
       g.clear();
-      // Name background
       const labelWidth = displayName.length * 6 + 8;
       g.setFillStyle({ color: 0x0a0e1a, alpha: 0.8 });
       g.roundRect(-labelWidth / 2, 28, labelWidth, 16, 3);
       g.fill();
     },
     [displayName],
+  );
+
+  // Tooltip data
+  const roleLabel = ROLE_LABELS[role] || role;
+  const tooltipLines = useMemo(() => [
+    agentId,
+    `Record: ${record}`,
+    `Role: ${roleLabel}`,
+    `Status: ${activityStatus}`,
+  ], [agentId, record, roleLabel, activityStatus]);
+
+  const tooltipWidth = 130;
+  const tooltipLineHeight = 14;
+  const tooltipPadding = 8;
+  const tooltipHeight = tooltipLines.length * tooltipLineHeight + tooltipPadding * 2;
+
+  const drawTooltipBg = useCallback(
+    (g: any) => {
+      g.clear();
+      if (!isHovered) return;
+      g.setFillStyle({ color: 0x111827, alpha: 0.95 });
+      g.setStrokeStyle({ width: 1, color: 0x374151 });
+      g.roundRect(-tooltipWidth / 2, -tooltipHeight - 30, tooltipWidth, tooltipHeight, 5);
+      g.fill();
+      g.stroke();
+    },
+    [isHovered, tooltipWidth, tooltipHeight],
   );
 
   return (
@@ -124,6 +181,8 @@ export function AgentSprite({
       cursor="pointer"
       onTap={handleClick}
       onClick={handleClick}
+      onPointerOver={handlePointerOver}
+      onPointerOut={handlePointerOut}
     >
       {/* Aura effect */}
       <pixiGraphics draw={drawAura} />
@@ -132,7 +191,11 @@ export function AgentSprite({
       <pixiGraphics draw={drawSelection} />
 
       {/* Character body */}
-      <pixiGraphics draw={drawBody} />
+      <CharacterSprite
+        sheetPath={spriteSheet}
+        direction={direction}
+        displaySize={SPRITE_DISPLAY_SIZES.agent}
+      />
 
       {/* Alert icon */}
       <pixiGraphics draw={drawAlert} />
@@ -152,6 +215,28 @@ export function AgentSprite({
           fontFamily: 'monospace',
         }}
       />
+
+      {/* Hover tooltip */}
+      {isHovered && (
+        <>
+          <pixiGraphics draw={drawTooltipBg} />
+          {tooltipLines.map((line, i) => (
+            <pixiText
+              key={i}
+              text={line}
+              x={0}
+              y={-tooltipHeight - 30 + tooltipPadding + i * tooltipLineHeight + 2}
+              anchor={{ x: 0.5, y: 0 }}
+              style={{
+                fontSize: 10,
+                fill: i === 0 ? '#ffffff' : i === 3 ? ACTIVITY_COLORS[activityStatus] : '#9ca3af',
+                fontFamily: 'monospace',
+                fontWeight: i === 0 ? 'bold' : 'normal',
+              }}
+            />
+          ))}
+        </>
+      )}
     </pixiContainer>
   );
 }

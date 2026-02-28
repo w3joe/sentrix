@@ -1,4 +1,4 @@
-import type { AgentStatus } from '../../../../types';
+import type { AgentStatus, RiskLevel } from '../../../../types';
 
 export const STATUS_COLORS: Record<AgentStatus, { bg: number; border: number; text: string }> = {
   critical: { bg: 0x3a0010, border: 0xff3355, text: '#ff3355' },
@@ -11,6 +11,7 @@ export const SYSTEM_COLORS = {
   patrol: { bg: 0x1a1a3a, border: 0x9b59b6, text: '#9b59b6' },
   superintendent: { bg: 0x1a1a3a, border: 0x9b59b6, text: '#9b59b6' },
   investigator: { bg: 0x1a1a3a, border: 0x9b59b6, text: '#9b59b6' },
+  network: { bg: 0x1a1a3a, border: 0x7c3aed, text: '#7c3aed' },
 };
 
 export const WORLD_COLORS = {
@@ -49,4 +50,40 @@ export const SIZES = {
 export const MOVEMENT = {
   investigatorSpeed: 0.06,
   agentTransitionSpeed: 0.04,
+};
+
+// ── Sprite Sheet Configuration ──────────────────────────────────────────────
+
+export const SPRITE_SHEETS = {
+  normal_agent: '/sprites/normal_agent.png',
+  low_risk_agent: '/sprites/low_risk_agent.png',
+  high_risk_agent: '/sprites/high_risk_agent.png',
+  restricted: '/sprites/restricted.png',
+  investigator: '/sprites/investigator.png',
+  patrol: '/sprites/patrol.png',
+  superintendent: '/sprites/superintendent.png',
+  network: '/sprites/network.png',
+} as const;
+
+export const RISK_SPRITE_MAP: Record<RiskLevel, keyof typeof SPRITE_SHEETS> = {
+  normal: 'normal_agent',
+  low: 'low_risk_agent',
+  high: 'high_risk_agent',
+};
+
+export const SPRITE_FRAMES = {
+  FRONT: 0,
+  BACK: 1,
+  LEFT: 2,
+  RIGHT: 3,
+} as const;
+
+export type SpriteDirection = (typeof SPRITE_FRAMES)[keyof typeof SPRITE_FRAMES];
+
+export const SPRITE_DISPLAY_SIZES = {
+  agent: 40,
+  patrol: 32,
+  superintendent: 48,
+  investigator: 36,
+  network: 36,
 };

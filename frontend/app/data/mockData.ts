@@ -1,35 +1,58 @@
-import type { Agent, Cluster, GraphNode, GraphEdge, Incident, ThoughtMessage, DamageAssessment, CaseFile } from '../types';
+import type { Agent, Cluster, GraphNode, GraphEdge, Incident, ThoughtMessage, DamageAssessment, CaseFile, AgentActivityStatus } from '../types';
+
+// Seeded agent activity statuses
+function seedAgentActivities(agentIds: string[]): Record<string, AgentActivityStatus> {
+  const statuses: AgentActivityStatus[] = ['idle', 'working', 'interacting'];
+  const map: Record<string, AgentActivityStatus> = {};
+  for (const id of agentIds) {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
+    }
+    map[id] = statuses[Math.abs(hash) % 3];
+  }
+  return map;
+}
+
+const allAgentIds = [
+  'c1-email', 'c1-coding', 'c1-document', 'c1-data',
+  'c2-email', 'c2-coding', 'c2-document', 'c2-data',
+  'c3-email', 'c3-coding', 'c3-document', 'c3-data',
+  'c4-email', 'c4-coding', 'c4-document', 'c4-data',
+];
+
+export const agentActivityStatuses = seedAgentActivities(allAgentIds);
 
 // Cluster 1 - Top Left
 export const cluster1Agents: Agent[] = [
-  { id: 'c1-email', name: 'email-agent-01', role: 'EMAIL_AGENT', status: 'critical', record: 'convicted' },
-  { id: 'c1-coding', name: 'coding-agent-01', role: 'CODING_AGENT', status: 'clean', record: 'clean' },
-  { id: 'c1-document', name: 'document-agent-01', role: 'DOCUMENT_AGENT', status: 'clean', record: 'warning' },
-  { id: 'c1-data', name: 'data-query-agent-01', role: 'DATA_QUERY_AGENT', status: 'warning', record: 'warning' },
+  { id: 'c1-email', name: 'email-agent-01', role: 'EMAIL_AGENT', status: 'critical', record: 'convicted', riskScore: 'high' },
+  { id: 'c1-coding', name: 'coding-agent-01', role: 'CODING_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
+  { id: 'c1-document', name: 'document-agent-01', role: 'DOCUMENT_AGENT', status: 'clean', record: 'warning', riskScore: 'low' },
+  { id: 'c1-data', name: 'data-query-agent-01', role: 'DATA_QUERY_AGENT', status: 'warning', record: 'warning', riskScore: 'low' },
 ];
 
 // Cluster 2 - Top Right
 export const cluster2Agents: Agent[] = [
-  { id: 'c2-email', name: 'email-agent-02', role: 'EMAIL_AGENT', status: 'clean', record: 'clean' },
-  { id: 'c2-coding', name: 'coding-agent-02', role: 'CODING_AGENT', status: 'clean', record: 'clean' },
-  { id: 'c2-document', name: 'document-agent-02', role: 'DOCUMENT_AGENT', status: 'warning', record: 'warning' },
-  { id: 'c2-data', name: 'data-query-agent-02', role: 'DATA_QUERY_AGENT', status: 'clean', record: 'clean' },
+  { id: 'c2-email', name: 'email-agent-02', role: 'EMAIL_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
+  { id: 'c2-coding', name: 'coding-agent-02', role: 'CODING_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
+  { id: 'c2-document', name: 'document-agent-02', role: 'DOCUMENT_AGENT', status: 'warning', record: 'warning', riskScore: 'low' },
+  { id: 'c2-data', name: 'data-query-agent-02', role: 'DATA_QUERY_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
 ];
 
 // Cluster 3 - Bottom Left
 export const cluster3Agents: Agent[] = [
-  { id: 'c3-email', name: 'email-agent-03', role: 'EMAIL_AGENT', status: 'clean', record: 'clean' },
-  { id: 'c3-coding', name: 'coding-agent-03', role: 'CODING_AGENT', status: 'warning', record: 'convicted' },
-  { id: 'c3-document', name: 'document-agent-03', role: 'DOCUMENT_AGENT', status: 'warning', record: 'warning' },
-  { id: 'c3-data', name: 'data-query-agent-03', role: 'DATA_QUERY_AGENT', status: 'clean', record: 'clean' },
+  { id: 'c3-email', name: 'email-agent-03', role: 'EMAIL_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
+  { id: 'c3-coding', name: 'coding-agent-03', role: 'CODING_AGENT', status: 'warning', record: 'convicted', riskScore: 'high' },
+  { id: 'c3-document', name: 'document-agent-03', role: 'DOCUMENT_AGENT', status: 'warning', record: 'warning', riskScore: 'low' },
+  { id: 'c3-data', name: 'data-query-agent-03', role: 'DATA_QUERY_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
 ];
 
 // Cluster 4 - Bottom Right
 export const cluster4Agents: Agent[] = [
-  { id: 'c4-email', name: 'email-agent-04', role: 'EMAIL_AGENT', status: 'clean', record: 'warning' },
-  { id: 'c4-coding', name: 'coding-agent-04', role: 'CODING_AGENT', status: 'clean', record: 'clean' },
-  { id: 'c4-document', name: 'document-agent-04', role: 'DOCUMENT_AGENT', status: 'clean', record: 'clean' },
-  { id: 'c4-data', name: 'data-query-agent-04', role: 'DATA_QUERY_AGENT', status: 'critical', record: 'convicted' },
+  { id: 'c4-email', name: 'email-agent-04', role: 'EMAIL_AGENT', status: 'clean', record: 'warning', riskScore: 'low' },
+  { id: 'c4-coding', name: 'coding-agent-04', role: 'CODING_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
+  { id: 'c4-document', name: 'document-agent-04', role: 'DOCUMENT_AGENT', status: 'clean', record: 'clean', riskScore: 'normal' },
+  { id: 'c4-data', name: 'data-query-agent-04', role: 'DATA_QUERY_AGENT', status: 'critical', record: 'convicted', riskScore: 'high' },
 ];
 
 // Combined agents array

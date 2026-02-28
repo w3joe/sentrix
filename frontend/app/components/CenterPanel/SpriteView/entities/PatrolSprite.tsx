@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback } from 'react';
-import { SYSTEM_COLORS } from '../config/spriteConfig';
-import { useDrawSystemEntity } from './BaseCharacter';
+import { SYSTEM_COLORS, SPRITE_SHEETS, SPRITE_DISPLAY_SIZES } from '../config/spriteConfig';
+import { CharacterSprite } from './BaseCharacter';
 import { usePatrolMovement } from '../hooks/usePatrolMovement';
+import { useMovementDirection } from '../hooks/useMovementDirection';
 
 interface PatrolSpriteProps {
   patrolId: string;
@@ -12,7 +13,7 @@ interface PatrolSpriteProps {
 
 export function PatrolSprite({ patrolId, label }: PatrolSpriteProps) {
   const position = usePatrolMovement(patrolId);
-  const drawBody = useDrawSystemEntity('patrol', SYSTEM_COLORS.patrol.bg, SYSTEM_COLORS.patrol.border);
+  const direction = useMovementDirection(position.x, position.y);
 
   const drawLabel = useCallback(
     (g: any) => {
@@ -43,7 +44,11 @@ export function PatrolSprite({ patrolId, label }: PatrolSpriteProps) {
       <pixiGraphics draw={drawScanEffect} />
 
       {/* Body */}
-      <pixiGraphics draw={drawBody} />
+      <CharacterSprite
+        sheetPath={SPRITE_SHEETS.patrol}
+        direction={direction}
+        displaySize={SPRITE_DISPLAY_SIZES.patrol}
+      />
 
       {/* Label background */}
       <pixiGraphics draw={drawLabel} />

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { rooms, quarantineRoom } from '../config/roomLayout';
+import { rooms } from '../config/roomLayout';
 import { WORLD_COLORS, SIZES } from '../config/spriteConfig';
 
 export function FurnitureLayer() {
@@ -57,24 +57,6 @@ export function FurnitureLayer() {
       g.setStrokeStyle({ width: 1, color: 0x9b59b6 });
       g.rect(568 + i * 22, 409, 16, 12);
       g.fill();
-      g.stroke();
-    }
-
-    // Quarantine cells
-    for (const cell of quarantineRoom.cells) {
-      // Cell background
-      g.setFillStyle({ color: WORLD_COLORS.quarantineCell });
-      g.setStrokeStyle({ width: 1, color: WORLD_COLORS.quarantineCellBorder });
-      g.roundRect(cell.x - 20, cell.y - 18, 40, 36, 2);
-      g.fill();
-      g.stroke();
-
-      // Bars overlay (vertical lines)
-      g.setStrokeStyle({ width: 1, color: WORLD_COLORS.quarantineBars, alpha: 0.4 });
-      for (let b = -12; b <= 12; b += 8) {
-        g.moveTo(cell.x + b, cell.y - 18);
-        g.lineTo(cell.x + b, cell.y + 18);
-      }
       g.stroke();
     }
   }, []);

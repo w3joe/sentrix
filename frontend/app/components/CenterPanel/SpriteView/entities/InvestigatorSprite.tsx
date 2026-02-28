@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback } from 'react';
-import { SYSTEM_COLORS } from '../config/spriteConfig';
-import { useDrawSystemEntity } from './BaseCharacter';
+import { SYSTEM_COLORS, SPRITE_SHEETS, SPRITE_DISPLAY_SIZES } from '../config/spriteConfig';
+import { CharacterSprite } from './BaseCharacter';
 import { useInvestigatorMovement } from '../hooks/useInvestigatorMovement';
+import { useMovementDirection } from '../hooks/useMovementDirection';
 import type { InvestigatorSelection } from '../../../../types';
 
 interface InvestigatorSpriteProps {
@@ -24,11 +25,7 @@ export function InvestigatorSprite({
   onArrived,
 }: InvestigatorSpriteProps) {
   const position = useInvestigatorMovement(investigatorId, targetAgentId, onArrived);
-  const drawBody = useDrawSystemEntity(
-    'investigator',
-    SYSTEM_COLORS.investigator.bg,
-    SYSTEM_COLORS.investigator.border,
-  );
+  const direction = useMovementDirection(position.x, position.y);
 
   const drawLabel = useCallback(
     (g: any) => {
@@ -72,14 +69,19 @@ export function InvestigatorSprite({
       {/* Connection line to target */}
       <pixiGraphics draw={drawConnectionLine} />
 
-      {/* Body */}
-      <pixiGraphics
-        draw={drawBody}
+      {/* Clickable body */}
+      <pixiContainer
         eventMode="static"
         cursor="pointer"
         onTap={handleClick}
         onClick={handleClick}
-      />
+      >
+        <CharacterSprite
+          sheetPath={SPRITE_SHEETS.investigator}
+          direction={direction}
+          displaySize={SPRITE_DISPLAY_SIZES.investigator}
+        />
+      </pixiContainer>
 
       {/* Label background */}
       <pixiGraphics draw={drawLabel} />

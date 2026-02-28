@@ -2,7 +2,7 @@
 
 import { useRef, useCallback, useState } from 'react';
 import { Application, extend } from '@pixi/react';
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Text, Sprite } from 'pixi.js';
 import type { AgentStatus, InvestigatorSelection } from '../../../types';
 import { WORLD_COLORS } from './config/spriteConfig';
 import { WORLD_WIDTH, WORLD_HEIGHT } from './config/roomLayout';
@@ -12,7 +12,7 @@ import { EntityLayer } from './layers/EntityLayer';
 import { EffectsLayer } from './layers/EffectsLayer';
 
 // Register PixiJS components
-extend({ Container, Graphics, Text });
+extend({ Container, Graphics, Text, Sprite });
 
 interface SpriteWorldProps {
   selectedAgentId: string | null;

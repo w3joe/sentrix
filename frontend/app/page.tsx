@@ -15,14 +15,14 @@ import { caseFiles } from './data/mockData';
 import type { InvestigatorSelection } from './types';
 
 export type ViewMode = 'graph' | 'sprite';
-export type SidebarMode = 'agents' | 'investigations' | 'analytics' | null;
+export type SidebarMode = 'agents' | 'investigations' | 'analytics' | 'settings' | null;
 
 export default function Dashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>('graph');
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('agents');
 
   // Toggle sidebar: clicking the active mode hides it, clicking a different mode switches to it
-  const handleSidebarModeChange = useCallback((mode: 'agents' | 'investigations' | 'analytics') => {
+  const handleSidebarModeChange = useCallback((mode: 'agents' | 'investigations' | 'analytics' | 'settings') => {
     setSidebarMode(prev => prev === mode ? null : mode);
   }, []);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);

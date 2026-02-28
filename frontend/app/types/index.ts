@@ -1,6 +1,8 @@
 export type AgentStatus = 'critical' | 'warning' | 'clean' | 'suspended';
 export type AgentRecord = 'convicted' | 'warning' | 'clean';
-export type NodeType = 'agent' | 'tripwire' | 'patrol' | 'superintendent' | 'investigator';
+export type RiskLevel = 'normal' | 'low' | 'high';
+export type AgentActivityStatus = 'idle' | 'working' | 'interacting';
+export type NodeType = 'agent' | 'tripwire' | 'patrol' | 'superintendent' | 'investigator' | 'network';
 
 export interface Agent {
   id: string;
@@ -8,6 +10,7 @@ export interface Agent {
   role: string;
   status: AgentStatus;
   record: AgentRecord;
+  riskScore: RiskLevel;
 }
 
 export interface Cluster {
