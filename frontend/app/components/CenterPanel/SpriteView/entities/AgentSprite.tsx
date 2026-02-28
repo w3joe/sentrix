@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import type { AgentStatus, RiskLevel, AgentRecord, AgentActivityStatus } from '../../../../types';
+import type { AgentStatus, RiskLevel, AgentRecord } from '../../../../types';
 import { STATUS_COLORS, SIZES, SPRITE_SHEETS, RISK_SPRITE_MAP, SPRITE_DISPLAY_SIZES } from '../config/spriteConfig';
 import { CharacterSprite } from './BaseCharacter';
 import { useAgentMovement } from '../hooks/useAgentMovement';
@@ -16,24 +16,23 @@ interface AgentSpriteProps {
   status: AgentStatus;
   riskScore: RiskLevel;
   record: AgentRecord;
-  activityStatus: AgentActivityStatus;
   x: number;
   y: number;
   isSelected: boolean;
   onSelect: (agentId: string) => void;
 }
 
+const RECORD_COLORS: Record<string, string> = {
+  clear:     '#00c853',
+  low_risk:  '#ffaa00',
+  high_risk: '#ff3355',
+};
+
 const ROLE_LABELS: Record<string, string> = {
   EMAIL_AGENT: 'Email',
   CODING_AGENT: 'Coding',
   DOCUMENT_AGENT: 'Document',
   DATA_QUERY_AGENT: 'Data Query',
-};
-
-const ACTIVITY_COLORS: Record<AgentActivityStatus, number> = {
-  idle: 0x6b7280,
-  working: 0x22c55e,
-  interacting: 0x3b82f6,
 };
 
 export function AgentSprite({
@@ -43,7 +42,6 @@ export function AgentSprite({
   status,
   riskScore,
   record,
-  activityStatus,
   x,
   y,
   isSelected,
@@ -104,13 +102,13 @@ export function AgentSprite({
     (g: any) => {
       g.clear();
       if (status !== 'restricted') return;
-      const bounce = Math.sin(Date.now() / 300) * 3;
+      const bounce = Math.sin(Date.now() / 300) * 3 * S;
 
       // Warning triangle (orange for restricted)
       g.setFillStyle({ color: 0xffaa00 });
-      g.moveTo(0, -38 + bounce);
-      g.lineTo(-5, -28 + bounce);
-      g.lineTo(5, -28 + bounce);
+      g.moveTo(0, -38 * S + bounce);
+      g.lineTo(-5 * S, -28 * S + bounce);
+      g.lineTo(5 * S, -28 * S + bounce);
       g.closePath();
       g.fill();
 
@@ -151,8 +149,8 @@ export function AgentSprite({
     agentId,
     `Record: ${record}`,
     `Role: ${roleLabel}`,
-    `Status: ${activityStatus}`,
-  ], [agentId, record, roleLabel, activityStatus]);
+    `Status: ${status}`,
+  ], [agentId, record, roleLabel, status]);
 
   const tooltipWidth = 130 * S;
   const tooltipLineHeight = 14 * S;
@@ -215,7 +213,7 @@ export function AgentSprite({
               anchor={{ x: 0.5, y: 0 }}
               style={{
                 fontSize: 10 * S,
-                fill: i === 0 ? '#ffffff' : i === 3 ? ACTIVITY_COLORS[activityStatus] : '#9ca3af',
+                fill: i === 0 ? '#ffffff' : i === 1 ? RECORD_COLORS[record] : i === 3 ? colors.text : '#9ca3af',
                 fontFamily: 'monospace',
                 fontWeight: i === 0 ? 'bold' : 'normal',
               }}

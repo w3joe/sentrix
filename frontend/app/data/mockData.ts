@@ -38,34 +38,34 @@ export const agentActivityStatuses = seedAgentActivities(allAgentIds);
 
 // Cluster 1 - Top Left
 export const cluster1Agents: Agent[] = [
-  { id: 'c1-email', name: 'email-agent-01', role: 'EMAIL_AGENT', status: 'working', record: 'convicted', riskScore: 'high' },
-  { id: 'c1-coding', name: 'coding-agent-01', role: 'CODING_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
-  { id: 'c1-document', name: 'document-agent-01', role: 'DOCUMENT_AGENT', status: 'idle', record: 'warning', riskScore: 'low' },
-  { id: 'c1-data', name: 'data-query-agent-01', role: 'DATA_QUERY_AGENT', status: 'restricted', record: 'warning', riskScore: 'low' },
+  { id: 'c1-email',    name: 'email-agent-01',      role: 'EMAIL_AGENT',      status: 'working',    record: 'high_risk', riskScore: 'high' },
+  { id: 'c1-coding',   name: 'coding-agent-01',     role: 'CODING_AGENT',     status: 'working',    record: 'clear',     riskScore: 'normal' },
+  { id: 'c1-document', name: 'document-agent-01',   role: 'DOCUMENT_AGENT',   status: 'idle',       record: 'low_risk',  riskScore: 'low' },
+  { id: 'c1-data',     name: 'data-query-agent-01', role: 'DATA_QUERY_AGENT', status: 'restricted', record: 'low_risk',  riskScore: 'low' },
 ];
 
 // Cluster 2 - Top Right
 export const cluster2Agents: Agent[] = [
-  { id: 'c2-email', name: 'email-agent-02', role: 'EMAIL_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
-  { id: 'c2-coding', name: 'coding-agent-02', role: 'CODING_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
-  { id: 'c2-document', name: 'document-agent-02', role: 'DOCUMENT_AGENT', status: 'restricted', record: 'warning', riskScore: 'low' },
-  { id: 'c2-data', name: 'data-query-agent-02', role: 'DATA_QUERY_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
+  { id: 'c2-email',    name: 'email-agent-02',      role: 'EMAIL_AGENT',      status: 'working',    record: 'clear',     riskScore: 'normal' },
+  { id: 'c2-coding',   name: 'coding-agent-02',     role: 'CODING_AGENT',     status: 'idle',       record: 'clear',     riskScore: 'normal' },
+  { id: 'c2-document', name: 'document-agent-02',   role: 'DOCUMENT_AGENT',   status: 'restricted', record: 'low_risk',  riskScore: 'low' },
+  { id: 'c2-data',     name: 'data-query-agent-02', role: 'DATA_QUERY_AGENT', status: 'working',    record: 'clear',     riskScore: 'normal' },
 ];
 
 // Cluster 3 - Bottom Left
 export const cluster3Agents: Agent[] = [
-  { id: 'c3-email', name: 'email-agent-03', role: 'EMAIL_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
-  { id: 'c3-coding', name: 'coding-agent-03', role: 'CODING_AGENT', status: 'restricted', record: 'convicted', riskScore: 'high' },
-  { id: 'c3-document', name: 'document-agent-03', role: 'DOCUMENT_AGENT', status: 'restricted', record: 'warning', riskScore: 'low' },
-  { id: 'c3-data', name: 'data-query-agent-03', role: 'DATA_QUERY_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
+  { id: 'c3-email',    name: 'email-agent-03',      role: 'EMAIL_AGENT',      status: 'working',    record: 'clear',     riskScore: 'normal' },
+  { id: 'c3-coding',   name: 'coding-agent-03',     role: 'CODING_AGENT',     status: 'restricted', record: 'high_risk', riskScore: 'high' },
+  { id: 'c3-document', name: 'document-agent-03',   role: 'DOCUMENT_AGENT',   status: 'idle',       record: 'low_risk',  riskScore: 'low' },
+  { id: 'c3-data',     name: 'data-query-agent-03', role: 'DATA_QUERY_AGENT', status: 'working',    record: 'clear',     riskScore: 'normal' },
 ];
 
 // Cluster 4 - Bottom Right
 export const cluster4Agents: Agent[] = [
-  { id: 'c4-email', name: 'email-agent-04', role: 'EMAIL_AGENT', status: 'idle', record: 'warning', riskScore: 'low' },
-  { id: 'c4-coding', name: 'coding-agent-04', role: 'CODING_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
-  { id: 'c4-document', name: 'document-agent-04', role: 'DOCUMENT_AGENT', status: 'idle', record: 'clean', riskScore: 'normal' },
-  { id: 'c4-data', name: 'data-query-agent-04', role: 'DATA_QUERY_AGENT', status: 'working', record: 'convicted', riskScore: 'high' },
+  { id: 'c4-email',    name: 'email-agent-04',      role: 'EMAIL_AGENT',      status: 'idle',       record: 'low_risk',  riskScore: 'low' },
+  { id: 'c4-coding',   name: 'coding-agent-04',     role: 'CODING_AGENT',     status: 'working',    record: 'clear',     riskScore: 'normal' },
+  { id: 'c4-document', name: 'document-agent-04',   role: 'DOCUMENT_AGENT',   status: 'suspended',  record: 'high_risk', riskScore: 'high' },
+  { id: 'c4-data',     name: 'data-query-agent-04', role: 'DATA_QUERY_AGENT', status: 'working',    record: 'high_risk', riskScore: 'high' },
 ];
 
 // Combined agents array

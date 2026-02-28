@@ -1,5 +1,5 @@
 export type AgentStatus = 'working' | 'idle' | 'restricted' | 'suspended';
-export type AgentRecord = 'convicted' | 'warning' | 'clean';
+export type AgentRecord = 'clear' | 'low_risk' | 'high_risk';
 export type RiskLevel = 'normal' | 'low' | 'high';
 export type AgentActivityStatus = 'idle' | 'working' | 'interacting';
 export type NodeType = 'agent' | 'tripwire' | 'patrol' | 'superintendent' | 'investigator' | 'network';

@@ -43,7 +43,7 @@ export function getAgentRecordFromRisk(dbRiskStatus: string): AgentRecord {
 
 /**
  * Derive AgentStatus from pheromone level and investigation verdict.
- * Pheromone >= 0.8 → critical, >= 0.4 → warning, else clean.
+ * Pheromone >= 0.8 → restricted, >= 0.4 → working, else idle.
  * Sentence quarantine/suspend → suspended overrides.
  */
 export function deriveAgentStatus(

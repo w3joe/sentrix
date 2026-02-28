@@ -19,6 +19,9 @@ const COLORS = {
   falsePositive: '#00c853',
   inconclusive: '#ffaa00',
   confirmed: '#ff3355',
+  // Incident severity colors (Incident.severity is separate from AgentStatus)
+  warning: '#ffaa00',
+  critical: '#ff3355',
 };
 
 const tooltipStyle = {

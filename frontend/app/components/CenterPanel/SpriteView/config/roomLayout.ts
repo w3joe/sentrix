@@ -197,7 +197,7 @@ export const quarantineRoom = {
   x: 550 * S,
   y: 900 * S,
   width: 500 * S,
-  height: 120 * S,
+  height: 200 * S,
   cells: Array.from({ length: 16 }, (_, i) => ({
     slotIndex: i,
     x: 600 * S + (i % 8) * 55 * S,

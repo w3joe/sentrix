@@ -74,7 +74,7 @@ export function useAgentState() {
   const agents = useMemo(() => {
     if (USE_MOCKS) return mockAgents;
     if (!agentsData?.agents || Object.keys(agentsData.agents).length === 0)
-      return [];
+      return mockAgents; // fall back to mock data when live API unavailable
     const raw = agentsData.agents as Record<string, Record<string, unknown>>;
     return adaptAgentsList(raw, pheromones, suspendedIds);
   }, [agentsData, pheromones, suspendedIds]);

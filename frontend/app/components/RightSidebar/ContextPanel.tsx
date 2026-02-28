@@ -393,7 +393,7 @@ export function ContextPanel({
             )}
 
             {/* Investigator Report — mock only, for critical agents */}
-            {useMocks && selectedAgent?.status === 'critical' && (
+            {useMocks && selectedAgent?.status === 'restricted' && (
               <>
                 <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
                   <h3 className="text-xs uppercase tracking-wider text-[#9b59b6] mb-2 font-semibold">

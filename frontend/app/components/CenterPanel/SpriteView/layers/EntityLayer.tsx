@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback } from 'react';
 import type { AgentStatus, InvestigatorSelection } from '../../../../types';
-import { agents as allAgents, agentActivityStatuses } from '../../../../data/mockData';
+import { agents as allAgents } from '../../../../data/mockData';
 import { rooms, getDeskPosition, controlRoom, getQuarantineCellPosition, getEntertainmentSeatPosition } from '../config/roomLayout';
 import { AgentSprite } from '../entities/AgentSprite';
 import { PatrolSprite } from '../entities/PatrolSprite';
@@ -55,18 +55,15 @@ export function EntityLayer({
         if (!agent) continue;
 
         const status = getEffectiveStatus(agent.id);
-        const activityStatus = agentActivityStatuses[agent.id] || 'idle';
         let targetX = desk.x;
         let targetY = desk.y;
 
-        // If suspended, assign to quarantine cell
         if (status === 'suspended') {
           const cellPos = getQuarantineCellPosition(quarantineSlot);
           targetX = cellPos.x;
           targetY = cellPos.y;
           quarantineSlot++;
-        } else if (activityStatus === 'idle') {
-          // If idle, send to entertainment room
+        } else if (status === 'idle') {
           const seatPos = getEntertainmentSeatPosition(entertainmentSlot);
           targetX = seatPos.x;
           targetY = seatPos.y;
@@ -82,7 +79,6 @@ export function EntityLayer({
             status={status}
             riskScore={agent.riskScore}
             record={agent.record}
-            activityStatus={agentActivityStatuses[agent.id] || 'idle'}
             x={targetX}
             y={targetY}
             isSelected={selectedAgentId === agent.id}
