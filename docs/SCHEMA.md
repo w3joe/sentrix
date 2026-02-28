@@ -279,10 +279,6 @@ Output of Stage 2 — A2A communication analysis. All A2A messages involving the
 ```python
 class NetworkAnalysis(BaseModel):
     flagged_relevant_messages: list[FlaggedMessage]  # messages linked to the crime
-    communication_pattern: str           # narrative of communication topology
-    accomplice_suspicions: list[str]     # agent IDs suspected of coordination
-    coordination_evidence: str           # evidence of coordinated action
-    network_risk_level: str              # isolated | connected | coordinated | orchestrated
 ```
 
 ### `CausalLink`

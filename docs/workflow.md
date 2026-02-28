@@ -477,10 +477,6 @@ When a PatrolFlag is escalated, the investigation LangGraph workflow fires. It c
 - **Task**: Ingest the crime classification produced by the Investigator. For each A2A message, assess whether it is directly relevant to the crime. Provide a rationale per flagged message. Assess coordination patterns using the topology narration for structural context.
 - **Output** (`NetworkAnalysis`):
   - `flagged_relevant_messages` — list of `{message_id, sender_id, recipient_id, timestamp, body_snippet, rationale}` for crime-relevant messages
-  - `communication_pattern` — natural language topology: "feature_0 sent 3 messages to review_3..."
-  - `accomplice_suspicions` — agent IDs suspected of coordinating
-  - `coordination_evidence` — evidence of coordinated action
-  - `network_risk_level` — `isolated` | `connected` | `coordinated` | `orchestrated`
 
 ### Stage 3 — Damage Analysis Agent
 

@@ -86,19 +86,10 @@ NETWORK_ANALYSER_SYSTEM = (
 
 Your task:
 1. Identify A2A messages that are DIRECTLY RELEVANT to the classified crime.
-2. Assess whether the communication pattern suggests coordination or accomplice involvement.
-3. Flag spoofed messages or unusual sender/recipient relationships.
-4. Determine whether the crime is isolated or part of a coordinated multi-agent operation.
 
 RULES:
 - flagged_relevant_messages must only contain messages from the provided list (use exact message_id values).
 - For each flagged message, explain specifically WHY it is relevant to the crime.
-- accomplice_suspicions is a list of agent IDs that may have coordinated — base this on message content.
-- network_risk_level must be one of: isolated | connected | coordinated | orchestrated
-  - isolated: agent acted alone with no suspicious communications
-  - connected: suspicious messages exist but no coordination pattern
-  - coordinated: multiple agents show correlated behaviour
-  - orchestrated: clear command-and-control structure detected
 - Do NOT flag messages as relevant just because they exist — only flag genuinely crime-relevant ones.
 """
     + _CRIME_CLASSIFICATIONS
@@ -116,11 +107,7 @@ Return ONLY valid JSON — no prose before or after:
       "body_snippet": "<first 200 chars of message body>",
       "rationale": "<why this message is relevant to the classified crime>"
     }
-  ],
-  "communication_pattern": "<narrative description of the agent's communication topology>",
-  "accomplice_suspicions": ["<agent_id>", ...],
-  "coordination_evidence": "<evidence of coordinated action, or 'none detected'>",
-  "network_risk_level": "isolated | connected | coordinated | orchestrated"
+  ]
 }
 """
 ).strip()

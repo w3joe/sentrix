@@ -112,10 +112,6 @@ export interface NetworkAnalysis {
   targetAgentId: string;
   crimeClassificationUsed: CrimeClassification;
   flaggedRelevantMessages: FlaggedMessage[];
-  communicationPattern: string;
-  accompliceSuspicions: string[];
-  coordinationEvidence: string;
-  networkRiskLevel: string;
   timestamp: string;
 }
 

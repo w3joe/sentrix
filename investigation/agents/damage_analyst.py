@@ -44,7 +44,6 @@ async def damage_analysis_node(state: InvestigationState) -> dict:
     net_analysis = state.get("network_analysis") or {}
 
     crime_classification = inv_report.get("crime_classification", "unknown")
-    accomplices = net_analysis.get("accomplice_suspicions", [])
 
     logger.info("[DamageAnalyst] Assessing damage for agent %s (crime=%s)", target_id, crime_classification)
 
@@ -60,10 +59,6 @@ Timeline: {inv_report.get("timeline", "")}
 Profile Anomalies: {inv_report.get("agent_profile_anomalies", "")}
 
 ━━━ NETWORK ANALYSIS ━━━
-Communication Pattern: {net_analysis.get("communication_pattern", "")}
-Coordination Evidence: {net_analysis.get("coordination_evidence", "none detected")}
-Network Risk Level: {net_analysis.get("network_risk_level", "isolated")}
-Accomplice Suspicions: {", ".join(accomplices) if accomplices else "none"}
 Flagged Messages Count: {len(net_analysis.get("flagged_relevant_messages", []))}
 
 Construct the causal chain, assess damage severity, and identify propagation risk.

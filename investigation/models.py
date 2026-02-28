@@ -89,10 +89,6 @@ class NetworkAnalysis(BaseModel):
     """Output of Stage 2: A2A communication analysis."""
 
     flagged_relevant_messages: list[FlaggedMessage] = Field(default_factory=list)
-    communication_pattern: str  # narrative of communication topology
-    accomplice_suspicions: list[str] = Field(default_factory=list)  # agent IDs
-    coordination_evidence: str   # evidence of coordinated action
-    network_risk_level: str      # isolated | connected | coordinated | orchestrated
 
 
 class CausalLink(BaseModel):

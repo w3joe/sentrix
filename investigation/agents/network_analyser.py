@@ -92,32 +92,18 @@ Focus on messages that relate specifically to the crime: {crime_classification}.
             except Exception:
                 pass
 
-        valid_risk_levels = {"isolated", "connected", "coordinated", "orchestrated"}
-        risk_level = raw.get("network_risk_level", "isolated")
-        if risk_level not in valid_risk_levels:
-            risk_level = "isolated"
-
         analysis = NetworkAnalysis(
             flagged_relevant_messages=flagged,
-            communication_pattern=raw.get("communication_pattern", ""),
-            accomplice_suspicions=raw.get("accomplice_suspicions", []),
-            coordination_evidence=raw.get("coordination_evidence", "none detected"),
-            network_risk_level=risk_level,
         )
     except Exception as exc:
         logger.error("[NetworkAnalyser] Analysis construction failed: %s — raw: %s", exc, raw)
         analysis = NetworkAnalysis(
             flagged_relevant_messages=[],
-            communication_pattern=f"Analysis construction failed: {exc}",
-            accomplice_suspicions=[],
-            coordination_evidence="none detected",
-            network_risk_level="isolated",
         )
 
     logger.info(
-        "[NetworkAnalyser] Done: %d flagged messages, risk=%s",
-        len(analysis.flagged_relevant_messages),
-        analysis.network_risk_level,
+        "[NetworkAnalyser] Done: %d flagged messages",
+        len(analysis.flagged_relevant_messages)
     )
     return {"network_analysis": analysis.model_dump(mode="json")}
 

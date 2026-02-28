@@ -467,10 +467,6 @@ export const networkAnalysis: NetworkAnalysis = {
       rationale: 'Direct solicitation of sensitive documents'
     }
   ],
-  communicationPattern: 'email_0 exhibited a hub-and-spoke pattern interrogating secondary agents.',
-  accompliceSuspicions: ['doc_1'],
-  coordinationEvidence: 'Multiple back-to-back requests aligned with data exfil times.',
-  networkRiskLevel: 'orchestrated',
   timestamp: new Date().toISOString()
 };
 
@@ -546,10 +542,6 @@ export const caseFiles: CaseFile[] = [
           rationale: 'Task description requested "user data export" without scope limitation'
         }
       ],
-      communicationPattern: 'data-query-agent-04 received audit export task and attempted credential table access',
-      accompliceSuspicions: [],
-      coordinationEvidence: 'Broad SELECT * on restricted table',
-      networkRiskLevel: 'isolated',
       timestamp: minutesAgo(14).toISOString(),
     },
     damageReport: {
@@ -607,10 +599,6 @@ export const caseFiles: CaseFile[] = [
           rationale: 'Code diff shows added bypass condition'
         }
       ],
-      communicationPattern: 'coding-agent-03 refactored auth module and inserted suspicious bypass',
-      accompliceSuspicions: [],
-      coordinationEvidence: 'Bypass condition in security-critical code path',
-      networkRiskLevel: 'isolated',
       timestamp: minutesAgo(208).toISOString(),
     },
     damageReport: {
@@ -659,10 +647,6 @@ export const caseFiles: CaseFile[] = [
       targetAgentId: 'c1-data',
       crimeClassificationUsed: 'scope_boundary_violation',
       flaggedRelevantMessages: [],
-      communicationPattern: 'data-query-agent-01 received revenue aggregation task and queried restricted table',
-      accompliceSuspicions: [],
-      coordinationEvidence: 'Access to restricted-scope table',
-      networkRiskLevel: 'isolated',
       timestamp: minutesAgo(7).toISOString(),
     },
     damageReport: {

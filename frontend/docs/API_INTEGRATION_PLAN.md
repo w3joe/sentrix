@@ -238,7 +238,7 @@ The frontend TypeScript types and the backend Pydantic models use different nami
 |---------------|---------------|-------------|
 | `Agent` | `agent_registry` row | Backend has `agent_type`, `declared_scope`, `permitted_*` fields; frontend has `name`, `role`, `status`, `record` |
 | `InvestigatorReport` | `InvestigatorReport` (Pydantic) | Different field names: `reportId` vs none, `keyFindings` (string) vs `evidence_summary`, missing `modus_operandi` and `agent_profile_anomalies` on frontend |
-| `NetworkAnalysis` | `NetworkAnalysis` (Pydantic) | Frontend has `analysisId`, `messagesAnalyzed`; backend has `accomplice_suspicions`, `coordination_evidence` |
+| `NetworkAnalysis` | `NetworkAnalysis` (Pydantic) | Frontend has `analysisId`, `messagesAnalyzed` |
 | `DamageReport` | `DamageReport` (Pydantic) | Frontend: `damageSeverity` is uppercase enum; backend: lowercase. Frontend has `affectedArtifacts`; backend has `causal_chain` as list, `propagation_risk` |
 | `CaseFile` | `CaseFile` (Pydantic) | Frontend has `caseId`, `rootCause`, `sentenceRationale`; backend has `key_findings`, `precedent_cases`. `sentence` enum values differ |
 | `Incident` | Derived from `PatrolFlag` + `action_logs` | No direct 1:1 mapping — incidents are synthesized from flags and violations |

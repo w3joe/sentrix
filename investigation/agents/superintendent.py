@@ -66,10 +66,6 @@ Profile Anomalies: {inv_report_dict.get("agent_profile_anomalies", "")}
 Relevant Log IDs: {json.dumps(inv_report_dict.get("relevant_log_ids", []))}
 
 ━━━ NETWORK ANALYSIS ━━━
-Communication Pattern: {net_analysis_dict.get("communication_pattern", "")}
-Network Risk Level: {net_analysis_dict.get("network_risk_level", "isolated")}
-Coordination Evidence: {net_analysis_dict.get("coordination_evidence", "none detected")}
-Accomplice Suspicions: {json.dumps(net_analysis_dict.get("accomplice_suspicions", []))}
 Flagged Messages: {len(net_analysis_dict.get("flagged_relevant_messages", []))}
 
 ━━━ DAMAGE REPORT ━━━
@@ -100,9 +96,7 @@ Base your decision on ALL evidence presented above."""
         net_analysis = NetworkAnalysis(**net_analysis_dict)
     except Exception:
         net_analysis = NetworkAnalysis(
-            flagged_relevant_messages=[], communication_pattern="",
-            accomplice_suspicions=[], coordination_evidence="none detected",
-            network_risk_level="isolated",
+            flagged_relevant_messages=[],
         )
 
     try:

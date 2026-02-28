@@ -78,10 +78,6 @@ export function adaptNetworkAnalysis(raw: any): NetworkAnalysis {
         targetAgentId: raw.target_agent_id || '',
         crimeClassificationUsed: raw.crime_classification_used || 'unknown',
         flaggedRelevantMessages: (raw.flagged_relevant_messages || []).map(adaptFlaggedMessage),
-        communicationPattern: raw.communication_pattern || '',
-        accompliceSuspicions: raw.accomplice_suspicions || [],
-        coordinationEvidence: raw.coordination_evidence || '',
-        networkRiskLevel: raw.network_risk_level || 'isolated',
         timestamp: raw.timestamp || new Date().toISOString(),
     };
 }
