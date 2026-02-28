@@ -3,7 +3,8 @@
 import { useCallback, useMemo } from 'react';
 import { rooms, controlRoom, quarantineRoom, entertainmentRoom } from '../config/roomLayout';
 
-// Room labels drawn as text overlay
+const S = 3;
+
 export function EffectsLayer() {
   const roomLabels = useMemo(
     () =>
@@ -11,10 +12,10 @@ export function EffectsLayer() {
         <pixiText
           key={room.id}
           text={room.name}
-          x={room.x + 15}
-          y={room.y + 13}
+          x={room.x + 15 * S}
+          y={room.y + 13 * S}
           style={{
-            fontSize: 11,
+            fontSize: 11 * S,
             fill: '#9ca3af',
             fontFamily: 'monospace',
             fontWeight: 'bold',
@@ -29,10 +30,10 @@ export function EffectsLayer() {
       {roomLabels}
       <pixiText
         text="Control Room"
-        x={controlRoom.x + 15}
-        y={controlRoom.y + 13}
+        x={controlRoom.x + 15 * S}
+        y={controlRoom.y + 13 * S}
         style={{
-          fontSize: 11,
+          fontSize: 11 * S,
           fill: '#9b59b6',
           fontFamily: 'monospace',
           fontWeight: 'bold',
@@ -40,10 +41,10 @@ export function EffectsLayer() {
       />
       <pixiText
         text="Quarantine"
-        x={quarantineRoom.x + 15}
-        y={quarantineRoom.y + 13}
+        x={quarantineRoom.x + 15 * S}
+        y={quarantineRoom.y + 13 * S}
         style={{
-          fontSize: 11,
+          fontSize: 11 * S,
           fill: '#ff3355',
           fontFamily: 'monospace',
           fontWeight: 'bold',
@@ -51,10 +52,10 @@ export function EffectsLayer() {
       />
       <pixiText
         text="Entertainment"
-        x={entertainmentRoom.x + 15}
-        y={entertainmentRoom.y + 13}
+        x={entertainmentRoom.x + 15 * S}
+        y={entertainmentRoom.y + 13 * S}
         style={{
-          fontSize: 11,
+          fontSize: 11 * S,
           fill: '#4a9a9a',
           fontFamily: 'monospace',
           fontWeight: 'bold',

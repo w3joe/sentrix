@@ -7,6 +7,8 @@ import { useInvestigatorMovement } from '../hooks/useInvestigatorMovement';
 import { useMovementDirection } from '../hooks/useMovementDirection';
 import type { InvestigatorSelection } from '../../../../types';
 
+const S = 3;
+
 interface InvestigatorSpriteProps {
   investigatorId: string;
   label: string;
@@ -31,13 +33,12 @@ export function InvestigatorSprite({
     (g: any) => {
       g.clear();
       g.setFillStyle({ color: 0x0a0e1a, alpha: 0.8 });
-      g.roundRect(-35, 24, 70, 14, 3);
+      g.roundRect(-35 * S, 24 * S, 70 * S, 14 * S, 3 * S);
       g.fill();
     },
     [],
   );
 
-  // Dashed line to target when assigned
   const drawConnectionLine = useCallback(
     (g: any) => {
       g.clear();
@@ -46,9 +47,9 @@ export function InvestigatorSprite({
       const dx = targetAgentPos.x - position.x;
       const dy = targetAgentPos.y - position.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const segments = Math.floor(dist / 10);
+      const segments = Math.floor(dist / (10 * S));
 
-      g.setStrokeStyle({ width: 1, color: SYSTEM_COLORS.investigator.border, alpha: 0.5 });
+      g.setStrokeStyle({ width: 1 * S, color: SYSTEM_COLORS.investigator.border, alpha: 0.5 });
       for (let i = 0; i < segments; i += 2) {
         const t1 = i / segments;
         const t2 = Math.min((i + 1) / segments, 1);
@@ -66,10 +67,7 @@ export function InvestigatorSprite({
 
   return (
     <pixiContainer x={position.x} y={position.y}>
-      {/* Connection line to target */}
       <pixiGraphics draw={drawConnectionLine} />
-
-      {/* Clickable body */}
       <pixiContainer
         eventMode="static"
         cursor="pointer"
@@ -82,18 +80,14 @@ export function InvestigatorSprite({
           displaySize={SPRITE_DISPLAY_SIZES.investigator}
         />
       </pixiContainer>
-
-      {/* Label background */}
       <pixiGraphics draw={drawLabel} />
-
-      {/* Label */}
       <pixiText
         text={label}
         x={0}
-        y={31}
+        y={31 * S}
         anchor={0.5}
         style={{
-          fontSize: 9,
+          fontSize: 9 * S,
           fill: SYSTEM_COLORS.investigator.text,
           fontFamily: 'monospace',
         }}

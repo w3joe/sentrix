@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { getDeskPosition, controlRoom } from '../config/roomLayout';
 import { MOVEMENT } from '../config/spriteConfig';
 
+const S = 3;
+
 export function useInvestigatorMovement(
   investigatorId: string,
   targetAgentId: string | null,
@@ -25,7 +27,7 @@ export function useInvestigatorMovement(
 
       if (targetAgentId) {
         const deskPos = getDeskPosition(targetAgentId);
-        targetPos = deskPos ? { x: deskPos.x, y: deskPos.y - 40 } : { x: homePos.x, y: homePos.y };
+        targetPos = deskPos ? { x: deskPos.x, y: deskPos.y - 40 * S } : { x: homePos.x, y: homePos.y };
       } else {
         targetPos = { x: homePos.x, y: homePos.y };
       }
@@ -34,7 +36,7 @@ export function useInvestigatorMovement(
       const dy = targetPos.y - cur.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (dist > 2) {
+      if (dist > 2 * S) {
         const speed = MOVEMENT.investigatorSpeed;
         const newPos = {
           x: cur.x + dx * speed,

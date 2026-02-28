@@ -1,167 +1,163 @@
 'use client';
 
-import { useCallback } from 'react';
-import { rooms, entertainmentRoom, controlRoom } from '../config/roomLayout';
-import { WORLD_COLORS, SIZES, ENVIRONMENT_SPRITES } from '../config/spriteConfig';
-import { useEnvironmentTexture } from '../hooks/useEnvironmentTexture';
+import { rooms, controlRoom, entertainmentRoom } from '../config/roomLayout';
+import { FURNITURE_SPRITES, FURNITURE_SIZES } from '../config/spriteConfig';
+import { useStaticTexture } from '../hooks/useStaticTexture';
 
-const DESK_TABLE_SCALE = 0.2; // 250px -> 50px
-const CHAIR_SCALE = 0.08; // 250px -> 20px
-const MONITOR_SCALE = 0.06; // 250px -> 15px
-const SEAT_CHAIR_SCALE = 0.12; // 250px -> 30px for entertainment seats
+const S = 3;
 
-export function FurnitureLayer() {
-  const { texture: chairTexture, isLoaded: chairLoaded } = useEnvironmentTexture(ENVIRONMENT_SPRITES.chair);
-  const { texture: tableTexture, isLoaded: tableLoaded } = useEnvironmentTexture(ENVIRONMENT_SPRITES.table);
-  const { texture: monitorTexture, isLoaded: monitorLoaded } = useEnvironmentTexture(ENVIRONMENT_SPRITES.monitor_rear);
+// ── Chair + Table (rendered BEFORE entities) ──
 
-  const drawFallback = useCallback(
-    (g: any) => {
-      g.clear();
-      if (tableLoaded && chairLoaded && monitorLoaded) return;
+function DeskBase({ x, y }: { x: number; y: number }) {
+  const tableTexture = useStaticTexture(FURNITURE_SPRITES.table);
+  const chairTexture = useStaticTexture(FURNITURE_SPRITES.chair);
 
-      for (const room of rooms) {
-        for (const desk of room.desks) {
-          if (!tableLoaded) {
-            g.setFillStyle({ color: WORLD_COLORS.desk });
-            g.setStrokeStyle({ width: 1, color: WORLD_COLORS.deskBorder });
-            g.roundRect(
-              desk.x - SIZES.desk.width / 2,
-              desk.y + 10,
-              SIZES.desk.width,
-              SIZES.desk.height,
-              3,
-            );
-            g.fill();
-            g.stroke();
-          }
-          if (!monitorLoaded) {
-            g.setFillStyle({ color: 0x0d1117 });
-            g.setStrokeStyle({ width: 1, color: 0x4b5563 });
-            g.rect(desk.x - 8, desk.y + 14, 16, 12);
-            g.fill();
-            g.stroke();
-            g.setFillStyle({ color: 0x1a3a5f, alpha: 0.6 });
-            g.rect(desk.x - 6, desk.y + 16, 12, 8);
-            g.fill();
-          }
-          if (!chairLoaded) {
-            g.setFillStyle({ color: 0x1f2937 });
-            g.setStrokeStyle({ width: 1, color: 0x374151 });
-            g.circle(desk.x, desk.y - 5, 8);
-            g.fill();
-            g.stroke();
-          }
-        }
-      }
-
-      if (!tableLoaded) {
-        g.setFillStyle({ color: 0x2d1b4e });
-        g.setStrokeStyle({ width: 1, color: 0x5b3a8a });
-        g.roundRect(760, 405, 80, 30, 3);
-        g.fill();
-        g.stroke();
-      }
-      if (!monitorLoaded) {
-        for (let i = 0; i < 3; i++) {
-          g.setFillStyle({ color: 0x0d1117 });
-          g.setStrokeStyle({ width: 1, color: 0x9b59b6 });
-          g.rect(768 + i * 22, 409, 16, 12);
-          g.fill();
-          g.stroke();
-        }
-      }
-      if (!chairLoaded) {
-        for (const seat of entertainmentRoom.seats) {
-          g.setFillStyle({ color: WORLD_COLORS.entertainmentSeat });
-          g.setStrokeStyle({ width: 1, color: WORLD_COLORS.entertainmentSeatBorder });
-          g.roundRect(seat.x - 25, seat.y + 10, 50, 20, 6);
-          g.fill();
-          g.stroke();
-        }
-      }
-    },
-    [tableLoaded, chairLoaded, monitorLoaded],
-  );
+  if (!tableTexture || !chairTexture) return null;
 
   return (
     <pixiContainer>
-      <pixiGraphics draw={drawFallback} />
-      {tableTexture &&
-        tableLoaded &&
-        rooms.flatMap((room) =>
-          room.desks.map((desk) => (
-            <pixiSprite
-              key={`${room.id}-${desk.agentId}-table`}
-              texture={tableTexture}
-              x={desk.x}
-              y={desk.y + 25}
-              anchor={0.5}
-              scale={{ x: DESK_TABLE_SCALE, y: SIZES.desk.height / 250 }}
-            />
-          )),
-        )}
-      {chairTexture &&
-        chairLoaded &&
-        rooms.flatMap((room) =>
-          room.desks.map((desk) => (
-            <pixiSprite
-              key={`${room.id}-${desk.agentId}-chair`}
-              texture={chairTexture}
-              x={desk.x}
-              y={desk.y - 5}
-              anchor={0.5}
-              scale={CHAIR_SCALE}
-            />
-          )),
-        )}
-      {monitorTexture &&
-        monitorLoaded &&
-        rooms.flatMap((room) =>
-          room.desks.map((desk) => (
-            <pixiSprite
-              key={`${room.id}-${desk.agentId}-monitor`}
-              texture={monitorTexture}
-              x={desk.x}
-              y={desk.y + 20}
-              anchor={0.5}
-              scale={MONITOR_SCALE}
-            />
-          )),
-        )}
-      {tableTexture && tableLoaded && (
+      {/* Chair behind table */}
+      <pixiSprite
+        texture={chairTexture}
+        x={x}
+        y={y + 18 * S}
+        anchor={0.5}
+        width={FURNITURE_SIZES.chair.width}
+        height={FURNITURE_SIZES.chair.height}
+      />
+      {/* Table */}
+      <pixiSprite
+        texture={tableTexture}
+        x={x}
+        y={y + 32 * S}
+        anchor={0.5}
+        width={FURNITURE_SIZES.table.width}
+        height={FURNITURE_SIZES.table.height}
+      />
+    </pixiContainer>
+  );
+}
+
+function SuperintendentDeskBase() {
+  const tableTexture = useStaticTexture(FURNITURE_SPRITES.table);
+  const chairTexture = useStaticTexture(FURNITURE_SPRITES.chair);
+
+  if (!tableTexture || !chairTexture) return null;
+
+  const { superintendentPos } = controlRoom;
+
+  return (
+    <pixiContainer>
+      <pixiSprite
+        texture={chairTexture}
+        x={superintendentPos.x}
+        y={superintendentPos.y + 15 * S}
+        anchor={0.5}
+        width={28 * S}
+        height={28 * S}
+      />
+      <pixiSprite
+        texture={tableTexture}
+        x={superintendentPos.x}
+        y={superintendentPos.y + 25 * S}
+        anchor={0.5}
+        width={80 * S}
+        height={45 * S}
+      />
+    </pixiContainer>
+  );
+}
+
+function EntertainmentSeats() {
+  const chairTexture = useStaticTexture(FURNITURE_SPRITES.chair);
+
+  if (!chairTexture) return null;
+
+  return (
+    <pixiContainer>
+      {entertainmentRoom.seats.map((seat) => (
         <pixiSprite
-          texture={tableTexture}
-          x={controlRoom.superintendentPos.x}
-          y={420}
+          key={seat.slotIndex}
+          texture={chairTexture}
+          x={seat.x}
+          y={seat.y + 10 * S}
           anchor={0.5}
-          scale={{ x: 0.32, y: 0.12 }}
+          width={30 * S}
+          height={30 * S}
         />
+      ))}
+    </pixiContainer>
+  );
+}
+
+/** Chairs + tables — render BEFORE entities */
+export function FurnitureLayer() {
+  return (
+    <pixiContainer>
+      {rooms.flatMap((room) =>
+        room.desks.map((desk) => (
+          <DeskBase key={desk.agentId} x={desk.x} y={desk.y} />
+        )),
       )}
-      {monitorTexture &&
-        monitorLoaded &&
-        [0, 1, 2].map((i) => (
-          <pixiSprite
-            key={`superintendent-monitor-${i}`}
-            texture={monitorTexture}
-            x={778 + i * 22}
-            y={415}
-            anchor={0.5}
-            scale={MONITOR_SCALE}
-          />
-        ))}
-      {chairTexture &&
-        chairLoaded &&
-        entertainmentRoom.seats.map((seat, i) => (
-          <pixiSprite
-            key={`entertainment-seat-${i}`}
-            texture={chairTexture}
-            x={seat.x}
-            y={seat.y + 20}
-            anchor={0.5}
-            scale={SEAT_CHAIR_SCALE}
-          />
-        ))}
+      <SuperintendentDeskBase />
+      <EntertainmentSeats />
+    </pixiContainer>
+  );
+}
+
+// ── Monitors (rendered AFTER entities so they appear in front of agents) ──
+
+function DeskMonitor({ x, y }: { x: number; y: number }) {
+  const monitorTexture = useStaticTexture(FURNITURE_SPRITES.monitor);
+
+  if (!monitorTexture) return null;
+
+  return (
+    <pixiSprite
+      texture={monitorTexture}
+      x={x}
+      y={y + 16 * S}
+      anchor={0.5}
+      width={FURNITURE_SIZES.monitor.width}
+      height={FURNITURE_SIZES.monitor.height}
+    />
+  );
+}
+
+function SuperintendentMonitors() {
+  const monitorTexture = useStaticTexture(FURNITURE_SPRITES.monitor);
+
+  if (!monitorTexture) return null;
+
+  const { superintendentPos } = controlRoom;
+
+  return (
+    <pixiContainer>
+      {[0, 1, 2].map((i) => (
+        <pixiSprite
+          key={i}
+          texture={monitorTexture}
+          x={superintendentPos.x - 22 * S + i * 22 * S}
+          y={superintendentPos.y + 10 * S}
+          anchor={0.5}
+          width={18 * S}
+          height={14 * S}
+        />
+      ))}
+    </pixiContainer>
+  );
+}
+
+/** Monitors — render AFTER entities so agents appear behind monitors */
+export function MonitorLayer() {
+  return (
+    <pixiContainer>
+      {rooms.flatMap((room) =>
+        room.desks.map((desk) => (
+          <DeskMonitor key={desk.agentId} x={desk.x} y={desk.y} />
+        )),
+      )}
+      <SuperintendentMonitors />
     </pixiContainer>
   );
 }

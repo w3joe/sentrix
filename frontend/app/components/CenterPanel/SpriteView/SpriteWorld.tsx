@@ -7,7 +7,7 @@ import type { AgentStatus, InvestigatorSelection } from '../../../types';
 import { WORLD_COLORS } from './config/spriteConfig';
 import { WORLD_WIDTH, WORLD_HEIGHT } from './config/roomLayout';
 import { FloorLayer } from './layers/FloorLayer';
-import { FurnitureLayer } from './layers/FurnitureLayer';
+import { FurnitureLayer, MonitorLayer } from './layers/FurnitureLayer';
 import { WallsLayer } from './layers/WallsLayer';
 import { EntityLayer } from './layers/EntityLayer';
 import { EffectsLayer } from './layers/EffectsLayer';
@@ -132,6 +132,9 @@ export default function SpriteWorld({
             pendingAssignment={pendingAssignment}
             onAssignmentComplete={onAssignmentComplete}
           />
+
+          {/* Monitors rendered on top of entities */}
+          <MonitorLayer />
         </pixiContainer>
       </Application>
 

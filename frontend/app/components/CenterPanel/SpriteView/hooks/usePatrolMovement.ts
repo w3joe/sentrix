@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { patrolWaypoints } from '../config/roomLayout';
 
-// Slow constant speed in pixels per frame (~60fps)
-const PATROL_SPEED = 0.8;
+// Slow constant speed in pixels per frame (~60fps) — scaled with world ×3
+const PATROL_SPEED = 0.8 * 3;
 
 export function usePatrolMovement(patrolId: string) {
   // p1 starts at waypoint 0, p2 starts halfway through the route
