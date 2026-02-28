@@ -237,7 +237,7 @@ The frontend TypeScript types and the backend Pydantic models use different nami
 | Frontend Type | Backend Model | Differences |
 |---------------|---------------|-------------|
 | `Agent` | `agent_registry` row | Backend has `agent_type`, `declared_scope`, `permitted_*` fields; frontend has `name`, `role`, `status`, `record` |
-| `InvestigatorReport` | `InvestigatorReport` (Pydantic) | Different field names: `reportId` vs none, `keyFindings` (string) vs `evidence_summary`, missing `modus_operandi` and `agent_profile_anomalies` on frontend |
+| `InvestigatorReport` | `InvestigatorReport` (Pydantic) | snake_case → camelCase; `case_facts` → `caseFacts`; `relevant_log_ids` → `relevantLogIds` |
 | `NetworkAnalysis` | `NetworkAnalysis` (Pydantic) | Frontend has `analysisId`, `messagesAnalyzed` |
 | `DamageReport` | `DamageReport` (Pydantic) | Frontend: `damageSeverity` is uppercase enum; backend: lowercase. Frontend has `affectedArtifacts`; backend has `causal_chain` as list, `propagation_risk` |
 | `CaseFile` | `CaseFile` (Pydantic) | Frontend has `caseId`, `rootCause`, `sentenceRationale`; backend has `key_findings`, `precedent_cases`. `sentence` enum values differ |
@@ -277,8 +277,8 @@ Backend snake_case JSON  →  adapter function  →  Frontend camelCase type
 
 The frontend types in `app/types/index.ts` should be updated to:
 
-1. **Add missing fields** that the backend provides (e.g., `modus_operandi`, `agent_profile_anomalies` on `InvestigatorReport`).
-2. **Align `Sentence` enum** with backend values: `quarantine | suspend | warn | monitor | cleared`.
+1. **Keep types aligned** with the backend Pydantic models (`InvestigatorReport` outputs `crime_classification`, `relevant_log_ids`, `case_facts`).
+2. **`Verdict` enum** aligned: `guilty | not_guilty | under_watch`.
 3. **Add new types** for backend-specific data:
    - `SwarmStatus` — patrol pool, cycle info, assignments
    - `PheromoneMap` — agent_id → pheromone level

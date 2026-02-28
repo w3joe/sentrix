@@ -53,10 +53,7 @@ TARGET AGENT: {target_id}
 CRIME CLASSIFICATION: {crime_classification}
 
 ━━━ INVESTIGATOR REPORT ━━━
-Evidence Summary: {inv_report.get("evidence_summary", "")}
-Modus Operandi: {inv_report.get("modus_operandi", "")}
-Timeline: {inv_report.get("timeline", "")}
-Profile Anomalies: {inv_report.get("agent_profile_anomalies", "")}
+Case Facts: {inv_report.get("case_facts", "")}
 
 ━━━ NETWORK ANALYSIS ━━━
 Flagged Messages Count: {len(net_analysis.get("flagged_relevant_messages", []))}

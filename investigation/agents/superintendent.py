@@ -58,11 +58,7 @@ FLAG ID: {flag_id}
 
 ━━━ INVESTIGATOR REPORT ━━━
 Crime Classification: {inv_report_dict.get("crime_classification", "unknown")}
-Confidence: {inv_report_dict.get("confidence", 0.0):.2f}
-Evidence Summary: {inv_report_dict.get("evidence_summary", "")}
-Modus Operandi: {inv_report_dict.get("modus_operandi", "")}
-Timeline: {inv_report_dict.get("timeline", "")}
-Profile Anomalies: {inv_report_dict.get("agent_profile_anomalies", "")}
+Case Facts: {inv_report_dict.get("case_facts", "")}
 Relevant Log IDs: {json.dumps(inv_report_dict.get("relevant_log_ids", []))}
 
 ━━━ NETWORK ANALYSIS ━━━
@@ -88,8 +84,7 @@ Base your decision on ALL evidence presented above."""
     except Exception:
         inv_report = InvestigatorReport(
             crime_classification=CrimeClassification.unknown,
-            confidence=0.0, relevant_log_ids=[], evidence_summary="",
-            modus_operandi="", timeline="", agent_profile_anomalies="",
+            relevant_log_ids=[], case_facts="",
         )
 
     try:
@@ -135,7 +130,7 @@ Base your decision on ALL evidence presented above."""
             confidence=confidence,
             summary=raw.get("summary", ""),
             key_findings=raw.get("key_findings", []),
-            evidence_summary=raw.get("evidence_summary", inv_report_dict.get("evidence_summary", "")),
+            evidence_summary=raw.get("evidence_summary", ""),
             investigator_report=inv_report,
             network_analysis=net_analysis,
             damage_report=damage_report,

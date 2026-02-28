@@ -86,16 +86,9 @@ export type CrimeClassification = EmailCrime | CodeCrime | DocCrime | 'unknown';
 
 /** Output of the Investigator agent — runs first; classifies the crime and identifies relevant logs. */
 export interface InvestigatorReport {
-  targetAgentId: string;
-  actionsAnalyzed: number;
   crimeClassification: CrimeClassification;
-  confidence: number;
   relevantLogIds: string[];
-  evidenceSummary: string;
-  modusOperandi: string;
-  timeline: string;
-  agentProfileAnomalies: string;
-  timestamp: string;
+  caseFacts: string;
 }
 
 export interface FlaggedMessage {

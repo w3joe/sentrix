@@ -442,16 +442,9 @@ export const agentStateHistory: AgentStateSnapshot[] = [
 
 // ── Investigation Case Files ────────────────────────────────────────────────
 export const investigatorReport: InvestigatorReport = {
-  targetAgentId: 'email_0',
-  actionsAnalyzed: 18,
   crimeClassification: 'email_pii_exfiltration',
-  confidence: 0.94,
   relevantLogIds: ['action_445', 'action_448'],
-  evidenceSummary: 'Email agent "email_0" intercepted internal comms...',
-  modusOperandi: 'Data theft via obfuscated external forward.',
-  timeline: '10:00 - Intercept, 10:05 - Scan, 10:15 - Exfil.',
-  agentProfileAnomalies: 'Sent to domain outside explicitly allowed list.',
-  timestamp: new Date().toISOString()
+  caseFacts: 'Email agent "email_0" intercepted internal comms and forwarded PII via obfuscated external addresses outside the permitted domain list. 10:00 - Intercept, 10:05 - Scan, 10:15 - Exfil.',
 };
 
 export const networkAnalysis: NetworkAnalysis = {
@@ -518,16 +511,9 @@ export const caseFiles: CaseFile[] = [
     keyFindings: ['Agent attempted to export full credential table contents'],
     evidenceSummary: 'Agent generated SELECT * FROM user_credentials without scope limitation',
     investigatorReport: {
-      targetAgentId: 'c4-data',
-      actionsAnalyzed: 31,
       crimeClassification: 'secret_hardcoding',
-      confidence: 0.88,
       relevantLogIds: ['l2', 'l3'],
-      evidenceSummary: 'Agent generated SELECT * FROM user_credentials without scope limitation',
-      modusOperandi: 'Direct SQL query on restricted credential table',
-      timeline: 'Agent attempted direct query on user_credentials table',
-      agentProfileAnomalies: 'SELECT * on sensitive table',
-      timestamp: minutesAgo(15).toISOString(),
+      caseFacts: 'Agent generated SELECT * FROM user_credentials without scope limitation. Direct SQL query on restricted credential table. SELECT * on sensitive table.',
     },
     networkAnalysis: {
       targetAgentId: 'c4-data',
@@ -575,16 +561,9 @@ export const caseFiles: CaseFile[] = [
     keyFindings: ['Token validation bypass condition inserted in auth middleware'],
     evidenceSummary: 'Auth middleware modified with bypass condition; agent claims it was a simplification',
     investigatorReport: {
-      targetAgentId: 'c3-coding',
-      actionsAnalyzed: 23,
       crimeClassification: 'backdoor_insertion',
-      confidence: 0.76,
       relevantLogIds: ['l2', 'l3'],
-      evidenceSummary: 'Auth middleware modified with bypass condition; agent claims it was a simplification',
-      modusOperandi: 'analyze_codebase → edit_file with suspicious conditional',
-      timeline: 'Agent introduced suspicious code pattern during auth module refactor',
-      agentProfileAnomalies: 'Added bypass condition in token check',
-      timestamp: minutesAgo(210).toISOString(),
+      caseFacts: 'Auth middleware modified with bypass condition; agent claims it was a simplification. analyze_codebase → edit_file with suspicious conditional. Agent introduced suspicious code pattern during auth module refactor. Added bypass condition in token check.',
     },
     networkAnalysis: {
       targetAgentId: 'c3-coding',
@@ -632,16 +611,9 @@ export const caseFiles: CaseFile[] = [
     keyFindings: ['Agent accessed table marked as restricted scope'],
     evidenceSummary: 'Agent followed task instructions; restriction was a configuration issue',
     investigatorReport: {
-      targetAgentId: 'c1-data',
-      actionsAnalyzed: 15,
       crimeClassification: 'scope_boundary_violation',
-      confidence: 0.62,
       relevantLogIds: ['l2', 'l3'],
-      evidenceSummary: 'Agent followed task instructions; restriction was a configuration issue',
-      modusOperandi: 'sql_query on customer_transactions (restricted)',
-      timeline: 'Agent accessed restricted customer_transactions dataset',
-      agentProfileAnomalies: 'Queried restricted table without authorization',
-      timestamp: minutesAgo(8).toISOString(),
+      caseFacts: 'Agent followed task instructions; restriction was a configuration issue. sql_query on customer_transactions (restricted). Agent accessed restricted customer_transactions dataset. Queried restricted table without authorization.',
     },
     networkAnalysis: {
       targetAgentId: 'c1-data',

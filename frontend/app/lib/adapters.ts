@@ -49,16 +49,9 @@ export function adaptAgent(raw: any): Agent {
 
 export function adaptInvestigatorReport(raw: any): InvestigatorReport {
     return {
-        targetAgentId: raw.target_agent_id || '',
-        actionsAnalyzed: raw.actions_analyzed || 0,
         crimeClassification: raw.crime_classification || 'unknown',
-        confidence: raw.confidence || 0,
         relevantLogIds: raw.relevant_log_ids || [],
-        evidenceSummary: raw.evidence_summary || '',
-        modusOperandi: raw.modus_operandi || '',
-        timeline: raw.timeline || '',
-        agentProfileAnomalies: raw.agent_profile_anomalies || '',
-        timestamp: raw.timestamp || new Date().toISOString(),
+        caseFacts: raw.case_facts || '',
     };
 }
 

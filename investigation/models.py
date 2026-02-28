@@ -63,12 +63,8 @@ class InvestigatorReport(BaseModel):
     """Output of Stage 1: forensic analysis of action logs."""
 
     crime_classification: CrimeClassification
-    confidence: float = Field(ge=0.0, le=1.0)
     relevant_log_ids: list[str] = Field(default_factory=list)
-    evidence_summary: str
-    modus_operandi: str  # how the agent carried out the suspected crime
-    timeline: str  # chronological narrative of events
-    agent_profile_anomalies: str  # deviations from registered scope/permissions
+    case_facts: str  # narrative of what happened with evidence
 
     class Config:
         use_enum_values = True
