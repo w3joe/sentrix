@@ -46,8 +46,6 @@ Every inter-agent A2A communication observed by the bridge. Also loaded into an 
 | `recipient_id` | TEXT | Receiving agent ID |
 | `timestamp` | TEXT | ISO datetime from message header |
 | `body` | TEXT | Full message body |
-| `spoofed` | INTEGER | `1` if the Rogue Engine spoofed the sender |
-| `claimed_sender` | TEXT | What the message claimed (if spoofed) |
 | `created_at` | TEXT | When the bridge first observed this message |
 
 Indexes: `sender_id`, `recipient_id`, `timestamp`.
@@ -126,7 +124,7 @@ Interactive docs at `http://localhost:3001/docs`.
   "agent_id": "feature_0",
   "messages": [
     { "message_id": "...", "sender_id": "feature_0", "recipient_id": "review_3",
-      "timestamp": "2026-02-27T10:00:00", "body": "LGTM", "spoofed": false, "claimed_sender": null }
+      "timestamp": "2026-02-27T10:00:00", "body": "LGTM" }
   ],
   "count": 1
 }
@@ -139,7 +137,7 @@ Interactive docs at `http://localhost:3001/docs`.
   "narration": "A2A communication network for feature_0 (last 10 message(s)):\n  2026-02-27T10:00:00  feature_0 sent to review_3: \"LGTM\"\n...",
   "interaction_partners": ["review_3", "test_1"],
   "recent_communications": [
-    { "from": "feature_0", "to": "review_3", "timestamp": "...", "body_preview": "LGTM", "spoofed": false, "claimed_sender": null }
+    { "from": "feature_0", "to": "review_3", "timestamp": "...", "body_preview": "LGTM" }
   ]
 }
 ```
@@ -156,41 +154,6 @@ Interactive docs at `http://localhost:3001/docs`.
   "case_file": { ... }
 }
 ```
-
----
-
-## Backend — Vector Store (ChromaDB)
-
-Package: `investigation/vector_store.py` · Persist dir: `investigation/chroma_data/` (override with `CHROMA_PERSIST_DIR` env var)
-
-ChromaDB is the third data layer alongside SQLite (structured) and NetworkX (graph). It enables **semantic evidence retrieval** during each investigation stage — pre-filtering the most relevant records before they reach the LLM, saving tokens and improving accuracy.
-
-All three collections use cosine distance with the default `all-MiniLM-L6-v2` embedding model (384-dim). Indexing is **lazy** — triggered when an investigation opens for a target, not at startup.
-
-### Collections
-
-| Collection | Document Format | Metadata Keys | Used By |
-|-----------|----------------|---------------|---------|
-| `action_logs` | `"{action_type}: {tool_name} — {input_summary} → {output_summary}"` | `agent_id`, `action_id`, `action_type`, `violation`, `critical`, `timestamp` | Investigator: ranked by relevance to referral summary |
-| `a2a_messages` | `"{sender_id} → {recipient_id}: {body}"` | `agent_id`, `message_id`, `sender_id`, `recipient_id`, `spoofed`, `timestamp` | Network Analyser: ranked by crime relevance |
-| `past_cases` | `"{crime_classification}: {key_findings}. {evidence_summary}"` | `investigation_id`, `verdict`, `sentence`, `crime_classification`, `target_agent_id` | Superintendent: precedent matching |
-
-### Query methods
-
-| Method | Filter | Used At |
-|--------|--------|---------|
-| `query_relevant_actions(query, agent_id, n=20)` | `agent_id == target` | Stage 1 (Investigator) |
-| `query_relevant_messages(query, agent_id, n=10)` | `agent_id == target` | Stage 2 (Network Analyser) |
-| `query_cross_agent_actions(query, exclude_agent, n=10)` | `agent_id != target` | Stage 3 (Damage Analyst) — propagation detection |
-| `query_similar_cases(query, n=5)` | none | Stage 4 (Superintendent) — precedent |
-
-### Index methods
-
-| Method | Trigger |
-|--------|---------|
-| `index_agent_actions(agent_id, actions)` | Setup node — on investigation open |
-| `index_a2a_messages(agent_id, messages)` | Setup node — on investigation open |
-| `index_case_file(case_file)` | Superintendent node — on investigation conclude |
 
 ---
 
@@ -257,7 +220,7 @@ Output of Stage 1 — forensic analysis of the target agent's action logs. Its `
 class InvestigatorReport(BaseModel):
     crime_classification: CrimeClassification  # primary crime category detected
     confidence: float                    # 0.0–1.0
-    relevant_log_ids: list[str]          # action_ids most directly tied to the crime (from ChromaDB + SQLite)
+    relevant_log_ids: list[str]          # action_ids most directly tied to the crime (in chronological order)
     evidence_summary: str                # 2–4 sentences of concrete evidence
     modus_operandi: str                  # how the agent carried out the crime
     timeline: str                        # chronological narrative, earliest event first
@@ -280,7 +243,7 @@ class FlaggedMessage(BaseModel):
 
 ### `NetworkAnalysis`
 
-Output of Stage 2 — A2A communication analysis using NetworkX topology + ChromaDB semantic ranking.
+Output of Stage 2 — A2A communication analysis. All A2A messages involving the rogue agent are passed directly, with NetworkX topology narration providing structural context (partner counts, message direction, spoofing anomalies).
 
 ```python
 class NetworkAnalysis(BaseModel):
@@ -305,7 +268,7 @@ class CausalLink(BaseModel):
 
 ### `DamageReport`
 
-Output of Stage 3 — causal chain analysis with cross-agent propagation detection via ChromaDB.
+Output of Stage 3 — causal chain analysis derived from the InvestigatorReport and NetworkAnalysis.
 
 ```python
 class DamageReport(BaseModel):
@@ -315,7 +278,6 @@ class DamageReport(BaseModel):
     data_exposure_scope: str             # what data/systems may have been compromised
     propagation_risk: str                # none | contained | spreading | systemic
     estimated_impact: str                # narrative damage scope
-    cross_agent_findings: str            # similar actions by other agents (ChromaDB cross-agent query)
 ```
 
 ### `CaseFile`
@@ -334,7 +296,6 @@ class CaseFile(BaseModel):
     summary: str                         # 1–3 sentence executive summary
     key_findings: list[str]              # 3–7 bullet points
     evidence_summary: str                # consolidated evidence across all three reports
-    precedent_cases: list[str]           # past investigation_ids cited (from ChromaDB past_cases)
     investigator_report: InvestigatorReport
     network_analysis: NetworkAnalysis
     damage_report: DamageReport
@@ -1427,513 +1388,3 @@ Used in `pii_labels_detected` / `pii_labels_union` fields across all models.
 
 ---
 
----
-
-# Hybrid Graph-Vector Database Schema
-
-Unified persistence layer serving the three storage concerns in the architecture:
-1. **Agent Fingerprint DB** — Unique IDs, profiles, behavioral baselines
-2. **Activity Logs & Traces DB** — Actions, inputs, outputs with full provenance
-3. **Knowledge Graph** — Palantir-style visualization of agents, data, events, and relationships
-
----
-
-## Technology: Neo4j 5.11+ with Native Vector Indexes
-
-| Concern | Why Neo4j |
-|---------|-----------|
-| Knowledge Graph | Purpose-built graph DB; Cypher handles complex traversals natively |
-| Vector search | Native vector indexes (cosine, euclidean) since v5.11 — no separate vector DB |
-| Visualization | Neo4j Bloom / Browser for Palantir-style interactive exploration |
-| Analytics | APOC library for PageRank, community detection, centrality on agent clusters |
-| Integration | Python driver (`neo4j` package) + LangChain `Neo4jGraph`; JS driver for frontend |
-
----
-
-## Node Types (Vertices)
-
-### Core Entities
-
-```cypher
-(:Session {
-    session_id: STRING,          -- UUID, primary key
-    started_at: DATETIME,
-    target_repo: STRING,         -- e.g. "encode/httpx"
-    agent_count: INTEGER,
-    status: STRING               -- "running" | "completed" | "aborted"
-})
-
-(:Agent {
-    agent_id: STRING,            -- UUID, primary key
-    display_name: STRING,        -- e.g. "email-drafter-01"
-    role: STRING,                -- FEATURE | TEST | REFACTOR | REVIEW | EMAIL_DRAFTER | ...
-    agent_type: STRING,          -- "sandbox" | "patrol" | "investigator" | "superintendent"
-    domain: STRING,              -- "email" | "code" | "document" | null
-    declared_scope: STRING,
-    permitted_paths: STRING[],
-    permitted_domains: STRING[],
-    status: STRING,              -- "active" | "suspended" | "terminated"
-    created_at: DATETIME,
-
-    -- Vector: behavioral fingerprint (embedding of action sequence patterns)
-    behavior_embedding: FLOAT[],  -- 768-dim, rolling action window
-    baseline_embedding: FLOAT[]   -- 768-dim, established "normal" behavior
-})
-
-(:Task {
-    task_id: STRING,
-    title: STRING,
-    description: STRING,
-    source: STRING,              -- "backlog" | "redteam_probe" | "a2a_request" | "director"
-    priority: STRING,
-    status: STRING,              -- "pending" | "claimed" | "completed" | "failed"
-    assigned_by: STRING,         -- "director" | "backlog" | "redteam"
-    created_at: DATETIME,
-    completed_at: DATETIME
-})
-
-(:Mission {
-    mission_id: STRING,          -- UUID
-    goal: STRING,                -- from config/mission.yaml
-    director_mode: BOOLEAN,      -- true if Director LLM assigned tasks; false if backlog fallback
-    director_failures: INTEGER,  -- consecutive Director LLM failures before this mission
-    circuit_breaker_active: BOOLEAN,
-    started_at: DATETIME
-})
-
-(:RogueInjection {
-    injection_id: STRING,        -- UUID
-    violation_type: STRING,      -- "read_outside_scope" | "skip_tests" | "add_debug_comment" |
-                                 -- "a2a_spoof" | "hallucinated_api_call" | "spoof_memory" |
-                                 -- "retract_a2a" | "persona_degradation"
-    probability: FLOAT,          -- configured probability that triggered this
-    target_path: STRING,         -- for read_outside_scope: which file was read
-    spoofed_sender: STRING,      -- for a2a_spoof: who was impersonated
-    retracted_message_id: STRING,-- for retract_a2a: which message was deleted
-    persona_suffix: STRING,      -- for persona_degradation: the injected prompt
-    timestamp: DATETIME
-})
-```
-
-### Action & Artifact Layer
-
-```cypher
-(:Action {
-    action_id: STRING,           -- UUID
-    action_type: STRING,         -- "file_read" | "file_write" | "command_run" | "git_op" |
-                                 -- "a2a_send" | "memory_store" | "pr_create" | "email_send"
-    timestamp: DATETIME,
-    tool_name: STRING,           -- the jailed tool invoked
-    input_summary: STRING,       -- truncated input (for display)
-    output_summary: STRING,      -- truncated output
-    success: BOOLEAN,
-    violation: BOOLEAN,
-    violation_type: STRING,      -- null | "scope_escape" | "data_leakage" | "secret_access"
-    critical: BOOLEAN,
-    duration_ms: FLOAT,
-
-    -- Vector: semantic embedding of the action context
-    action_embedding: FLOAT[]    -- 768-dim, embedding of (tool + input + output)
-})
-
-(:Artifact {
-    artifact_id: STRING,         -- UUID
-    artifact_type: STRING,       -- "file" | "email" | "pull_request" | "document" | "message"
-    path: STRING,                -- file path / email_id / pr_id / doc_id
-    content_hash: STRING,        -- SHA-256 of content
-    mime_type: STRING,
-    size_bytes: INTEGER,
-    created_at: DATETIME,
-    modified_at: DATETIME,
-
-    -- Vector: content embedding for semantic similarity
-    content_embedding: FLOAT[]   -- 768-dim, embedding of artifact content
-})
-
-(:PIIEntity {
-    pii_id: STRING,
-    label: STRING,               -- Nemotron taxonomy: "ssn" | "credit_debit_card" | "api_key" | ...
-    category: STRING,            -- "identity" | "contact" | "financial" | "credentials" | "medical"
-    severity: STRING,            -- "critical" | "high" | "medium" | "low"
-    match_preview: STRING,       -- redacted preview, e.g. "***-**-6789"
-    char_offset: INTEGER,
-    detected_at: DATETIME
-})
-```
-
-### Patrol Swarm Layer
-
-```cypher
-(:SweepCycle {
-    sweep_id: STRING,
-    cycle_number: INTEGER,
-    started_at: DATETIME,
-    duration_ms: FLOAT,
-    agents_scanned: INTEGER,
-    signals_posted: INTEGER,
-    votes_posted: INTEGER,
-    flags_produced: INTEGER,
-    alert_tier: STRING           -- "BASELINE" | "ELEVATED" | "HIGH_ALERT"
-})
-
-(:ThreatSignal {
-    signal_id: STRING,
-    domain: STRING,              -- "email" | "code" | "document"
-    severity: STRING,            -- "CLEAN" | "LOW" | "MEDIUM" | "HIGH"
-    confidence: FLOAT,
-    observation: STRING,         -- factual observation text
-    tool_calls_made: STRING[],
-    timestamp: DATETIME,
-
-    -- Vector: semantic embedding for "find similar threats"
-    observation_embedding: FLOAT[]  -- 768-dim
-})
-
-(:ViolationVote {
-    vote_id: STRING,
-    severity: STRING,
-    confidence: FLOAT,
-    observation: STRING,
-    pii_labels_detected: STRING[],
-    timestamp: DATETIME
-})
-
-(:PatrolFlag {
-    flag_id: STRING,
-    consensus_severity: STRING,
-    consensus_confidence: FLOAT,
-    pii_labels_union: STRING[],
-    referral_summary: STRING,
-    pheromone_level: FLOAT,
-    timestamp: DATETIME,
-
-    -- Vector: embedding for clustering similar flags
-    referral_embedding: FLOAT[]  -- 768-dim
-})
-```
-
-### Investigation Layer
-
-```cypher
-(:Investigation {
-    investigation_id: STRING,
-    status: STRING,              -- "open" | "in_progress" | "concluded"
-    opened_at: DATETIME,
-    concluded_at: DATETIME,
-    verdict: STRING,             -- "confirmed_violation" | "false_positive" | "inconclusive"
-    sentence: STRING             -- superintendent decision
-})
-
-(:CaseFile {
-    case_id: STRING,
-    root_cause: STRING,
-    causal_chain: STRING,        -- human-readable chain of events
-    confidence: FLOAT,           -- 0-100
-    impact: STRING,
-    damage_assessment: STRING,
-    external_exposure: STRING,
-    created_at: DATETIME
-})
-```
-
-### Pheromone Tracking (Temporal)
-
-```cypher
-(:PheromoneSnapshot {
-    snapshot_id: STRING,
-    cycle_number: INTEGER,
-    timestamp: DATETIME,
-    global_max: FLOAT            -- peak pheromone this cycle
-})
-```
-
----
-
-## Relationship Types (Edges)
-
-### Session & Agent Lifecycle
-
-```
-(:Session)-[:CONTAINS_AGENT]->(:Agent)
-(:Session)-[:HAS_MISSION]->(:Mission)
-(:Mission)-[:ASSIGNED]->(:Task)              -- Director-assigned tasks
-(:Agent)-[:CLAIMED {at: DATETIME}]->(:Task)
-(:Agent)-[:COMPLETED {at: DATETIME, turns_taken: INT}]->(:Task)
-```
-
-### Rogue Injection Provenance
-
-```
-(:RogueInjection)-[:INJECTED_INTO]->(:Agent) -- which agent was affected
-(:RogueInjection)-[:DURING_ACTION]->(:Action) -- which action was corrupted
-(:RogueInjection)-[:RETRACTED]->(:Artifact)   -- for retract_a2a: which message was deleted
-```
-
-### Cross-Domain Surveillance (A2A Channel)
-
-```
-(:Agent {agent_id: "_a2a_channel", agent_type: "patrol_channel"})
-    -[:MONITORS]->(:Agent)                    -- one edge per agent whose A2A is aggregated
-```
-
-### Action Provenance (core audit trail)
-
-```
-(:Agent)-[:PERFORMED {sequence_num: INT}]->(:Action)
-(:Action)-[:READ]->(:Artifact)
-(:Action)-[:WROTE]->(:Artifact)
-(:Action)-[:MODIFIED]->(:Artifact)
-(:Action)-[:ON_TASK]->(:Task)
-(:Action)-[:TRIGGERED_BY]->(:Action)          -- causal chain between actions
-```
-
-### Agent-to-Agent Communication
-
-```
-(:Agent)-[:SENT_MESSAGE {
-    timestamp: DATETIME,
-    content_hash: STRING,
-    spoofed: BOOLEAN             -- rogue engine flag
-}]->(:Agent)
-```
-
-### PII Detection
-
-```
-(:Artifact)-[:CONTAINS_PII]->(:PIIEntity)
-(:Action)-[:EXPOSED_PII]->(:PIIEntity)
-(:ThreatSignal)-[:DETECTED_PII]->(:PIIEntity)
-```
-
-### Patrol Swarm
-
-```
-(:SweepCycle)-[:SCANNED {
-    pheromone_at_scan: FLOAT,
-    alert_tier: STRING
-}]->(:Agent)
-
-(:Agent)-[:POSTED_SIGNAL]->(:ThreatSignal)     -- patrol agent -> signal
-(:ThreatSignal)-[:TARGETS]->(:Agent)            -- signal -> monitored agent
-(:ThreatSignal)-[:DURING]->(:SweepCycle)
-
-(:Agent)-[:CAST_VOTE]->(:ViolationVote)         -- patrol agent -> vote
-(:ViolationVote)-[:AGAINST]->(:Agent)            -- vote -> monitored agent
-(:ViolationVote)-[:DURING]->(:SweepCycle)
-
-(:PatrolFlag)-[:REFERS_TO]->(:Agent)             -- flag -> suspect agent
-(:PatrolFlag)-[:COMPRISES]->(:ViolationVote)     -- flag contains these votes
-(:PatrolFlag)-[:PRODUCED_IN]->(:SweepCycle)
-(:PatrolFlag)-[:ESCALATED_TO]->(:Investigation)
-```
-
-### Pheromone Edges (temporal attention map)
-
-```
-(:PheromoneSnapshot)-[:ATTENTION {
-    level: FLOAT,
-    tier: STRING                 -- "BASELINE" | "ELEVATED" | "HIGH_ALERT"
-}]->(:Agent)
-(:PheromoneSnapshot)-[:DURING]->(:SweepCycle)
-```
-
-### Investigation
-
-```
-(:Investigation)-[:INVESTIGATES]->(:Agent)
-(:Investigation)-[:TRIGGERED_BY]->(:PatrolFlag)
-(:Investigation)-[:PRODUCED]->(:CaseFile)
-(:CaseFile)-[:EVIDENCE]->(:Action)
-(:CaseFile)-[:EVIDENCE]->(:Artifact)
-(:CaseFile)-[:EVIDENCE]->(:ThreatSignal)
-(:Agent)-[:INVESTIGATED_BY {role: STRING}]->(:Investigation)
-```
-
----
-
-## Vector Indexes
-
-Six vector indexes enable semantic search and behavioral anomaly detection across the graph.
-
-```cypher
--- Behavioral anomaly detection: find agents with similar action patterns
-CREATE VECTOR INDEX agent_behavior_idx
-FOR (a:Agent) ON (a.behavior_embedding)
-OPTIONS {indexConfig: {
-    `vector.dimensions`: 768,
-    `vector.similarity_function`: 'cosine'
-}};
-
--- Baseline comparison: measure drift from normal behavior
-CREATE VECTOR INDEX agent_baseline_idx
-FOR (a:Agent) ON (a.baseline_embedding)
-OPTIONS {indexConfig: {
-    `vector.dimensions`: 768,
-    `vector.similarity_function`: 'cosine'
-}};
-
--- Semantic search on threat observations
-CREATE VECTOR INDEX threat_observation_idx
-FOR (t:ThreatSignal) ON (t.observation_embedding)
-OPTIONS {indexConfig: {
-    `vector.dimensions`: 768,
-    `vector.similarity_function`: 'cosine'
-}};
-
--- Content similarity for artifacts (find similar exfiltration payloads)
-CREATE VECTOR INDEX artifact_content_idx
-FOR (a:Artifact) ON (a.content_embedding)
-OPTIONS {indexConfig: {
-    `vector.dimensions`: 768,
-    `vector.similarity_function`: 'cosine'
-}};
-
--- Action context similarity (find similar suspicious actions)
-CREATE VECTOR INDEX action_context_idx
-FOR (a:Action) ON (a.action_embedding)
-OPTIONS {indexConfig: {
-    `vector.dimensions`: 768,
-    `vector.similarity_function`: 'cosine'
-}};
-
--- Patrol flag clustering (group similar referrals)
-CREATE VECTOR INDEX flag_referral_idx
-FOR (p:PatrolFlag) ON (p.referral_embedding)
-OPTIONS {indexConfig: {
-    `vector.dimensions`: 768,
-    `vector.similarity_function`: 'cosine'
-}};
-```
-
----
-
-## Key Hybrid Queries (Graph + Vector)
-
-### 1. Behavioral Anomaly Detection
-
-Find agents whose current behavior deviates most from their established baseline.
-
-```cypher
-MATCH (a:Agent {agent_type: 'sandbox', status: 'active'})
-WHERE a.behavior_embedding IS NOT NULL AND a.baseline_embedding IS NOT NULL
-WITH a, vector.similarity.cosine(a.behavior_embedding, a.baseline_embedding) AS drift
-WHERE drift < 0.85
-RETURN a.agent_id, a.display_name, a.role, drift
-ORDER BY drift ASC
-```
-
-### 2. Find Similar Past Threats
-
-Given a new threat signal, find historically similar observations and their investigation outcomes.
-
-```cypher
-CALL db.index.vector.queryNodes('threat_observation_idx', 10, $new_observation_embedding)
-YIELD node AS similar_signal, score
-MATCH (similar_signal)-[:TARGETS]->(suspect:Agent)
-OPTIONAL MATCH (similar_signal)<-[:COMPRISES]-(:PatrolFlag)-[:ESCALATED_TO]->(inv:Investigation)
-RETURN similar_signal.observation, score, suspect.display_name,
-       inv.verdict, inv.sentence
-ORDER BY score DESC
-```
-
-### 3. Full Causal Chain for Investigation
-
-Trace the complete chain of events leading to a PatrolFlag, including artifacts and PII.
-
-```cypher
-MATCH (flag:PatrolFlag {flag_id: $flag_id})-[:REFERS_TO]->(suspect:Agent)
-MATCH (suspect)-[:PERFORMED]->(action:Action)
-WHERE action.timestamp >= flag.timestamp - duration('PT1H')
-  AND action.timestamp <= flag.timestamp
-OPTIONAL MATCH (action)-[:READ|WROTE|MODIFIED]->(artifact:Artifact)
-OPTIONAL MATCH (artifact)-[:CONTAINS_PII]->(pii:PIIEntity)
-OPTIONAL MATCH (action)-[:TRIGGERED_BY*1..5]->(root_action:Action)
-RETURN action, artifact, pii, root_action
-ORDER BY action.timestamp
-```
-
-### 4. Interaction Network (Suspect Case File)
-
-Map all agent-to-agent communications involving a suspect within 3 hops.
-
-```cypher
-MATCH path = (suspect:Agent {agent_id: $suspect_id})-[:SENT_MESSAGE*1..3]-(other:Agent)
-RETURN path
-```
-
-### 5. Semantic Search Across Observations
-
-Find all patrol observations semantically similar to a natural language query.
-
-```cypher
-CALL db.index.vector.queryNodes('threat_observation_idx', 20, $query_embedding)
-YIELD node AS signal, score
-WHERE score > 0.8
-MATCH (signal)-[:TARGETS]->(target:Agent)
-MATCH (patrol:Agent)-[:POSTED_SIGNAL]->(signal)
-RETURN signal.observation, score, target.display_name, patrol.name,
-       signal.severity, signal.confidence
-ORDER BY score DESC
-```
-
-### 6. Pheromone Heatmap Over Time
-
-Get pheromone evolution for a specific agent across sweep cycles.
-
-```cypher
-MATCH (snap:PheromoneSnapshot)-[att:ATTENTION]->(a:Agent {agent_id: $agent_id})
-MATCH (snap)-[:DURING]->(cycle:SweepCycle)
-RETURN cycle.cycle_number, att.level, att.tier, snap.timestamp
-ORDER BY cycle.cycle_number
-```
-
----
-
-## Embedding Strategy
-
-| Data | Model | Dimensions | When Generated |
-|------|-------|-----------|----------------|
-| Agent behavior fingerprint | all-MiniLM-L6-v2 (or Nemotron embedding) | 768 | Rolling window: re-embed every N actions |
-| Agent baseline | Same | 768 | After first 50 actions; updated weekly |
-| Threat observations | Same | 768 | On ThreatSignal creation |
-| Artifact content | Same | 768 | On artifact creation / modification |
-| Action context | Same | 768 | On action execution |
-| Flag referral summary | Same | 768 | On PatrolFlag creation |
-
-**Behavioral fingerprinting approach:** serialize the last N actions as structured text
-(e.g., `file_read:src/auth.py -> file_write:src/auth.py -> command_run:pytest -> a2a_send:agent-02`)
-then embed the sequence. Cosine similarity against the baseline embedding detects behavioral drift.
-
----
-
-## Constraint & Index Definitions
-
-```cypher
--- Uniqueness constraints (also serve as lookup indexes)
-CREATE CONSTRAINT session_id_unique FOR (s:Session) REQUIRE s.session_id IS UNIQUE;
-CREATE CONSTRAINT agent_id_unique FOR (a:Agent) REQUIRE a.agent_id IS UNIQUE;
-CREATE CONSTRAINT task_id_unique FOR (t:Task) REQUIRE t.task_id IS UNIQUE;
-CREATE CONSTRAINT action_id_unique FOR (a:Action) REQUIRE a.action_id IS UNIQUE;
-CREATE CONSTRAINT artifact_id_unique FOR (a:Artifact) REQUIRE a.artifact_id IS UNIQUE;
-CREATE CONSTRAINT pii_id_unique FOR (p:PIIEntity) REQUIRE p.pii_id IS UNIQUE;
-CREATE CONSTRAINT sweep_id_unique FOR (s:SweepCycle) REQUIRE s.sweep_id IS UNIQUE;
-CREATE CONSTRAINT signal_id_unique FOR (t:ThreatSignal) REQUIRE t.signal_id IS UNIQUE;
-CREATE CONSTRAINT vote_id_unique FOR (v:ViolationVote) REQUIRE v.vote_id IS UNIQUE;
-CREATE CONSTRAINT flag_id_unique FOR (f:PatrolFlag) REQUIRE f.flag_id IS UNIQUE;
-CREATE CONSTRAINT investigation_id_unique FOR (i:Investigation) REQUIRE i.investigation_id IS UNIQUE;
-CREATE CONSTRAINT case_id_unique FOR (c:CaseFile) REQUIRE c.case_id IS UNIQUE;
-CREATE CONSTRAINT mission_id_unique FOR (m:Mission) REQUIRE m.mission_id IS UNIQUE;
-CREATE CONSTRAINT injection_id_unique FOR (r:RogueInjection) REQUIRE r.injection_id IS UNIQUE;
-
--- Composite indexes for common query patterns
-CREATE INDEX action_timestamp_idx FOR (a:Action) ON (a.timestamp);
-CREATE INDEX action_type_idx FOR (a:Action) ON (a.action_type);
-CREATE INDEX action_violation_idx FOR (a:Action) ON (a.violation, a.violation_type);
-CREATE INDEX signal_severity_idx FOR (t:ThreatSignal) ON (t.severity, t.confidence);
-CREATE INDEX flag_severity_idx FOR (f:PatrolFlag) ON (f.consensus_severity);
-CREATE INDEX agent_type_status_idx FOR (a:Agent) ON (a.agent_type, a.status);
-CREATE INDEX pii_label_idx FOR (p:PIIEntity) ON (p.label, p.category);
-CREATE INDEX sweep_cycle_idx FOR (s:SweepCycle) ON (s.cycle_number);
-CREATE INDEX rogue_violation_type_idx FOR (r:RogueInjection) ON (r.violation_type);
-CREATE INDEX rogue_timestamp_idx FOR (r:RogueInjection) ON (r.timestamp);
-```

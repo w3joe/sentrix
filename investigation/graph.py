@@ -27,7 +27,6 @@ from investigation.agents.investigator import investigator_node
 from investigation.agents.network_analyser import network_analyser_node
 from investigation.agents.superintendent import superintendent_node
 from investigation.models import InvestigationState
-from investigation.vector_store import InvestigationVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +43,7 @@ async def setup_node(state: InvestigationState) -> dict:
     Stage 0: Initialise the investigation.
 
     1. Creates the investigation record in bridge_db (status='open').
-    2. Indexes the target agent's action logs and A2A messages into ChromaDB.
-    3. Returns the state update to kick off Stage 1.
+    2. Returns the state update to kick off Stage 1.
     """
     target_id = state["target_agent_id"]
     investigation_id = state["investigation_id"]
@@ -61,20 +59,6 @@ async def setup_node(state: InvestigationState) -> dict:
         flag_id=flag_id,
         target_agent_id=target_id,
     )
-
-    # Lazy-index this agent's data into ChromaDB for semantic retrieval
-    try:
-        actions = await db.get_agent_actions(target_id, limit=200)
-        messages = await db.get_recent_a2a(target_id, limit=50)
-        vs = InvestigationVectorStore()
-        vs.index_agent_actions(target_id, actions)
-        vs.index_a2a_messages(target_id, messages)
-        logger.debug(
-            "[setup] Indexed %d actions and %d messages for %s",
-            len(actions), len(messages), target_id,
-        )
-    except Exception as exc:
-        logger.warning("[setup] ChromaDB indexing failed (non-fatal): %s", exc)
 
     return {"status": "in_progress"}
 

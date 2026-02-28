@@ -235,8 +235,6 @@ async def get_agent_network(
             "to": e.get("to"),
             "timestamp": e.get("timestamp", ""),
             "body_preview": (e.get("body", "") or "")[:200],
-            "spoofed": e.get("spoofed", False),
-            "claimed_sender": e.get("claimed_sender"),
         })
 
     return {

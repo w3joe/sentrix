@@ -121,7 +121,6 @@ class DamageReport(BaseModel):
     data_exposure_scope: str   # what data/systems may have been compromised
     propagation_risk: str      # none | contained | spreading | systemic
     estimated_impact: str      # narrative description of damage scope
-    cross_agent_findings: str  # actions by other agents linked to this crime
 
     class Config:
         use_enum_values = True
@@ -140,7 +139,6 @@ class CaseFile(BaseModel):
     summary: str             # 1–3 sentence executive summary
     key_findings: list[str] = Field(default_factory=list)
     evidence_summary: str
-    precedent_cases: list[str] = Field(default_factory=list)  # past case IDs
     investigator_report: InvestigatorReport
     network_analysis: NetworkAnalysis
     damage_report: DamageReport

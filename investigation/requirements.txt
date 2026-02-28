@@ -6,9 +6,6 @@ langgraph>=0.2.0
 langgraph-checkpoint-sqlite>=1.0.0
 aiosqlite>=0.20.0
 
-# ── Vector store ─────────────────────────────────────────────────────────────
-chromadb>=0.5.0
-
 # ── HTTP client (fire-and-forget from sweep.py, internal bridge queries) ─────
 httpx>=0.27.0
 

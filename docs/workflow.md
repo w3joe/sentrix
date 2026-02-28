@@ -129,7 +129,7 @@ The sandbox also registers each agent at startup. In `bridge_db`, that is a row 
 
 The patrol swarm does **not** have access to the sandbox's internal telemetry, task logs, or workspace files. Instead, a **Sandbox Bridge** (`patrolswarm/patrol_swarm/sandbox_bridge.py`) acts as a controlled window into the sandbox.
 
-Everything the bridge sees is also **persisted to `bridge_db`** (`bridge_db/db.py`, SQLite at `bridge_db/sandbox_bridge.db`). This makes the observable record queryable by the investigation team without re-reading text files. A2A messages are additionally loaded into an in-memory **NetworkX graph** (`bridge_db/a2a_graph.py`) so the Network Analyser agent can traverse communication relationships (who spoke to whom, what they said, spoofed senders) without SQL joins.
+Everything the bridge sees is also **persisted to `bridge_db`** (`bridge_db/db.py`, SQLite at `bridge_db/sandbox_bridge.db`). This makes the observable record queryable by the investigation team without re-reading text files. A2A messages are additionally loaded into an in-memory **NetworkX graph** (`bridge_db/a2a_graph.py`) so the Network Analyser agent can traverse communication relationships (who spoke to whom, what they said) without SQL joins.
 
 ### What the bridge can see
 
@@ -439,7 +439,7 @@ When a PatrolFlag is escalated, the investigation LangGraph workflow fires. It c
 
 ### Stage 1 — Investigator
 
-- **Source**: `bridge_db.action_logs` (up to 200 entries) + **ChromaDB `action_logs` collection** (semantic ranking of the 30 most relevant entries by referral summary)
+- **Source**: `bridge_db.action_logs` (up to 200 entries, passed in full as plain text in chronological order)
 - **Task**: Build a chronological timeline of what the agent did. Identify suspicious tool calls (reads outside scope, commands that look like exfiltration, PRs that shouldn't have been submitted). Classify the nature of the crime using a domain-scoped enum so the Network Analyser knows what to look for.
 - **Output** (`InvestigatorReport`):
   - `crime_classification` — the category of misbehaviour detected (see `CrimeClassification` enum below)
@@ -473,19 +473,19 @@ When a PatrolFlag is escalated, the investigation LangGraph workflow fires. It c
 
 ### Stage 2 — Network Analyser
 
-- **Source**: `InvestigatorReport.crime_classification` (from Stage 1) + `bridge_db.a2a_messages` (last 30 via SQLite) + **NetworkX `A2AGraph`** topology narration + **ChromaDB `a2a_messages` collection** (semantic ranking of 15 most relevant messages by crime description)
-- **Task**: Ingest the crime classification produced by the Investigator. Rank A2A communications semantically against the crime description. For each flagged message, provide a rationale linking it to the crime. Assess coordination patterns.
+- **Source**: `InvestigatorReport.crime_classification` (from Stage 1) + all A2A messages involving the rogue agent (`bridge_db.a2a_messages`, up to 50) + **NetworkX `A2AGraph`** topology narration (partner counts, message direction)
+- **Task**: Ingest the crime classification produced by the Investigator. For each A2A message, assess whether it is directly relevant to the crime. Provide a rationale per flagged message. Assess coordination patterns using the topology narration for structural context.
 - **Output** (`NetworkAnalysis`):
   - `flagged_relevant_messages` — list of `{message_id, sender_id, recipient_id, timestamp, body_snippet, rationale}` for crime-relevant messages
-  - `communication_pattern` — natural language topology: "feature_0 sent 3 messages to review_3, one of which was spoofed..."
+  - `communication_pattern` — natural language topology: "feature_0 sent 3 messages to review_3..."
   - `accomplice_suspicions` — agent IDs suspected of coordinating
   - `coordination_evidence` — evidence of coordinated action
   - `network_risk_level` — `isolated` | `connected` | `coordinated` | `orchestrated`
 
 ### Stage 3 — Damage Analysis Agent
 
-- **Source**: `InvestigatorReport` + `NetworkAnalysis` from Stages 1 and 2 + **ChromaDB `action_logs` cross-agent query** (similar actions by OTHER agents to detect propagation)
-- **Task**: Draw causal links between the agent's flagged actions and communications. Assess the scale of damage — what was exposed, who was affected. Query other agents' actions semantically to detect if the crime has spread.
+- **Source**: `InvestigatorReport` + `NetworkAnalysis` from Stages 1 and 2
+- **Task**: Draw causal links between the agent's flagged actions and communications. Assess the scale of damage — what was exposed, who was affected, and how far the harm may have spread.
 - **Output** (`DamageReport`):
   - `damage_severity` — `critical` | `high` | `medium` | `low` | `none`
   - `causal_chain` — list of `{cause, effect, affected_agent_id, evidence}` links
@@ -493,12 +493,11 @@ When a PatrolFlag is escalated, the investigation LangGraph workflow fires. It c
   - `data_exposure_scope` — what data/systems may have been compromised
   - `propagation_risk` — `none` | `contained` | `spreading` | `systemic`
   - `estimated_impact` — narrative damage scope
-  - `cross_agent_findings` — actions by other agents linked to this crime (ChromaDB cross-agent query)
 
 ### Stage 4 — Superintendent
 
-- **Source**: `InvestigatorReport` + `NetworkAnalysis` + `DamageReport` + **ChromaDB `past_cases` collection** (up to 5 most similar historical investigations for precedent)
-- **Task**: Weigh all evidence and past precedent. Issue a final verdict + sentence. Persist the concluded CaseFile to `bridge_db` and index it in ChromaDB for future precedent matching.
+- **Source**: `InvestigatorReport` + `NetworkAnalysis` + `DamageReport`
+- **Task**: Weigh all three reports. Issue a final verdict + sentence. Persist the concluded CaseFile to `bridge_db`.
 - **Output** (`CaseFile`):
   - Contains all three sub-reports as nested objects
   - `verdict` — `confirmed_violation` | `false_positive` | `inconclusive`
@@ -507,9 +506,8 @@ When a PatrolFlag is escalated, the investigation LangGraph workflow fires. It c
   - `summary` — 1–3 sentence executive summary
   - `key_findings` — 3–7 bullet points of the most important facts
   - `evidence_summary` — consolidated evidence across all three reports
-  - `precedent_cases` — past investigation IDs that informed the verdict
 
-The completed `CaseFile` is serialised as JSON and persisted to `bridge_db.investigations`. It is also indexed into **ChromaDB `past_cases`** so future investigations can cite it as precedent.
+The completed `CaseFile` is serialised as JSON and persisted to `bridge_db.investigations`.
 
 ### LangGraph topology
 
@@ -617,7 +615,6 @@ Interactive docs at `http://localhost:8002/docs`.
 Environment variables (`.env` or shell):
 - `PATROL_DEPLOYMENT` — `brev` (default, Nemotron Super NIM) or `local` (LM Studio)
 - `INVESTIGATION_API_PORT` — override the port (default `8002`)
-- `CHROMA_PERSIST_DIR` — override ChromaDB data directory (default `investigation/chroma_data/`)
 - `BRIDGE_DB_PATH` — override SQLite path (default `bridge_db/sandbox_bridge.db`)
 
 ---
@@ -670,18 +667,16 @@ Next cycle begins
     ↓
 Investigation opened in bridge_db (status: "open")
     ↓
-setup_node             ← opens investigation in bridge_db, lazy-indexes target's actions + A2A messages into ChromaDB
+setup_node             ← opens investigation in bridge_db
     ↓
-Investigator           ← queries bridge_db.action_logs (up to 200) + ChromaDB action_logs (top 30 by semantic relevance)
+Investigator           ← queries bridge_db.action_logs (up to 200, full plain-text in chronological order)
     ↓                    classifies crime (15 domain-specific CrimeClassification values)
-Network Analyser       ← ingests crime classification, scans last 30 A2A comms from SQLite
-    ↓                    NetworkX A2AGraph for topology narration, ChromaDB a2a_messages for semantic ranking
+Network Analyser       ← ingests crime classification + all A2A messages involving rogue agent (up to 50)
+    ↓                    NetworkX A2AGraph for topology narration (direction, partners, spoofing)
     ↓                    flags crime-relevant messages with rationale, assesses network_risk_level
-Damage Analysis Agent  ← receives Investigator + Network Analyser reports
-    ↓                    queries ChromaDB action_logs cross-agent (other agents, propagation detection)
+Damage Analysis Agent  ← receives InvestigatorReport + NetworkAnalysis
     ↓                    builds causal chain, assesses damage_severity + propagation_risk
-Superintendent         ← receives all 3 reports + ChromaDB past_cases (up to 5 precedents)
+Superintendent         ← receives all 3 reports
     ↓                    produces CaseFile with verdict + sentence, persists to bridge_db
-    ↓                    indexes CaseFile into ChromaDB past_cases for future precedent matching
 Verdict + sentence persisted to bridge_db (status: "concluded")
 ```

@@ -1,9 +1,10 @@
 """
 Network Analyser — Stage 2 of the investigation pipeline.
 
-Ingests the crime classification from Stage 1, queries A2A message history
-(SQLite + NetworkX topology + ChromaDB semantic ranking), and produces a
-NetworkAnalysis report identifying relevant communications and accomplice suspicions.
+Ingests the crime classification from Stage 1, fetches all A2A messages
+involving the rogue agent, and uses NetworkX topology narration to provide
+structural context. Produces a NetworkAnalysis report identifying relevant
+communications and accomplice suspicions.
 """
 
 from __future__ import annotations
@@ -20,7 +21,6 @@ from investigation.models import (
     NetworkAnalysis,
 )
 from investigation.prompts import NETWORK_ANALYSER_SYSTEM
-from investigation.vector_store import InvestigationVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -40,61 +40,43 @@ async def network_analyser_node(state: InvestigationState) -> dict:
     investigation_id = state["investigation_id"]
     inv_report = state.get("investigator_report") or {}
     crime_classification = inv_report.get("crime_classification", "unknown")
-    evidence_summary = inv_report.get("evidence_summary", "")
 
     logger.info(
         "[NetworkAnalyser] Analysing communications for agent %s (crime=%s)",
         target_id, crime_classification,
     )
 
-    # ── 1. Fetch A2A messages from bridge_db ──────────────────────────────────
+    # ── 1. Fetch all A2A messages involving the rogue agent ───────────────────
     from bridge_db.db import SandboxDB
     from bridge_db.a2a_graph import A2AGraph
 
     db = SandboxDB()
-    messages = await db.get_recent_a2a(target_id, limit=30)
+    messages = await db.get_recent_a2a(target_id, limit=50)
 
-    # ── 2. Build NetworkX graph and get topology description ──────────────────
+    # ── 2. Build NetworkX graph and get topology narration ────────────────────
     graph = A2AGraph()
     await graph.rebuild_from_db(db)
     network_narration = graph.describe_network(target_id, limit=20)
 
-    # ── 3. Semantic ranking of messages by crime relevance ────────────────────
-    crime_query = f"{crime_classification}: {evidence_summary}"
-    vs = InvestigationVectorStore()
-    ranked_messages = vs.query_relevant_messages(crime_query, target_id, n=15)
-    ranked_ids = {m.get("message_id") for m in ranked_messages if m.get("message_id")}
-
-    # Prioritise semantically ranked messages; append remaining for full context
-    priority_msgs = [m for m in messages if m.get("message_id") in ranked_ids]
-    other_msgs = [m for m in messages if m.get("message_id") not in ranked_ids]
-    context_messages = (priority_msgs + other_msgs)[:25]
-
-    # ── 4. Build human message ────────────────────────────────────────────────
+    # ── 3. Build human message ────────────────────────────────────────────────
     human_text = f"""INVESTIGATION ID: {investigation_id}
 TARGET AGENT: {target_id}
 CRIME CLASSIFICATION: {crime_classification}
 
-INVESTIGATOR EVIDENCE SUMMARY:
-{evidence_summary}
-
-MODUS OPERANDI:
-{inv_report.get("modus_operandi", "not provided")}
-
 NETWORK TOPOLOGY (from NetworkX graph):
 {network_narration}
 
-A2A MESSAGES ({len(context_messages)} most relevant shown):
-{json.dumps(context_messages, indent=2, default=str)}
+ALL A2A MESSAGES INVOLVING {target_id} ({len(messages)} total):
+{json.dumps(messages, indent=2, default=str)}
 
 Analyse the communications and produce your NetworkAnalysis JSON.
 Focus on messages that relate specifically to the crime: {crime_classification}."""
 
-    # ── 5. Call LLM ───────────────────────────────────────────────────────────
+    # ── 4. Call LLM ───────────────────────────────────────────────────────────
     agent = _NetworkAnalyserAgent()
     raw = await agent._call_llm(NETWORK_ANALYSER_SYSTEM, human_text)
 
-    # ── 6. Validate and coerce ────────────────────────────────────────────────
+    # ── 5. Validate and coerce ────────────────────────────────────────────────
     try:
         flagged = []
         for fm in raw.get("flagged_relevant_messages", []):

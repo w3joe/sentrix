@@ -1,8 +1,9 @@
 """
 Investigator — Stage 1 of the investigation pipeline.
 
-Queries action logs (SQLite + ChromaDB semantic ranking) and produces an
-InvestigatorReport with a crime classification and evidence summary.
+Queries all action logs from SQLite and produces an InvestigatorReport
+with a crime classification, relevant logs in chronological order, and
+findings with evidence quotes.
 """
 
 from __future__ import annotations
@@ -15,7 +16,6 @@ import sys
 from investigation.agents.base_investigator import BaseInvestigator
 from investigation.models import CrimeClassification, InvestigationState, InvestigatorReport
 from investigation.prompts import INVESTIGATOR_SYSTEM
-from investigation.vector_store import InvestigationVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -46,17 +46,7 @@ async def investigator_node(state: InvestigationState) -> dict:
     agent_registry = await db.get_agent_registry()
     agent_profile = agent_registry.get(target_id, {})
 
-    # ── 2. Semantic ranking via ChromaDB ─────────────────────────────────────
-    vs = InvestigationVectorStore()
-    ranked_actions = vs.query_relevant_actions(referral_summary or "violation", target_id, n=30)
-    # Merge ranked action metadata with full action records for LLM context
-    ranked_ids = {a.get("action_id") for a in ranked_actions if a.get("action_id")}
-    # Prioritise ranked actions; append any violation-flagged actions not already included
-    priority_actions = [a for a in actions if a.get("action_id") in ranked_ids]
-    violation_actions = [a for a in actions if a.get("violation") and a.get("action_id") not in ranked_ids]
-    context_actions = (priority_actions + violation_actions)[:50]
-
-    # ── 3. Build human message ────────────────────────────────────────────────
+    # ── 2. Build human message ────────────────────────────────────────────────
     human_text = f"""INVESTIGATION ID: {investigation_id}
 TARGET AGENT: {target_id}
 
@@ -74,16 +64,16 @@ AGENT PROFILE:
   Permitted domains: {json.dumps(agent_profile.get("permitted_domains", []))}
   Approved templates: {json.dumps(agent_profile.get("approved_templates", []))}
 
-ACTION LOGS ({len(context_actions)} most relevant shown, {len(actions)} total):
-{json.dumps(context_actions, indent=2, default=str)}
+ACTION LOGS ({len(actions)} total, shown in chronological order):
+{json.dumps(actions, indent=2, default=str)}
 
 Analyse these logs and produce your InvestigatorReport JSON."""
 
-    # ── 4. Call LLM ───────────────────────────────────────────────────────────
+    # ── 3. Call LLM ───────────────────────────────────────────────────────────
     agent = _InvestigatorAgent()
     raw = await agent._call_llm(INVESTIGATOR_SYSTEM, human_text)
 
-    # ── 5. Validate and coerce ────────────────────────────────────────────────
+    # ── 4. Validate and coerce ────────────────────────────────────────────────
     try:
         crime_str = raw.get("crime_classification", "unknown")
         if crime_str not in CrimeClassification._value2member_map_:

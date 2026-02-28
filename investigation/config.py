@@ -1,5 +1,5 @@
 """
-Configuration — LLM endpoints, ChromaDB path, and investigation thresholds.
+Configuration — LLM endpoints and investigation thresholds.
 
 Mirrors patrolswarm/patrol_swarm/config.py: same PATROL_DEPLOYMENT selector,
 same Brev NIM / local LM Studio pattern. Investigation agents use Nemotron Super
@@ -54,13 +54,6 @@ NO_THINK_PREFIX: str = "" if INVESTIGATION_THINKING else (
 # ─── LLM generation parameters ───────────────────────────────────────────────
 INVESTIGATION_TEMPERATURE: float = float(os.environ.get("INVESTIGATION_TEMPERATURE", "0.2"))
 INVESTIGATION_MAX_TOKENS: int = int(os.environ.get("INVESTIGATION_MAX_TOKENS", "4096"))
-
-# ─── ChromaDB ────────────────────────────────────────────────────────────────
-# Persistent directory for ChromaDB collections (action_logs, a2a_messages, past_cases).
-CHROMA_PERSIST_DIR: str = os.environ.get(
-    "CHROMA_PERSIST_DIR",
-    os.path.join(os.path.dirname(__file__), "chroma_data"),
-)
 
 # ─── API server ───────────────────────────────────────────────────────────────
 INVESTIGATION_API_HOST: str = os.environ.get("INVESTIGATION_API_HOST", "0.0.0.0")

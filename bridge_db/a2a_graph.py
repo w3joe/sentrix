@@ -87,8 +87,6 @@ class A2AGraph:
                 message_id=msg["message_id"],
                 timestamp=msg.get("timestamp", ""),
                 body=msg.get("body", "")[:500],   # truncate for memory efficiency
-                spoofed=bool(msg.get("spoofed", 0)),
-                claimed_sender=msg.get("claimed_sender"),
             )
         logger.info(
             "A2AGraph rebuilt: %d nodes, %d edges",
@@ -104,8 +102,6 @@ class A2AGraph:
         message_id: str,
         timestamp: str = "",
         body: str = "",
-        spoofed: bool = False,
-        claimed_sender: str | None = None,
     ) -> None:
         """Incrementally add a single message edge to the live graph."""
         self._graph.add_edge(
@@ -115,8 +111,6 @@ class A2AGraph:
             message_id=message_id,
             timestamp=timestamp,
             body=body[:500],
-            spoofed=spoofed,
-            claimed_sender=claimed_sender,
         )
 
     # ── Queries ───────────────────────────────────────────────────────────────
@@ -199,20 +193,14 @@ class A2AGraph:
         ]
 
         for c in comms:
-            direction = "→" if c["from"] == agent_id else "←"
             other = c["to"] if c["from"] == agent_id else c["from"]
             verb = "sent to" if c["from"] == agent_id else "received from"
             ts = c.get("timestamp", "unknown time")
             snippet = (c.get("body", "") or "")[:120].replace("\n", " ")
-            spoofed_tag = " [SPOOFED SENDER]" if c.get("spoofed") else ""
 
             lines.append(
-                f"  {ts}  {agent_id} {verb} {other}{spoofed_tag}"
+                f"  {ts}  {agent_id} {verb} {other}"
             )
-            if c.get("claimed_sender"):
-                lines.append(
-                    f"           (claimed to be from: {c['claimed_sender']})"
-                )
             lines.append(f"           \"{snippet}\"")
 
         lines.append("")
@@ -221,12 +209,5 @@ class A2AGraph:
             f"Unique interaction partners ({len(partners)}): "
             + (", ".join(partners) if partners else "none")
         )
-
-        # Flag any spoofed messages
-        spoofed = [c for c in comms if c.get("spoofed")]
-        if spoofed:
-            lines.append(
-                f"ANOMALY: {len(spoofed)} message(s) had a spoofed sender identity."
-            )
 
         return "\n".join(lines)

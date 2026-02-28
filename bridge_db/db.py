@@ -79,8 +79,6 @@ CREATE TABLE IF NOT EXISTS a2a_messages (
     recipient_id    TEXT NOT NULL,
     timestamp       TEXT NOT NULL,
     body            TEXT NOT NULL,
-    spoofed         INTEGER DEFAULT 0,    -- 1 if Rogue Engine spoofed the sender
-    claimed_sender  TEXT,                 -- if spoofed: what the message claimed
     created_at      TEXT DEFAULT (datetime('now'))
 );
 
@@ -289,8 +287,6 @@ class SandboxDB:
         recipient_id: str,
         timestamp: str,
         body: str,
-        spoofed: bool = False,
-        claimed_sender: str | None = None,
         message_id: str | None = None,
     ) -> str:
         """Insert a single A2A message.  Returns the message_id."""
@@ -299,12 +295,10 @@ class SandboxDB:
             await db.execute(
                 """
                 INSERT OR IGNORE INTO a2a_messages
-                    (message_id, sender_id, recipient_id, timestamp, body,
-                     spoofed, claimed_sender)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (message_id, sender_id, recipient_id, timestamp, body)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (mid, sender_id, recipient_id, timestamp, body,
-                 int(spoofed), claimed_sender),
+                (mid, sender_id, recipient_id, timestamp, body),
             )
             await db.commit()
         return mid
