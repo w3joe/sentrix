@@ -50,8 +50,8 @@ export function useTimelineState() {
       }
     }
 
-    // Return clean state for all if no history found
-    return { n1: 'clean', n2: 'clean', n3: 'clean', n4: 'clean', n5: 'clean', n6: 'clean' };
+    // Return idle state for all if no history found
+    return { n1: 'idle', n2: 'idle', n3: 'idle', n4: 'idle', n5: 'idle', n6: 'idle' };
   }, []);
 
   // Current agent states based on timeline position

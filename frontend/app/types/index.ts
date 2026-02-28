@@ -1,4 +1,4 @@
-export type AgentStatus = 'critical' | 'warning' | 'clean' | 'suspended';
+export type AgentStatus = 'working' | 'idle' | 'restricted' | 'suspended';
 export type AgentRecord = 'convicted' | 'warning' | 'clean';
 export type RiskLevel = 'normal' | 'low' | 'high';
 export type AgentActivityStatus = 'idle' | 'working' | 'interacting';

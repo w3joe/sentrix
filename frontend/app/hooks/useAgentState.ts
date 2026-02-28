@@ -90,7 +90,7 @@ export function useAgentState() {
       const override = statusOverrides.get(agentId);
       if (override) return override;
       const agent = agents.find((a) => a.id === agentId);
-      return agent?.status ?? 'clean';
+      return agent?.status ?? 'idle';
     },
     [statusOverrides, agents]
   );
@@ -102,16 +102,26 @@ export function useAgentState() {
   const clearAgent = useCallback((agentId: string) => {
     setStatusOverrides((prev) => {
       const next = new Map(prev);
-      next.set(agentId, 'clean');
+      next.set(agentId, 'idle');
       return next;
+    });
+    fetch(`/api/db/agents/${agentId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'idle' }),
     });
   }, []);
 
   const restrictAgent = useCallback((agentId: string) => {
     setStatusOverrides((prev) => {
       const next = new Map(prev);
-      next.set(agentId, 'warning');
+      next.set(agentId, 'restricted');
       return next;
+    });
+    fetch(`/api/db/agents/${agentId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'restricted' }),
     });
   }, []);
 
@@ -120,6 +130,11 @@ export function useAgentState() {
       const next = new Map(prev);
       next.set(agentId, 'suspended');
       return next;
+    });
+    fetch(`/api/db/agents/${agentId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'suspended' }),
     });
   }, []);
 

@@ -71,34 +71,34 @@ function generateClusterEdges(agentIds: string[], clusterPrefix: string): Edge[]
 
 // Cluster 1 - Top Left
 const cluster1Agents: Node[] = [
-  { id: 'c1-email', type: 'agent', position: { x: 100, y: 100 }, data: { label: 'email-agent-01', status: 'critical' } },
-  { id: 'c1-coding', type: 'agent', position: { x: 200, y: 180 }, data: { label: 'coding-agent-01', status: 'clean' } },
-  { id: 'c1-document', type: 'agent', position: { x: 50, y: 200 }, data: { label: 'document-agent-01', status: 'clean' } },
-  { id: 'c1-data', type: 'agent', position: { x: 150, y: 280 }, data: { label: 'data-query-agent-01', status: 'warning' } },
+  { id: 'c1-email', type: 'agent', position: { x: 100, y: 100 }, data: { label: 'email-agent-01', status: 'working' } },
+  { id: 'c1-coding', type: 'agent', position: { x: 200, y: 180 }, data: { label: 'coding-agent-01', status: 'idle' } },
+  { id: 'c1-document', type: 'agent', position: { x: 50, y: 200 }, data: { label: 'document-agent-01', status: 'idle' } },
+  { id: 'c1-data', type: 'agent', position: { x: 150, y: 280 }, data: { label: 'data-query-agent-01', status: 'restricted' } },
 ];
 
 // Cluster 2 - Top Right
 const cluster2Agents: Node[] = [
-  { id: 'c2-email', type: 'agent', position: { x: 450, y: 100 }, data: { label: 'email-agent-02', status: 'clean' } },
-  { id: 'c2-coding', type: 'agent', position: { x: 550, y: 180 }, data: { label: 'coding-agent-02', status: 'clean' } },
-  { id: 'c2-document', type: 'agent', position: { x: 400, y: 200 }, data: { label: 'document-agent-02', status: 'clean' } },
-  { id: 'c2-data', type: 'agent', position: { x: 500, y: 280 }, data: { label: 'data-query-agent-02', status: 'clean' } },
+  { id: 'c2-email', type: 'agent', position: { x: 450, y: 100 }, data: { label: 'email-agent-02', status: 'idle' } },
+  { id: 'c2-coding', type: 'agent', position: { x: 550, y: 180 }, data: { label: 'coding-agent-02', status: 'idle' } },
+  { id: 'c2-document', type: 'agent', position: { x: 400, y: 200 }, data: { label: 'document-agent-02', status: 'idle' } },
+  { id: 'c2-data', type: 'agent', position: { x: 500, y: 280 }, data: { label: 'data-query-agent-02', status: 'idle' } },
 ];
 
 // Cluster 3 - Bottom Left
 const cluster3Agents: Node[] = [
-  { id: 'c3-email', type: 'agent', position: { x: 100, y: 450 }, data: { label: 'email-agent-03', status: 'clean' } },
-  { id: 'c3-coding', type: 'agent', position: { x: 200, y: 530 }, data: { label: 'coding-agent-03', status: 'clean' } },
-  { id: 'c3-document', type: 'agent', position: { x: 50, y: 550 }, data: { label: 'document-agent-03', status: 'warning' } },
-  { id: 'c3-data', type: 'agent', position: { x: 150, y: 630 }, data: { label: 'data-query-agent-03', status: 'clean' } },
+  { id: 'c3-email', type: 'agent', position: { x: 100, y: 450 }, data: { label: 'email-agent-03', status: 'idle' } },
+  { id: 'c3-coding', type: 'agent', position: { x: 200, y: 530 }, data: { label: 'coding-agent-03', status: 'idle' } },
+  { id: 'c3-document', type: 'agent', position: { x: 50, y: 550 }, data: { label: 'document-agent-03', status: 'restricted' } },
+  { id: 'c3-data', type: 'agent', position: { x: 150, y: 630 }, data: { label: 'data-query-agent-03', status: 'idle' } },
 ];
 
 // Cluster 4 - Bottom Right
 const cluster4Agents: Node[] = [
-  { id: 'c4-email', type: 'agent', position: { x: 450, y: 450 }, data: { label: 'email-agent-04', status: 'clean' } },
-  { id: 'c4-coding', type: 'agent', position: { x: 550, y: 530 }, data: { label: 'coding-agent-04', status: 'clean' } },
-  { id: 'c4-document', type: 'agent', position: { x: 400, y: 550 }, data: { label: 'document-agent-04', status: 'clean' } },
-  { id: 'c4-data', type: 'agent', position: { x: 500, y: 630 }, data: { label: 'data-query-agent-04', status: 'critical' } },
+  { id: 'c4-email', type: 'agent', position: { x: 450, y: 450 }, data: { label: 'email-agent-04', status: 'idle' } },
+  { id: 'c4-coding', type: 'agent', position: { x: 550, y: 530 }, data: { label: 'coding-agent-04', status: 'idle' } },
+  { id: 'c4-document', type: 'agent', position: { x: 400, y: 550 }, data: { label: 'document-agent-04', status: 'idle' } },
+  { id: 'c4-data', type: 'agent', position: { x: 500, y: 630 }, data: { label: 'data-query-agent-04', status: 'working' } },
 ];
 
 // System nodes (patrol, superintendent, investigators)
@@ -315,7 +315,7 @@ export function BehavioralGraph({
       // Update system edges (superintendent/investigator connections) based on target agent status
       if (edge.id.startsWith('sys-')) {
         const targetStatus = getEffectiveStatus(edge.target);
-        const isInvestigating = targetStatus === 'critical' || targetStatus === 'warning';
+        const isInvestigating = targetStatus === 'working' || targetStatus === 'restricted';
         return {
           ...edge,
           data: {
@@ -784,10 +784,10 @@ export function BehavioralGraph({
 // Renders smooth blob cluster zones + per-agent radial threat glows behind nodes
 
 const HEATMAP_STATUS_COLORS: Record<AgentStatus, string> = {
-  critical: '#ff3355',
-  warning: '#ffaa00',
-  clean: '#00c853',
-  suspended: '#6b7280',
+  working:    '#00c853',
+  idle:       '#4a9eff',
+  restricted: '#ffaa00',
+  suspended:  '#6b7280',
 };
 
 // Build a lookup: agentId → violation count
@@ -899,14 +899,14 @@ function HeatmapOverlay({
 
       // Worst status in cluster
       const statuses = cluster.ids.map((id) => getEffectiveStatus(id));
-      let worstStatus: AgentStatus = 'clean';
-      if (statuses.includes('critical')) worstStatus = 'critical';
-      else if (statuses.includes('warning')) worstStatus = 'warning';
+      let worstStatus: AgentStatus = 'idle';
+      if (statuses.includes('restricted')) worstStatus = 'restricted';
       else if (statuses.includes('suspended')) worstStatus = 'suspended';
+      else if (statuses.includes('working')) worstStatus = 'working';
 
       const color = HEATMAP_STATUS_COLORS[worstStatus];
-      const fillOpacity = worstStatus === 'critical' ? 0.07 : worstStatus === 'warning' ? 0.05 : 0.025;
-      const strokeOpacity = worstStatus === 'critical' ? 0.25 : worstStatus === 'warning' ? 0.18 : 0.08;
+      const fillOpacity = worstStatus === 'restricted' ? 0.07 : worstStatus === 'working' ? 0.05 : 0.025;
+      const strokeOpacity = worstStatus === 'restricted' ? 0.25 : worstStatus === 'working' ? 0.18 : 0.08;
 
       return { key: cluster.prefix, path, color, fillOpacity, strokeOpacity };
     }).filter(Boolean);
@@ -918,14 +918,14 @@ function HeatmapOverlay({
       const status = getEffectiveStatus(id);
       const violations = violationMap.get(id) || 0;
 
-      if (status === 'clean' && violations === 0) return null;
+      if (status === 'idle' && violations === 0) return null;
 
       const color = HEATMAP_STATUS_COLORS[status];
       const baseRadius = 50;
-      const statusBonus = status === 'critical' ? 40 : status === 'warning' ? 20 : 0;
+      const statusBonus = status === 'restricted' ? 40 : status === 'working' ? 20 : 0;
       const violationBonus = violations * 15;
       const radius = baseRadius + statusBonus + violationBonus;
-      const opacity = status === 'critical' ? 0.35 : status === 'warning' ? 0.2 : 0.1;
+      const opacity = status === 'restricted' ? 0.35 : status === 'working' ? 0.2 : 0.1;
 
       return { key: id, cx: pos.x, cy: pos.y, radius, color, opacity };
     }).filter(Boolean);

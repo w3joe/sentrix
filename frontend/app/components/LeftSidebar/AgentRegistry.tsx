@@ -14,10 +14,10 @@ interface AgentRegistryProps {
 }
 
 const statusColors: Record<AgentStatus, string> = {
-  critical: 'bg-[#ff3355]',
-  warning: 'bg-[#ffaa00]',
-  clean: 'bg-[#00c853]',
-  suspended: 'bg-[#6b7280]',
+  working:    'bg-[#00c853]',
+  idle:       'bg-[#4a9eff]',
+  restricted: 'bg-[#ffaa00]',
+  suspended:  'bg-[#6b7280]',
 };
 
 const recordBadgeColors: Record<string, string> = {
@@ -28,10 +28,10 @@ const recordBadgeColors: Record<string, string> = {
 
 function getClusterStatus(agents: Agent[], getAgentStatus: (agentId: string) => AgentStatus): AgentStatus {
   const statuses = agents.map(a => getAgentStatus(a.id));
-  if (statuses.includes('critical')) return 'critical';
-  if (statuses.includes('warning')) return 'warning';
+  if (statuses.includes('restricted')) return 'restricted';
   if (statuses.includes('suspended')) return 'suspended';
-  return 'clean';
+  if (statuses.includes('working')) return 'working';
+  return 'idle';
 }
 
 export function AgentRegistry({ clusters, selectedAgentId, onSelectAgent, getAgentStatus, isLoading, isError }: AgentRegistryProps) {
@@ -102,8 +102,8 @@ export function AgentRegistry({ clusters, selectedAgentId, onSelectAgent, getAge
                 {/* Cluster Status Dot */}
                 <div
                   className={`w-2 h-2 rounded-full flex-shrink-0 ${statusColors[clusterStatus]} ${
-                    clusterStatus === 'critical' ? 'pulse-critical' : ''
-                  } ${clusterStatus === 'warning' ? 'pulse-warning' : ''}`}
+                    clusterStatus === 'restricted' ? 'pulse-warning' : ''
+                  }`}
                 />
 
                 {/* Cluster Name */}
@@ -137,8 +137,8 @@ export function AgentRegistry({ clusters, selectedAgentId, onSelectAgent, getAge
                         {/* Status Dot */}
                         <div
                           className={`w-2 h-2 rounded-full flex-shrink-0 ${statusColors[currentStatus]} ${
-                            currentStatus === 'critical' ? 'pulse-critical' : ''
-                          } ${currentStatus === 'warning' ? 'pulse-warning' : ''}`}
+                            currentStatus === 'restricted' ? 'pulse-warning' : ''
+                          }`}
                         />
 
                         {/* Agent Info */}
