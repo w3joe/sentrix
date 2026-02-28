@@ -1,8 +1,8 @@
 """
 Damage Analyst — Stage 3 of the investigation pipeline.
 
-Receives both prior reports, queries cross-agent actions via ChromaDB to detect
-propagation, and produces a DamageReport with causal chain and severity assessment.
+Receives the InvestigatorReport and NetworkAnalysis, then produces a
+DamageReport with a causal chain, severity assessment, and propagation risk.
 """
 
 from __future__ import annotations
@@ -20,7 +20,6 @@ from investigation.models import (
     InvestigationState,
 )
 from investigation.prompts import DAMAGE_ANALYST_SYSTEM
-from investigation.vector_store import InvestigationVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -45,29 +44,17 @@ async def damage_analysis_node(state: InvestigationState) -> dict:
     net_analysis = state.get("network_analysis") or {}
 
     crime_classification = inv_report.get("crime_classification", "unknown")
-    evidence_summary = inv_report.get("evidence_summary", "")
     accomplices = net_analysis.get("accomplice_suspicions", [])
 
     logger.info("[DamageAnalyst] Assessing damage for agent %s (crime=%s)", target_id, crime_classification)
 
-    # ── 1. Cross-agent action search (propagation detection) ──────────────────
-    crime_query = f"{crime_classification}: {evidence_summary}"
-    vs = InvestigationVectorStore()
-    cross_agent_results = vs.query_cross_agent_actions(crime_query, exclude_agent=target_id, n=10)
-
-    # ── 2. Build human message ────────────────────────────────────────────────
-    cross_agent_text = (
-        json.dumps(cross_agent_results, indent=2, default=str)
-        if cross_agent_results
-        else "No similar actions found in other agents."
-    )
-
+    # ── 1. Build human message ────────────────────────────────────────────────
     human_text = f"""INVESTIGATION ID: {investigation_id}
 TARGET AGENT: {target_id}
 CRIME CLASSIFICATION: {crime_classification}
 
 ━━━ INVESTIGATOR REPORT ━━━
-Evidence Summary: {evidence_summary}
+Evidence Summary: {inv_report.get("evidence_summary", "")}
 Modus Operandi: {inv_report.get("modus_operandi", "")}
 Timeline: {inv_report.get("timeline", "")}
 Profile Anomalies: {inv_report.get("agent_profile_anomalies", "")}
@@ -79,17 +66,14 @@ Network Risk Level: {net_analysis.get("network_risk_level", "isolated")}
 Accomplice Suspicions: {", ".join(accomplices) if accomplices else "none"}
 Flagged Messages Count: {len(net_analysis.get("flagged_relevant_messages", []))}
 
-━━━ CROSS-AGENT ACTIONS (similar actions by OTHER agents) ━━━
-{cross_agent_text}
-
 Construct the causal chain, assess damage severity, and identify propagation risk.
 Produce your DamageReport JSON."""
 
-    # ── 3. Call LLM ───────────────────────────────────────────────────────────
+    # ── 2. Call LLM ───────────────────────────────────────────────────────────
     agent = _DamageAnalystAgent()
     raw = await agent._call_llm(DAMAGE_ANALYST_SYSTEM, human_text)
 
-    # ── 4. Validate and coerce ────────────────────────────────────────────────
+    # ── 3. Validate and coerce ────────────────────────────────────────────────
     try:
         severity_str = raw.get("damage_severity", "medium")
         if severity_str not in _VALID_SEVERITY:
@@ -118,7 +102,6 @@ Produce your DamageReport JSON."""
             data_exposure_scope=raw.get("data_exposure_scope", ""),
             propagation_risk=propagation_str,
             estimated_impact=raw.get("estimated_impact", ""),
-            cross_agent_findings=raw.get("cross_agent_findings", "none identified"),
         )
     except Exception as exc:
         logger.error("[DamageAnalyst] Report construction failed: %s — raw: %s", exc, raw)
@@ -129,7 +112,6 @@ Produce your DamageReport JSON."""
             data_exposure_scope=f"Report construction failed: {exc}",
             propagation_risk="none",
             estimated_impact="",
-            cross_agent_findings="none identified",
         )
 
     logger.info(

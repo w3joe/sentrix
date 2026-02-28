@@ -1,4 +1,4 @@
-export type AgentStatus = 'critical' | 'warning' | 'clean' | 'suspended';
+  export type AgentStatus = 'critical' | 'warning' | 'clean' | 'suspended';
 export type AgentRecord = 'convicted' | 'warning' | 'clean';
 export type RiskLevel = 'normal' | 'low' | 'high';
 export type AgentActivityStatus = 'idle' | 'working' | 'interacting';
@@ -53,8 +53,7 @@ export interface ThoughtMessage {
 
 // ── Investigation pipeline types ─────────────────────────────────────────────
 
-export type Verdict = 'confirmed_violation' | 'false_positive' | 'inconclusive';
-export type Sentence = 'suspend' | 'restrict_scope' | 'flag_for_human_review' | 'no_action' | 'terminate';
+export type Verdict = 'guilty' | 'not_guilty' | 'under_watch';
 
 // ── Crime classification types (domain-scoped) ────────────────────────────────
 
@@ -143,8 +142,7 @@ export interface CaseFile {
   damageAssessment: string;
   externalExposure: boolean;
   verdict: Verdict;
-  sentence: Sentence;
-  sentenceRationale: string;
+  severityScore: number;  // Superintendent's 1–10 severity rating
   evidenceSummary: string;
   openedAt: string;
   concludedAt: string | null;
@@ -158,8 +156,6 @@ export interface A2AMessage {
   recipientId: string;
   timestamp: string;
   body: string;
-  spoofed: boolean;
-  claimedSender: string | null;
 }
 
 /** A single agent action log entry from bridge_db. */

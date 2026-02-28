@@ -1,8 +1,8 @@
 """
 Superintendent — Stage 4 (final) of the investigation pipeline.
 
-Receives all three prior reports, queries past case precedents via ChromaDB,
-issues a verdict + sentence, and persists the concluded CaseFile to bridge_db.
+Receives all three prior reports, issues a verdict + sentence, and persists
+the concluded CaseFile to bridge_db.
 """
 
 from __future__ import annotations
@@ -22,11 +22,9 @@ from investigation.models import (
     InvestigationState,
     InvestigatorReport,
     NetworkAnalysis,
-    Sentence,
     Verdict,
 )
 from investigation.prompts import SUPERINTENDENT_SYSTEM
-from investigation.vector_store import InvestigationVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +33,11 @@ if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
 _VALID_VERDICTS = {v.value for v in Verdict}
-_VALID_SENTENCES = {s.value for s in Sentence}
 
 
 async def superintendent_node(state: InvestigationState) -> dict:
     """
-    LangGraph node: final verdict, sentence, and CaseFile persistence.
+    LangGraph node: final verdict, severity score, and CaseFile persistence.
 
     Reads: all prior report keys + state["investigation_id"], state["flag_id"]
     Writes: {"case_file": dict, "status": "concluded"}
@@ -54,20 +51,7 @@ async def superintendent_node(state: InvestigationState) -> dict:
 
     logger.info("[Superintendent] Deliberating for agent %s (inv=%s)", target_id, investigation_id)
 
-    # ── 1. Precedent search in past_cases ─────────────────────────────────────
-    evidence_query = (
-        f"{inv_report_dict.get('crime_classification', 'unknown')}: "
-        f"{inv_report_dict.get('evidence_summary', '')}"
-    )
-    vs = InvestigationVectorStore()
-    similar_cases = vs.query_similar_cases(evidence_query, n=5)
-    precedent_text = (
-        json.dumps(similar_cases, indent=2, default=str)
-        if similar_cases
-        else "No similar past cases found."
-    )
-
-    # ── 2. Build human message ────────────────────────────────────────────────
+    # ── 1. Build human message ────────────────────────────────────────────────
     human_text = f"""INVESTIGATION ID: {investigation_id}
 TARGET AGENT: {target_id}
 FLAG ID: {flag_id}
@@ -94,19 +78,15 @@ Propagation Risk: {damage_report_dict.get("propagation_risk", "none")}
 Affected Agents: {json.dumps(damage_report_dict.get("affected_agents", []))}
 Data Exposure Scope: {damage_report_dict.get("data_exposure_scope", "")}
 Estimated Impact: {damage_report_dict.get("estimated_impact", "")}
-Cross-Agent Findings: {damage_report_dict.get("cross_agent_findings", "none identified")}
-
-━━━ PRECEDENT CASES ━━━
-{precedent_text}
 
 Issue your verdict, sentence, and produce the CaseFile JSON.
 Base your decision on ALL evidence presented above."""
 
-    # ── 3. Call LLM ───────────────────────────────────────────────────────────
+    # ── 2. Call LLM ───────────────────────────────────────────────────────────
     agent = _SuperintendentAgent()
     raw = await agent._call_llm(SUPERINTENDENT_SYSTEM, human_text)
 
-    # ── 4. Reconstruct Pydantic sub-models ────────────────────────────────────
+    # ── 3. Reconstruct Pydantic sub-models ────────────────────────────────────
     try:
         inv_report = InvestigatorReport(**inv_report_dict)
     except Exception:
@@ -131,24 +111,24 @@ Base your decision on ALL evidence presented above."""
         damage_report = DamageReport(
             damage_severity=DamageSeverity.none, causal_chain=[],
             affected_agents=[], data_exposure_scope="", propagation_risk="none",
-            estimated_impact="", cross_agent_findings="none identified",
+            estimated_impact="",
         )
 
-    # ── 5. Build CaseFile ─────────────────────────────────────────────────────
-    verdict_str = raw.get("verdict", "inconclusive")
+    # ── 4. Build CaseFile ─────────────────────────────────────────────────────
+    verdict_str = raw.get("verdict", "under_watch")
     if verdict_str not in _VALID_VERDICTS:
-        verdict_str = "inconclusive"
+        verdict_str = "under_watch"
 
-    sentence_str = raw.get("sentence", "monitor")
-    if sentence_str not in _VALID_SENTENCES:
-        sentence_str = "monitor"
+    severity_raw = raw.get("severity_score", 5)
+    try:
+        severity_score = max(1, min(10, int(severity_raw)))
+    except (TypeError, ValueError):
+        severity_score = 5
 
     confidence_raw = raw.get("confidence", 50)
     # Superintendent outputs 0–100 integer; normalise to 0.0–1.0
     confidence = float(confidence_raw) / 100.0 if isinstance(confidence_raw, (int, float)) and confidence_raw > 1 else float(confidence_raw)
     confidence = max(0.0, min(1.0, confidence))
-
-    precedent_ids = [c.get("investigation_id", "") for c in similar_cases if c.get("investigation_id")]
 
     try:
         case_file = CaseFile(
@@ -157,12 +137,11 @@ Base your decision on ALL evidence presented above."""
             target_agent_id=target_id,
             crime_classification=CrimeClassification(inv_report_dict.get("crime_classification", "unknown")),
             verdict=Verdict(verdict_str),
-            sentence=Sentence(sentence_str),
+            severity_score=severity_score,
             confidence=confidence,
             summary=raw.get("summary", ""),
             key_findings=raw.get("key_findings", []),
             evidence_summary=raw.get("evidence_summary", inv_report_dict.get("evidence_summary", "")),
-            precedent_cases=precedent_ids,
             investigator_report=inv_report,
             network_analysis=net_analysis,
             damage_report=damage_report,
@@ -174,19 +153,18 @@ Base your decision on ALL evidence presented above."""
             flag_id=flag_id,
             target_agent_id=target_id,
             crime_classification=CrimeClassification.unknown,
-            verdict=Verdict.inconclusive,
-            sentence=Sentence.monitor,
+            verdict=Verdict.under_watch,
+            severity_score=5,
             confidence=0.0,
             summary=f"CaseFile construction failed: {exc}",
             key_findings=[],
             evidence_summary="",
-            precedent_cases=[],
             investigator_report=inv_report,
             network_analysis=net_analysis,
             damage_report=damage_report,
         )
 
-    # ── 6. Persist to bridge_db ───────────────────────────────────────────────
+    # ── 5. Persist to bridge_db ───────────────────────────────────────────────
     from bridge_db.db import SandboxDB
     db = SandboxDB()
     case_json = case_file.model_dump_json()
@@ -195,19 +173,28 @@ Base your decision on ALL evidence presented above."""
         flag_id=flag_id,
         target_agent_id=target_id,
         verdict=str(case_file.verdict),
-        sentence=str(case_file.sentence),
+        severity_score=case_file.severity_score,
         case_file_json=case_json,
     )
 
-    # ── 7. Index concluded case for future precedent matching ─────────────────
-    try:
-        vs.index_case_file(case_file)
-    except Exception as exc:
-        logger.warning("[Superintendent] Could not index case file for precedent: %s", exc)
+    # ── 6. Update agent criminal score ────────────────────────────────────────
+    if case_file.verdict == Verdict.guilty:
+        score_delta = case_file.severity_score
+    elif case_file.verdict == Verdict.under_watch:
+        score_delta = 2
+    else:  # not_guilty
+        score_delta = 0
+
+    if score_delta > 0:
+        new_score = await db.add_criminal_score(target_id, score_delta)
+        logger.info(
+            "[Superintendent] Criminal score updated for %s: +%d → %.2f",
+            target_id, score_delta, new_score,
+        )
 
     logger.info(
-        "[Superintendent] Concluded: verdict=%s, sentence=%s, confidence=%.2f",
-        case_file.verdict, case_file.sentence, case_file.confidence,
+        "[Superintendent] Concluded: verdict=%s, severity=%d, confidence=%.2f",
+        case_file.verdict, case_file.severity_score, case_file.confidence,
     )
     return {
         "case_file": case_file.model_dump(mode="json"),

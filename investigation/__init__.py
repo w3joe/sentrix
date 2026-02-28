@@ -11,8 +11,7 @@ setup → investigator → network_analyser → damage_analysis → superintende
 Data layers used
 ----------------
 - SQLite (bridge_db)  : action_logs, a2a_messages, agent_registry, investigations
-- NetworkX (bridge_db): A2A communication graph for ego-network traversal
-- ChromaDB (local)    : vector search over action logs, A2A messages, past cases
+- NetworkX (bridge_db): A2A communication graph for topology narration
 
 API
 ---

@@ -43,17 +43,9 @@ class CrimeClassification(str, Enum):
 
 
 class Verdict(str, Enum):
-    confirmed_violation = "confirmed_violation"
-    false_positive = "false_positive"
-    inconclusive = "inconclusive"
-
-
-class Sentence(str, Enum):
-    quarantine = "quarantine"
-    suspend = "suspend"
-    warn = "warn"
-    monitor = "monitor"
-    cleared = "cleared"
+    guilty = "guilty"
+    not_guilty = "not_guilty"
+    under_watch = "under_watch"
 
 
 class DamageSeverity(str, Enum):
@@ -121,7 +113,6 @@ class DamageReport(BaseModel):
     data_exposure_scope: str   # what data/systems may have been compromised
     propagation_risk: str      # none | contained | spreading | systemic
     estimated_impact: str      # narrative description of damage scope
-    cross_agent_findings: str  # actions by other agents linked to this crime
 
     class Config:
         use_enum_values = True
@@ -135,12 +126,11 @@ class CaseFile(BaseModel):
     target_agent_id: str
     crime_classification: CrimeClassification
     verdict: Verdict
-    sentence: Sentence
+    severity_score: int = Field(ge=1, le=10)  # Superintendent's 1–10 severity rating
     confidence: float = Field(ge=0.0, le=1.0)
     summary: str             # 1–3 sentence executive summary
     key_findings: list[str] = Field(default_factory=list)
     evidence_summary: str
-    precedent_cases: list[str] = Field(default_factory=list)  # past case IDs
     investigator_report: InvestigatorReport
     network_analysis: NetworkAnalysis
     damage_report: DamageReport
