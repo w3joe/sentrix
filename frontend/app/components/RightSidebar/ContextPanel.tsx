@@ -1,0 +1,503 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import type { AgentStatus, TimelineEvent, InvestigatorSelection } from '../../types';
+import { investigatorReport, damageAssessment, agents, agentActivities } from '../../data/mockData';
+
+interface ContextPanelProps {
+  selectedAgentId: string | null;
+  onClear: (agentId: string) => void;
+  onRestrict: (agentId: string) => void;
+  onSuspend: (agentId: string) => void;
+  getAgentStatus: (agentId: string) => AgentStatus;
+  visibleEvents?: TimelineEvent[];
+  isLive?: boolean;
+  investigatorSelection?: InvestigatorSelection | null;
+  onAgentAssign?: (targetAgentId: string) => void;
+  onCancelInvestigatorSelection?: () => void;
+}
+
+const severityIcons: Record<string, string> = {
+  critical: '🔴',
+  warning: '🟡',
+  clear: '🟢',
+};
+
+const sourceColors: Record<string, string> = {
+  'PATROL-1': '#00d4ff',
+  'PATROL-2': '#00d4ff',
+  'INVESTIGATOR': '#9b59b6',
+  'FLOATER-2': '#ffaa00',
+};
+
+function formatTimestamp(date: Date): string {
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+}
+
+export function ContextPanel({
+  selectedAgentId,
+  onClear,
+  onRestrict,
+  onSuspend,
+  getAgentStatus,
+  visibleEvents = [],
+  isLive = true,
+  investigatorSelection,
+  onAgentAssign,
+  onCancelInvestigatorSelection,
+}: ContextPanelProps) {
+  const [isClient, setIsClient] = useState(false);
+  const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Reset expanded agent when investigator selection changes
+  useEffect(() => {
+    setExpandedAgentId(null);
+  }, [investigatorSelection]);
+
+  const selectedAgent = agents.find((a) => a.id === selectedAgentId);
+  const currentStatus = selectedAgentId ? getAgentStatus(selectedAgentId) : null;
+  const activity = selectedAgentId ? agentActivities[selectedAgentId] : null;
+
+  // Sort events by timestamp descending for display
+  const sortedEvents = [...visibleEvents].sort(
+    (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+  );
+
+  const logTypeColors: Record<string, string> = {
+    tool_call: '#00d4ff',
+    step: '#a0aec0',
+    output: '#6b7280',
+    error: '#ff3355',
+  };
+
+  const logTypePrefixes: Record<string, string> = {
+    tool_call: '▶',
+    step: '·',
+    output: '◀',
+    error: '✕',
+  };
+
+  const activityStatusColors: Record<string, string> = {
+    running: '#00c853',
+    blocked: '#ff3355',
+    idle: '#6b7280',
+  };
+
+  // Status colors for agent selection
+  const statusColors = {
+    critical: { bg: '#3a0010', border: '#ff3355', text: '#ff3355' },
+    warning: { bg: '#3a2a00', border: '#ffaa00', text: '#ffaa00' },
+    suspended: { bg: '#1f2937', border: '#6b7280', text: '#6b7280' },
+    clean: { bg: '#1e3a5f', border: '#00d4ff', text: '#00d4ff' },
+  };
+
+  return (
+    <div className="h-full flex flex-col bg-[#111827] border-l border-[#1f2937]">
+      {/* Title */}
+      <div className="px-3 py-3 border-b border-[#1f2937]">
+        <h2 className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">
+          {investigatorSelection
+            ? 'Select Agent to Investigate'
+            : selectedAgent
+              ? selectedAgent.name
+              : 'Event Log'}
+        </h2>
+        {investigatorSelection && (
+          <span className="text-[10px] text-[#9b59b6]">{investigatorSelection.investigatorLabel}</span>
+        )}
+        {!investigatorSelection && !selectedAgent && !isLive && (
+          <span className="text-[10px] text-[#ffaa00]">Historical View</span>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+        {/* Investigator Agent Selection Mode */}
+        {investigatorSelection ? (
+          <div className="space-y-3">
+            <p className="text-xs text-[#a0aec0]">
+              Select an agent for {investigatorSelection.investigatorLabel} to investigate:
+            </p>
+            <div className="space-y-1.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+              {agents.map((agent) => {
+                const status = getAgentStatus(agent.id);
+                const colors = statusColors[status as keyof typeof statusColors] || statusColors.clean;
+                const isExpanded = expandedAgentId === agent.id;
+                const agentActivity = agentActivities[agent.id];
+
+                return (
+                  <div
+                    key={agent.id}
+                    className="rounded border transition-all"
+                    style={{
+                      backgroundColor: colors.bg,
+                      borderColor: isExpanded ? colors.text : colors.border,
+                      borderWidth: isExpanded ? '2px' : '1px',
+                    }}
+                  >
+                    {/* Collapsed header - always visible */}
+                    <button
+                      onClick={() => setExpandedAgentId(isExpanded ? null : agent.id)}
+                      className="w-full p-2.5 text-left hover:brightness-110 transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-medium text-white block truncate">{agent.name}</span>
+                          <span className="text-[10px] text-[#6b7280]">{agent.role}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0"
+                            style={{
+                              color: colors.text,
+                              backgroundColor: `${colors.border}20`,
+                              border: `1px solid ${colors.border}`,
+                            }}
+                          >
+                            {status}
+                          </span>
+                          <span className="text-[#6b7280] text-xs">
+                            {isExpanded ? '▼' : '▶'}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Expanded content */}
+                    {isExpanded && (
+                      <div className="px-2.5 pb-2.5 space-y-2 border-t border-[#1f2937]">
+                        {/* Current Activity */}
+                        {agentActivity && (
+                          <div className="pt-2">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] uppercase tracking-wider text-[#6b7280]">
+                                Current Activity
+                              </span>
+                              <span
+                                className="text-[9px] font-mono px-1 py-0.5 rounded"
+                                style={{
+                                  color: activityStatusColors[agentActivity.status],
+                                  backgroundColor: activityStatusColors[agentActivity.status] + '20',
+                                }}
+                              >
+                                {agentActivity.status.toUpperCase()}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-[#a0aec0] mb-2">{agentActivity.currentTask}</p>
+
+                            {/* Recent logs */}
+                            <div className="space-y-0.5 font-mono max-h-20 overflow-y-auto">
+                              {agentActivity.logs.slice(-3).map((log) => (
+                                <div key={log.id} className="flex items-start gap-1 text-[9px]">
+                                  <span
+                                    className="flex-shrink-0"
+                                    style={{ color: logTypeColors[log.type] }}
+                                  >
+                                    {logTypePrefixes[log.type]}
+                                  </span>
+                                  <span className="text-[#4b5563] flex-shrink-0">{log.timestamp}</span>
+                                  <span
+                                    className="truncate"
+                                    style={{ color: logTypeColors[log.type] }}
+                                  >
+                                    {log.message}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Agent Record */}
+                        <div className="pt-1">
+                          <span className="text-[10px] text-[#6b7280]">Record: </span>
+                          <span
+                            className="text-[10px]"
+                            style={{
+                              color: agent.record === 'convicted'
+                                ? '#ff3355'
+                                : agent.record === 'warning'
+                                  ? '#ffaa00'
+                                  : '#00c853'
+                            }}
+                          >
+                            {agent.record}
+                          </span>
+                        </div>
+
+                        {/* Assign Button */}
+                        <button
+                          onClick={() => onAgentAssign?.(agent.id)}
+                          className="w-full py-1.5 rounded text-xs font-semibold transition-all mt-2"
+                          style={{
+                            backgroundColor: colors.text,
+                            color: '#000',
+                          }}
+                        >
+                          Assign {investigatorSelection.investigatorLabel}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : selectedAgent && selectedAgentId ? (
+          <>
+            {/* Current Activity */}
+            {activity && (
+              <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs uppercase tracking-wider text-[#00d4ff] font-semibold">
+                    Current Activity
+                  </h3>
+                  <span
+                    className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                    style={{
+                      color: activityStatusColors[activity.status],
+                      backgroundColor: activityStatusColors[activity.status] + '20',
+                    }}
+                  >
+                    {activity.status.toUpperCase()}
+                  </span>
+                </div>
+                <p className="text-xs text-[#a0aec0] mb-3">{activity.currentTask}</p>
+
+                {/* Step-by-step log */}
+                <div className="space-y-1 font-mono">
+                  {activity.logs.map((log) => (
+                    <div key={log.id} className="flex items-start gap-1.5 text-[10px]">
+                      <span
+                        className="flex-shrink-0 mt-px"
+                        style={{ color: logTypeColors[log.type] }}
+                      >
+                        {logTypePrefixes[log.type]}
+                      </span>
+                      <span className="text-[#4b5563] flex-shrink-0">{log.timestamp}</span>
+                      <span style={{ color: logTypeColors[log.type] }}>{log.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Investigator Report — only for n1 (critical) */}
+            {selectedAgentId === 'n1' && (
+              <>
+                <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
+                  <h3 className="text-xs uppercase tracking-wider text-[#9b59b6] mb-2 font-semibold">
+                    Investigator Report
+                  </h3>
+                  <div className="space-y-2 text-xs text-[#a0aec0]">
+                    <div>
+                      <span className="text-[#6b7280]">Root Cause: </span>
+                      {investigatorReport.rootCause}
+                    </div>
+                    <div>
+                      <span className="text-[#6b7280]">Causal Chain: </span>
+                      {investigatorReport.causalChain}
+                    </div>
+                    <div>
+                      <span className="text-[#6b7280]">Confidence: </span>
+                      <span className="text-[#00d4ff]">{investigatorReport.confidence}%</span>
+                    </div>
+                    <div>
+                      <span className="text-[#6b7280]">Impact: </span>
+                      <span className="text-[#ff3355]">{investigatorReport.impact}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
+                  <h3 className="text-xs uppercase tracking-wider text-[#ffaa00] mb-2 font-semibold">
+                    Damage Assessment
+                  </h3>
+                  <div className="space-y-2 text-xs text-[#a0aec0]">
+                    <div>{damageAssessment.scanResult}</div>
+                    <div>
+                      <span className="text-[#6b7280]">Propagation: </span>
+                      {damageAssessment.propagation}
+                    </div>
+                    <div>
+                      <span className="text-[#6b7280]">External Exposure: </span>
+                      <span className="text-[#ffaa00]">{damageAssessment.externalExposure}</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Recent Events for this agent */}
+            {sortedEvents.filter((e) => e.agentId === selectedAgentId).length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">
+                  Recent Events
+                </h3>
+                {sortedEvents
+                  .filter((e) => e.agentId === selectedAgentId)
+                  .slice(0, 8)
+                  .map((event) => (
+                    <div
+                      key={event.id}
+                      className={`bg-[#0a0e1a] rounded-lg p-2.5 border border-[#1f2937] ${
+                        event.type === 'incident' ? 'border-l-2' : ''
+                      }`}
+                      style={{
+                        borderLeftColor:
+                          event.type === 'incident' && event.severity
+                            ? event.severity === 'critical'
+                              ? '#ff3355'
+                              : event.severity === 'warning'
+                              ? '#ffaa00'
+                              : '#00c853'
+                            : undefined,
+                      }}
+                    >
+                      <div className="flex items-start gap-2">
+                        {event.type === 'incident' && event.severity && (
+                          <span className="text-sm flex-shrink-0">{severityIcons[event.severity]}</span>
+                        )}
+                        {event.type === 'thought' && (
+                          <span
+                            className="text-sm flex-shrink-0"
+                            style={{ color: sourceColors[event.source || ''] || '#6b7280' }}
+                          >
+                            ◆
+                          </span>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs text-[#a0aec0]">{event.message}</div>
+                          {isClient && (
+                            <div className="text-[10px] text-[#6b7280] mt-1 font-mono">
+                              {formatTimestamp(event.timestamp)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => onClear(selectedAgentId)}
+                disabled={currentStatus === 'clean'}
+                className={`w-full py-2 rounded text-sm font-semibold transition-all ${
+                  currentStatus === 'clean'
+                    ? 'bg-[#00c853]/20 text-[#00c853] cursor-not-allowed'
+                    : 'bg-[#00c853] text-black hover:bg-[#00c853]/80'
+                }`}
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => onRestrict(selectedAgentId)}
+                disabled={currentStatus === 'warning'}
+                className={`w-full py-2 rounded text-sm font-semibold transition-all ${
+                  currentStatus === 'warning'
+                    ? 'bg-[#ffaa00]/20 text-[#ffaa00] cursor-not-allowed'
+                    : 'bg-[#ffaa00] text-black hover:bg-[#ffaa00]/80'
+                }`}
+              >
+                Restrict
+              </button>
+              <button
+                onClick={() => onSuspend(selectedAgentId)}
+                disabled={currentStatus === 'suspended'}
+                className={`w-full py-2 rounded text-sm font-semibold transition-all ${
+                  currentStatus === 'suspended'
+                    ? 'bg-[#ff3355]/20 text-[#ff3355] cursor-not-allowed'
+                    : 'bg-[#ff3355] text-white hover:bg-[#ff3355]/80'
+                }`}
+              >
+                Suspend
+              </button>
+            </div>
+          </>
+        ) : (
+          // No agent selected - show event log
+          <div className="space-y-2">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">
+                All Events
+              </h3>
+              <span className="text-[10px] text-[#4b5563]">
+                {sortedEvents.length} events
+              </span>
+            </div>
+            {sortedEvents.length === 0 ? (
+              <div className="text-xs text-[#4b5563] text-center py-4">
+                No events in this time range
+              </div>
+            ) : (
+              sortedEvents.slice(0, 20).map((event) => (
+                <div
+                  key={event.id}
+                  className={`bg-[#0a0e1a] rounded-lg p-2.5 border border-[#1f2937] ${
+                    event.type === 'incident' ? 'border-l-2' : ''
+                  }`}
+                  style={{
+                    borderLeftColor:
+                      event.type === 'incident' && event.severity
+                        ? event.severity === 'critical'
+                          ? '#ff3355'
+                          : event.severity === 'warning'
+                          ? '#ffaa00'
+                          : '#00c853'
+                        : undefined,
+                  }}
+                >
+                  <div className="flex items-start gap-2">
+                    {event.type === 'incident' && event.severity && (
+                      <span className="text-sm flex-shrink-0">{severityIcons[event.severity]}</span>
+                    )}
+                    {event.type === 'thought' && (
+                      <span
+                        className="text-sm flex-shrink-0"
+                        style={{ color: sourceColors[event.source || ''] || '#6b7280' }}
+                      >
+                        ◆
+                      </span>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      {event.type === 'incident' && event.agentName && (
+                        <div className="text-xs text-[#00d4ff] font-mono truncate">
+                          {event.agentName}
+                        </div>
+                      )}
+                      {event.type === 'thought' && event.source && (
+                        <div
+                          className="text-xs font-mono truncate"
+                          style={{ color: sourceColors[event.source] || '#6b7280' }}
+                        >
+                          {event.source}
+                        </div>
+                      )}
+                      <div className="text-xs text-[#a0aec0] mt-0.5">{event.message}</div>
+                      {isClient && (
+                        <div className="text-[10px] text-[#6b7280] mt-1 font-mono">
+                          {formatTimestamp(event.timestamp)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

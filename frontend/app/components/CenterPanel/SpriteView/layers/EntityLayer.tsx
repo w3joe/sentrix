@@ -1,0 +1,122 @@
+'use client';
+
+import { useMemo, useCallback } from 'react';
+import type { AgentStatus, InvestigatorSelection } from '../../../../types';
+import { agents as allAgents } from '../../../../data/mockData';
+import { rooms, getDeskPosition, controlRoom, getQuarantineCellPosition } from '../config/roomLayout';
+import { AgentSprite } from '../entities/AgentSprite';
+import { PatrolSprite } from '../entities/PatrolSprite';
+import { SuperintendentSprite } from '../entities/SuperintendentSprite';
+import { InvestigatorSprite } from '../entities/InvestigatorSprite';
+
+interface EntityLayerProps {
+  selectedAgentId: string | null;
+  onSelectAgent: (agentId: string | null) => void;
+  getAgentStatus: (agentId: string) => AgentStatus;
+  historicalAgentStates?: Record<string, AgentStatus>;
+  isLive?: boolean;
+  investigatorSelection: InvestigatorSelection | null;
+  onInvestigatorSelect: (selection: InvestigatorSelection | null) => void;
+  pendingAssignment: { investigatorId: string; targetAgentId: string } | null;
+  onAssignmentComplete: () => void;
+}
+
+export function EntityLayer({
+  selectedAgentId,
+  onSelectAgent,
+  getAgentStatus,
+  historicalAgentStates,
+  isLive,
+  investigatorSelection,
+  onInvestigatorSelect,
+  pendingAssignment,
+  onAssignmentComplete,
+}: EntityLayerProps) {
+  const getEffectiveStatus = useCallback(
+    (agentId: string): AgentStatus => {
+      if (!isLive && historicalAgentStates?.[agentId]) {
+        return historicalAgentStates[agentId];
+      }
+      return getAgentStatus(agentId);
+    },
+    [isLive, historicalAgentStates, getAgentStatus],
+  );
+
+  // Build agent sprites from room layout, routing suspended agents to quarantine
+  const agentSprites = useMemo(() => {
+    const sprites: React.JSX.Element[] = [];
+    let quarantineSlot = 0;
+
+    for (const room of rooms) {
+      for (const desk of room.desks) {
+        const agent = allAgents.find((a) => a.id === desk.agentId);
+        if (!agent) continue;
+
+        const status = getEffectiveStatus(agent.id);
+        let targetX = desk.x;
+        let targetY = desk.y;
+
+        // If suspended, assign to quarantine cell
+        if (status === 'suspended') {
+          const cellPos = getQuarantineCellPosition(quarantineSlot);
+          targetX = cellPos.x;
+          targetY = cellPos.y;
+          quarantineSlot++;
+        }
+
+        sprites.push(
+          <AgentSprite
+            key={agent.id}
+            agentId={agent.id}
+            name={agent.name}
+            role={agent.role}
+            status={status}
+            x={targetX}
+            y={targetY}
+            isSelected={selectedAgentId === agent.id}
+            onSelect={onSelectAgent}
+          />,
+        );
+      }
+    }
+    return sprites;
+  }, [selectedAgentId, onSelectAgent, getEffectiveStatus]);
+
+  // Determine investigator targets
+  const f1Target = pendingAssignment?.investigatorId === 'f1' ? pendingAssignment.targetAgentId : null;
+  const f2Target = pendingAssignment?.investigatorId === 'f2' ? pendingAssignment.targetAgentId : null;
+  const f1TargetPos = f1Target ? getDeskPosition(f1Target) : null;
+  const f2TargetPos = f2Target ? getDeskPosition(f2Target) : null;
+
+  return (
+    <pixiContainer>
+      {/* Agent sprites */}
+      {agentSprites}
+
+      {/* Patrol sprites */}
+      <PatrolSprite patrolId="p1" label="Patrol-1" />
+      <PatrolSprite patrolId="p2" label="Patrol-2" />
+
+      {/* Superintendent */}
+      <SuperintendentSprite />
+
+      {/* Investigators */}
+      <InvestigatorSprite
+        investigatorId="f1"
+        label="Investigator-1"
+        targetAgentId={f1Target}
+        targetAgentPos={f1TargetPos}
+        onSelect={onInvestigatorSelect}
+        onArrived={onAssignmentComplete}
+      />
+      <InvestigatorSprite
+        investigatorId="f2"
+        label="Investigator-2"
+        targetAgentId={f2Target}
+        targetAgentPos={f2TargetPos}
+        onSelect={onInvestigatorSelect}
+        onArrived={onAssignmentComplete}
+      />
+    </pixiContainer>
+  );
+}
