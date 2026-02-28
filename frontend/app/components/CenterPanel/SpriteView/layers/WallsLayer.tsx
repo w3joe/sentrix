@@ -1,114 +1,188 @@
 'use client';
 
-import type { Texture } from 'pixi.js';
+import { useCallback } from 'react';
 import { rooms, controlRoom, quarantineRoom, entertainmentRoom } from '../config/roomLayout';
-import { ENVIRONMENT_SPRITES, TILE_SIZE } from '../config/spriteConfig';
-import { useEnvironmentTexture } from '../hooks/useEnvironmentTexture';
+import { WORLD_COLORS } from '../config/spriteConfig';
 
-const WALL_SCALE = 0.2; // Scale wall sprites to 50px (250 * 0.2)
+const S = 3;
+const WALL_THICKNESS = 4 * S;
+const WALL_COLOR = 0x374151;
+const DOOR_WIDTH = 50 * S;
+
+interface DoorConfig {
+  top?: number;    // center x of door on top wall
+  bottom?: number; // center x of door on bottom wall
+  left?: number;   // center y of door on left wall
+  right?: number;  // center y of door on right wall
+}
 
 function RoomWalls({
   x,
   y,
   width,
   height,
-  wallTextures,
+  color = WALL_COLOR,
+  doors = {},
 }: {
   x: number;
   y: number;
   width: number;
   height: number;
-  wallTextures: Record<string, Texture | null>;
+  color?: number;
+  doors?: DoorConfig;
 }) {
-  const t = wallTextures;
-  const hasAll =
-    t.wall_top &&
-    t.wall_top_left &&
-    t.wall_top_right &&
-    t.wall_bottom &&
-    t.wall_bottom_left &&
-    t.wall_bottom_right &&
-    t.wall_left &&
-    t.wall_right;
+  const draw = useCallback(
+    (g: any) => {
+      g.clear();
+      g.setFillStyle({ color });
 
-  if (!hasAll) return null;
+      // Top wall
+      if (doors.top !== undefined) {
+        const cx = doors.top;
+        const gapStart = cx - DOOR_WIDTH / 2;
+        const gapEnd = cx + DOOR_WIDTH / 2;
+        if (gapStart > x) g.rect(x, y, gapStart - x, WALL_THICKNESS);
+        if (gapEnd < x + width) g.rect(gapEnd, y, x + width - gapEnd, WALL_THICKNESS);
+      } else {
+        g.rect(x, y, width, WALL_THICKNESS);
+      }
+      g.fill();
 
-  const topHeight = TILE_SIZE * WALL_SCALE;
-  const sideWidth = TILE_SIZE * WALL_SCALE;
+      // Bottom wall
+      if (doors.bottom !== undefined) {
+        const cx = doors.bottom;
+        const gapStart = cx - DOOR_WIDTH / 2;
+        const gapEnd = cx + DOOR_WIDTH / 2;
+        if (gapStart > x) g.rect(x, y + height - WALL_THICKNESS, gapStart - x, WALL_THICKNESS);
+        if (gapEnd < x + width) g.rect(gapEnd, y + height - WALL_THICKNESS, x + width - gapEnd, WALL_THICKNESS);
+      } else {
+        g.rect(x, y + height - WALL_THICKNESS, width, WALL_THICKNESS);
+      }
+      g.fill();
 
-  return (
-    <pixiContainer x={x} y={y}>
-      {/* Corners */}
-      <pixiSprite texture={t.wall_top_left!} x={0} y={0} anchor={0} scale={WALL_SCALE} />
-      <pixiSprite texture={t.wall_top_right!} x={width - sideWidth} y={0} anchor={0} scale={WALL_SCALE} />
-      <pixiSprite texture={t.wall_bottom_left!} x={0} y={height - topHeight} anchor={0} scale={WALL_SCALE} />
-      <pixiSprite texture={t.wall_bottom_right!} x={width - sideWidth} y={height - topHeight} anchor={0} scale={WALL_SCALE} />
-      {/* Edges - tile the middle sections */}
-      {width > sideWidth * 2 && t.wall_top && (
-        <pixiTilingSprite
-          texture={t.wall_top}
-          x={sideWidth}
-          y={0}
-          width={width - sideWidth * 2}
-          height={topHeight}
-          tileScale={{ x: (width - sideWidth * 2) / TILE_SIZE, y: 1 }}
-        />
-      )}
-      {width > sideWidth * 2 && t.wall_bottom && (
-        <pixiTilingSprite
-          texture={t.wall_bottom}
-          x={sideWidth}
-          y={height - topHeight}
-          width={width - sideWidth * 2}
-          height={topHeight}
-          tileScale={{ x: (width - sideWidth * 2) / TILE_SIZE, y: 1 }}
-        />
-      )}
-      {height > topHeight * 2 && t.wall_left && (
-        <pixiTilingSprite
-          texture={t.wall_left}
-          x={0}
-          y={topHeight}
-          width={sideWidth}
-          height={height - topHeight * 2}
-          tileScale={{ x: 1, y: (height - topHeight * 2) / TILE_SIZE }}
-        />
-      )}
-      {height > topHeight * 2 && t.wall_right && (
-        <pixiTilingSprite
-          texture={t.wall_right}
-          x={width - sideWidth}
-          y={topHeight}
-          width={sideWidth}
-          height={height - topHeight * 2}
-          tileScale={{ x: 1, y: (height - topHeight * 2) / TILE_SIZE }}
-        />
-      )}
-    </pixiContainer>
+      // Left wall
+      if (doors.left !== undefined) {
+        const cy = doors.left;
+        const gapStart = cy - DOOR_WIDTH / 2;
+        const gapEnd = cy + DOOR_WIDTH / 2;
+        if (gapStart > y) g.rect(x, y, WALL_THICKNESS, gapStart - y);
+        if (gapEnd < y + height) g.rect(x, gapEnd, WALL_THICKNESS, y + height - gapEnd);
+      } else {
+        g.rect(x, y, WALL_THICKNESS, height);
+      }
+      g.fill();
+
+      // Right wall
+      if (doors.right !== undefined) {
+        const cy = doors.right;
+        const gapStart = cy - DOOR_WIDTH / 2;
+        const gapEnd = cy + DOOR_WIDTH / 2;
+        if (gapStart > y) g.rect(x + width - WALL_THICKNESS, y, WALL_THICKNESS, gapStart - y);
+        if (gapEnd < y + height) g.rect(x + width - WALL_THICKNESS, gapEnd, WALL_THICKNESS, y + height - gapEnd);
+      } else {
+        g.rect(x + width - WALL_THICKNESS, y, WALL_THICKNESS, height);
+      }
+      g.fill();
+    },
+    [x, y, width, height, color, doors],
   );
+
+  return <pixiGraphics draw={draw} />;
 }
 
+// Door positions derived from scaled room coords — mid-point of each corridor-facing wall
+const hm1Doors: DoorConfig = {
+  right:  40 * S + (280 * S) / 2,
+  bottom: 240 * S + (440 * S) / 2,
+};
+
+const hm2Doors: DoorConfig = {
+  left:   40 * S + (280 * S) / 2,
+  bottom: 920 * S + (440 * S) / 2,
+};
+
+const hm3Doors: DoorConfig = {
+  right: 580 * S + (280 * S) / 2,
+  top:   240 * S + (440 * S) / 2,
+};
+
+const hm4Doors: DoorConfig = {
+  left: 580 * S + (280 * S) / 2,
+  top:  920 * S + (440 * S) / 2,
+};
+
+const roomDoors: Record<string, DoorConfig> = {
+  'cluster-1': hm1Doors,
+  'cluster-2': hm2Doors,
+  'cluster-3': hm3Doors,
+  'cluster-4': hm4Doors,
+};
+
+function EntertainmentWalls() {
+  const { x, y, width, height } = entertainmentRoom;
+  const color = WORLD_COLORS.entertainmentBorder;
+
+  const door1Y = 40 * S + (280 * S) / 2;  // HM1 mid-y
+  const door2Y = 580 * S + (280 * S) / 2; // HM3 mid-y
+
+  const draw = useCallback(
+    (g: any) => {
+      g.clear();
+      g.setFillStyle({ color });
+
+      g.rect(x, y, width, WALL_THICKNESS);
+      g.fill();
+
+      g.rect(x, y + height - WALL_THICKNESS, width, WALL_THICKNESS);
+      g.fill();
+
+      g.rect(x, y, WALL_THICKNESS, height);
+      g.fill();
+
+      const segments = buildWallSegments(y, y + height, [door1Y, door2Y], DOOR_WIDTH);
+      for (const [start, end] of segments) {
+        g.rect(x + width - WALL_THICKNESS, start, WALL_THICKNESS, end - start);
+      }
+      g.fill();
+    },
+    [x, y, width, height, color],
+  );
+
+  return <pixiGraphics draw={draw} />;
+}
+
+function buildWallSegments(
+  wallStart: number,
+  wallEnd: number,
+  doorCenters: number[],
+  doorWidth: number,
+): [number, number][] {
+  const gaps = doorCenters
+    .map((c) => [c - doorWidth / 2, c + doorWidth / 2] as [number, number])
+    .sort((a, b) => a[0] - b[0]);
+
+  const segments: [number, number][] = [];
+  let cursor = wallStart;
+  for (const [gapStart, gapEnd] of gaps) {
+    if (gapStart > cursor) segments.push([cursor, gapStart]);
+    cursor = gapEnd;
+  }
+  if (cursor < wallEnd) segments.push([cursor, wallEnd]);
+  return segments;
+}
+
+const controlDoors: DoorConfig = {
+  top:    620 * S + (360 * S) / 2,
+  bottom: 620 * S + (360 * S) / 2,
+  left:   370 * S + (160 * S) / 2,
+  right:  370 * S + (160 * S) / 2,
+};
+
+const quarantineDoors: DoorConfig = {
+  top: 550 * S + (500 * S) / 2,
+};
+
 export function WallsLayer() {
-  const wall_top = useEnvironmentTexture(ENVIRONMENT_SPRITES.wall_top);
-  const wall_top_left = useEnvironmentTexture(ENVIRONMENT_SPRITES.wall_top_left);
-  const wall_top_right = useEnvironmentTexture(ENVIRONMENT_SPRITES.wall_top_right);
-  const wall_bottom = useEnvironmentTexture(ENVIRONMENT_SPRITES.wall_bottom);
-  const wall_bottom_left = useEnvironmentTexture(ENVIRONMENT_SPRITES.wall_bottom_left);
-  const wall_bottom_right = useEnvironmentTexture(ENVIRONMENT_SPRITES.wall_bottom_right);
-  const wall_left = useEnvironmentTexture(ENVIRONMENT_SPRITES.wall_left);
-  const wall_right = useEnvironmentTexture(ENVIRONMENT_SPRITES.wall_right);
-
-  const wallTextures = {
-    wall_top: wall_top.texture,
-    wall_top_left: wall_top_left.texture,
-    wall_top_right: wall_top_right.texture,
-    wall_bottom: wall_bottom.texture,
-    wall_bottom_left: wall_bottom_left.texture,
-    wall_bottom_right: wall_bottom_right.texture,
-    wall_left: wall_left.texture,
-    wall_right: wall_right.texture,
-  };
-
   return (
     <pixiContainer>
       {rooms.map((room) => (
@@ -118,7 +192,7 @@ export function WallsLayer() {
           y={room.y}
           width={room.width}
           height={room.height}
-          wallTextures={wallTextures}
+          doors={roomDoors[room.id] ?? {}}
         />
       ))}
       <RoomWalls
@@ -126,22 +200,18 @@ export function WallsLayer() {
         y={controlRoom.y}
         width={controlRoom.width}
         height={controlRoom.height}
-        wallTextures={wallTextures}
+        color={WORLD_COLORS.controlRoomBorder}
+        doors={controlDoors}
       />
       <RoomWalls
         x={quarantineRoom.x}
         y={quarantineRoom.y}
         width={quarantineRoom.width}
         height={quarantineRoom.height}
-        wallTextures={wallTextures}
+        color={WORLD_COLORS.quarantineBorder}
+        doors={quarantineDoors}
       />
-      <RoomWalls
-        x={entertainmentRoom.x}
-        y={entertainmentRoom.y}
-        width={entertainmentRoom.width}
-        height={entertainmentRoom.height}
-        wallTextures={wallTextures}
-      />
+      <EntertainmentWalls />
     </pixiContainer>
   );
 }

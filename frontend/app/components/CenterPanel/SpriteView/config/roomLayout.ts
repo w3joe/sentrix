@@ -1,5 +1,7 @@
-export const WORLD_WIDTH = 1400;
-export const WORLD_HEIGHT = 1050;
+const S = 3; // global scale factor — multiply all world coordinates by this
+
+export const WORLD_WIDTH = 1400 * S;
+export const WORLD_HEIGHT = 1050 * S;
 
 export interface DeskPosition {
   agentId: string;
@@ -21,159 +23,211 @@ export const rooms: RoomConfig[] = [
   {
     id: 'cluster-1',
     name: 'Host Machine 1',
-    x: 240,
-    y: 40,
-    width: 440,
-    height: 280,
+    x: 240 * S,
+    y: 40 * S,
+    width: 440 * S,
+    height: 280 * S,
     desks: [
-      { agentId: 'c1-email', x: 320, y: 120 },
-      { agentId: 'c1-coding', x: 480, y: 120 },
-      { agentId: 'c1-document', x: 320, y: 230 },
-      { agentId: 'c1-data', x: 480, y: 230 },
+      { agentId: 'c1-email',    x: 320 * S, y: 120 * S },
+      { agentId: 'c1-coding',   x: 480 * S, y: 120 * S },
+      { agentId: 'c1-document', x: 320 * S, y: 230 * S },
+      { agentId: 'c1-data',     x: 480 * S, y: 230 * S },
     ],
   },
   {
     id: 'cluster-2',
     name: 'Host Machine 2',
-    x: 920,
-    y: 40,
-    width: 440,
-    height: 280,
+    x: 920 * S,
+    y: 40 * S,
+    width: 440 * S,
+    height: 280 * S,
     desks: [
-      { agentId: 'c2-email', x: 1000, y: 120 },
-      { agentId: 'c2-coding', x: 1160, y: 120 },
-      { agentId: 'c2-document', x: 1000, y: 230 },
-      { agentId: 'c2-data', x: 1160, y: 230 },
+      { agentId: 'c2-email',    x: 1000 * S, y: 120 * S },
+      { agentId: 'c2-coding',   x: 1160 * S, y: 120 * S },
+      { agentId: 'c2-document', x: 1000 * S, y: 230 * S },
+      { agentId: 'c2-data',     x: 1160 * S, y: 230 * S },
     ],
   },
   {
     id: 'cluster-3',
     name: 'Host Machine 3',
-    x: 240,
-    y: 580,
-    width: 440,
-    height: 280,
+    x: 240 * S,
+    y: 580 * S,
+    width: 440 * S,
+    height: 280 * S,
     desks: [
-      { agentId: 'c3-email', x: 320, y: 660 },
-      { agentId: 'c3-coding', x: 480, y: 660 },
-      { agentId: 'c3-document', x: 320, y: 770 },
-      { agentId: 'c3-data', x: 480, y: 770 },
+      { agentId: 'c3-email',    x: 320 * S, y: 660 * S },
+      { agentId: 'c3-coding',   x: 480 * S, y: 660 * S },
+      { agentId: 'c3-document', x: 320 * S, y: 770 * S },
+      { agentId: 'c3-data',     x: 480 * S, y: 770 * S },
     ],
   },
   {
     id: 'cluster-4',
     name: 'Host Machine 4',
-    x: 920,
-    y: 580,
-    width: 440,
-    height: 280,
+    x: 920 * S,
+    y: 580 * S,
+    width: 440 * S,
+    height: 280 * S,
     desks: [
-      { agentId: 'c4-email', x: 1000, y: 660 },
-      { agentId: 'c4-coding', x: 1160, y: 660 },
-      { agentId: 'c4-document', x: 1000, y: 770 },
-      { agentId: 'c4-data', x: 1160, y: 770 },
+      { agentId: 'c4-email',    x: 1000 * S, y: 660 * S },
+      { agentId: 'c4-coding',   x: 1160 * S, y: 660 * S },
+      { agentId: 'c4-document', x: 1000 * S, y: 770 * S },
+      { agentId: 'c4-data',     x: 1160 * S, y: 770 * S },
     ],
   },
 ];
 
 export const controlRoom = {
-  x: 620,
-  y: 370,
-  width: 360,
-  height: 160,
-  superintendentPos: { x: 800, y: 430 },
-  networkPos: { x: 700, y: 420 },
+  x: 620 * S,
+  y: 370 * S,
+  width: 360 * S,
+  height: 160 * S,
+  superintendentPos: { x: 800 * S, y: 430 * S },
+  networkPos:        { x: 700 * S, y: 420 * S },
   investigatorPositions: [
-    { id: 'f1', x: 700, y: 470 },
-    { id: 'f2', x: 900, y: 470 },
+    { id: 'f1', x: 700 * S, y: 470 * S },
+    { id: 'f2', x: 900 * S, y: 470 * S },
   ],
 };
 
-// Patrol route that loops around all 4 host machine rooms in order
+// Doorway centers — must match WallsLayer.tsx door positions exactly
+// HM1 (x=720,y=120,w=1320,h=840): right door y=540, bottom door x=1380
+// HM2 (x=2760,y=120,w=1320,h=840): left door y=540, bottom door x=3420
+// HM3 (x=720,y=1740,w=1320,h=840): right door y=2160, top door x=1380
+// HM4 (x=2760,y=1740,w=1320,h=840): left door y=2160, top door x=3420
+const MARGIN = 22 * S;
+
+// Inner perimeter corners for each room
+const HM1 = { x: 240 * S, y: 40 * S, w: 440 * S, h: 280 * S };
+const HM2 = { x: 920 * S, y: 40 * S, w: 440 * S, h: 280 * S };
+const HM3 = { x: 240 * S, y: 580 * S, w: 440 * S, h: 280 * S };
+const HM4 = { x: 920 * S, y: 580 * S, w: 440 * S, h: 280 * S };
+
+function innerCorners(r: { x: number; y: number; w: number; h: number }) {
+  return {
+    tl: { x: r.x + MARGIN, y: r.y + MARGIN },
+    tr: { x: r.x + r.w - MARGIN, y: r.y + MARGIN },
+    br: { x: r.x + r.w - MARGIN, y: r.y + r.h - MARGIN },
+    bl: { x: r.x + MARGIN, y: r.y + r.h - MARGIN },
+  };
+}
+
+const c1 = innerCorners(HM1);
+const c2 = innerCorners(HM2);
+const c3 = innerCorners(HM3);
+const c4 = innerCorners(HM4);
+
+const DOOR_INSET = 28 * S;
+
+const doors = {
+  hm1Right:  { x: HM1.x + HM1.w - DOOR_INSET, y: HM1.y + HM1.h / 2 },
+  hm1Bottom: { x: HM1.x + HM1.w / 2, y: HM1.y + HM1.h - DOOR_INSET },
+  hm2Left:   { x: HM2.x + DOOR_INSET, y: HM2.y + HM2.h / 2 },
+  hm2Bottom: { x: HM2.x + HM2.w / 2, y: HM2.y + HM2.h - DOOR_INSET },
+  hm3Right:  { x: HM3.x + HM3.w - DOOR_INSET, y: HM3.y + HM3.h / 2 },
+  hm3Top:    { x: HM3.x + HM3.w / 2, y: HM3.y + DOOR_INSET },
+  hm4Left:   { x: HM4.x + DOOR_INSET, y: HM4.y + HM4.h / 2 },
+  hm4Top:    { x: HM4.x + HM4.w / 2, y: HM4.y + DOOR_INSET },
+};
+
+const corridor = {
+  topMid:      { x: 800 * S, y: 180 * S },
+  botMid:      { x: 800 * S, y: 720 * S },
+  rightMidTop: { x: 1140 * S, y: 450 * S },
+  leftMidBot:  { x: 460 * S,  y: 450 * S },
+  leftColTop:  { x: 460 * S,  y: 340 * S },
+  leftColBot:  { x: 460 * S,  y: 560 * S },
+  rightColTop: { x: 1140 * S, y: 340 * S },
+  rightColBot: { x: 1140 * S, y: 560 * S },
+};
+
 export const patrolWaypoints = [
-  // Start top-left, patrol around Host Machine 1
-  { x: 230, y: 30 },
-  { x: 460, y: 30 },
-  { x: 680, y: 30 },
-  { x: 680, y: 180 },
-  { x: 680, y: 320 },
-  { x: 460, y: 320 },
-  { x: 230, y: 320 },
-  { x: 230, y: 180 },
-  // Cross over to Host Machine 2 (top-right)
-  { x: 680, y: 30 },
-  { x: 910, y: 30 },
-  { x: 1140, y: 30 },
-  { x: 1360, y: 30 },
-  { x: 1360, y: 180 },
-  { x: 1360, y: 320 },
-  { x: 1140, y: 320 },
-  { x: 910, y: 320 },
-  // Move down to Host Machine 4 (bottom-right)
-  { x: 910, y: 570 },
-  { x: 910, y: 720 },
-  { x: 910, y: 860 },
-  { x: 1140, y: 860 },
-  { x: 1360, y: 860 },
-  { x: 1360, y: 720 },
-  { x: 1360, y: 570 },
-  { x: 1140, y: 570 },
-  // Cross over to Host Machine 3 (bottom-left)
-  { x: 680, y: 570 },
-  { x: 460, y: 570 },
-  { x: 230, y: 570 },
-  { x: 230, y: 720 },
-  { x: 230, y: 860 },
-  { x: 460, y: 860 },
-  { x: 680, y: 860 },
-  { x: 680, y: 720 },
-  // Return to start area
-  { x: 680, y: 570 },
-  { x: 230, y: 570 },
-  { x: 230, y: 320 },
+  // ── Host Machine 1: start top-left, full clockwise inner perimeter ──
+  c1.tl,
+  c1.tr,
+  c1.br,
+  doors.hm1Right,
+  // exit HM1 right → top corridor → enter HM2 left
+  { x: HM1.x + HM1.w, y: HM1.y + HM1.h / 2 },
+  corridor.topMid,
+  { x: HM2.x, y: HM2.y + HM2.h / 2 },
+  // ── Host Machine 2: enter left, full clockwise inner perimeter ──
+  doors.hm2Left,
+  c2.tl,
+  c2.tr,
+  c2.br,
+  c2.bl,
+  doors.hm2Bottom,
+  // exit HM2 bottom → right corridor → enter HM4 top
+  { x: HM2.x + HM2.w / 2, y: HM2.y + HM2.h },
+  corridor.rightColTop,
+  corridor.rightColBot,
+  { x: HM4.x + HM4.w / 2, y: HM4.y },
+  // ── Host Machine 4: enter top, full clockwise inner perimeter ──
+  doors.hm4Top,
+  c4.tl,
+  c4.tr,
+  c4.br,
+  c4.bl,
+  doors.hm4Left,
+  // exit HM4 left → bottom corridor → enter HM3 right
+  { x: HM4.x, y: HM4.y + HM4.h / 2 },
+  corridor.botMid,
+  { x: HM3.x + HM3.w, y: HM3.y + HM3.h / 2 },
+  // ── Host Machine 3: enter right, full clockwise inner perimeter ──
+  doors.hm3Right,
+  c3.tr,
+  c3.tl,
+  c3.bl,
+  c3.br,
+  doors.hm3Top,
+  // exit HM3 top → left corridor → enter HM1 bottom
+  { x: HM3.x + HM3.w / 2, y: HM3.y },
+  corridor.leftColBot,
+  corridor.leftColTop,
+  { x: HM1.x + HM1.w / 2, y: HM1.y + HM1.h },
+  // ── Back into HM1: enter bottom, return to top-left to close loop ──
+  doors.hm1Bottom,
+  c1.bl,
 ];
 
 // Quarantine room - bottom center, between rooms 3 and 4
 export const quarantineRoom = {
-  x: 550,
-  y: 900,
-  width: 500,
-  height: 120,
-  // 2 rows x 8 columns of cell slots (max 16 agents)
+  x: 550 * S,
+  y: 900 * S,
+  width: 500 * S,
+  height: 120 * S,
   cells: Array.from({ length: 16 }, (_, i) => ({
     slotIndex: i,
-    x: 600 + (i % 8) * 55,
-    y: 935 + Math.floor(i / 8) * 50,
+    x: 600 * S + (i % 8) * 55 * S,
+    y: 935 * S + Math.floor(i / 8) * 50 * S,
   })),
 };
 
-// Get the quarantine cell position for a given slot index
 export function getQuarantineCellPosition(slotIndex: number): { x: number; y: number } {
   const cell = quarantineRoom.cells[slotIndex];
-  return cell ? { x: cell.x, y: cell.y } : { x: quarantineRoom.x + 50, y: quarantineRoom.y + 40 };
+  return cell ? { x: cell.x, y: cell.y } : { x: quarantineRoom.x + 50 * S, y: quarantineRoom.y + 40 * S };
 }
 
-// Entertainment room - left side, spanning Host Machine 1 to Host Machine 3
+// Entertainment room - left side
 export const entertainmentRoom = {
-  x: 40,
-  y: 40,
-  width: 160,
-  height: 820,
-  // Seating positions for idle agents (up to 8 seats, vertically spaced)
+  x: 40 * S,
+  y: 40 * S,
+  width: 160 * S,
+  height: 820 * S,
   seats: Array.from({ length: 8 }, (_, i) => ({
     slotIndex: i,
-    x: 120,
-    y: 120 + i * 95,
+    x: 120 * S,
+    y: 120 * S + i * 95 * S,
   })),
 };
 
-// Get the entertainment seat position for a given slot index
 export function getEntertainmentSeatPosition(slotIndex: number): { x: number; y: number } {
   const seat = entertainmentRoom.seats[slotIndex];
-  return seat ? { x: seat.x, y: seat.y } : { x: entertainmentRoom.x + 80, y: entertainmentRoom.y + 40 };
+  return seat ? { x: seat.x, y: seat.y } : { x: entertainmentRoom.x + 80 * S, y: entertainmentRoom.y + 40 * S };
 }
 
-// Get desk position for a given agent ID
 export function getDeskPosition(agentId: string): { x: number; y: number } | null {
   for (const room of rooms) {
     const desk = room.desks.find((d) => d.agentId === agentId);

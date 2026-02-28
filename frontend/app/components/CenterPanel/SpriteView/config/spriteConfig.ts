@@ -41,40 +41,22 @@ export const ROLE_COLORS: Record<string, number> = {
   DATA_QUERY_AGENT: 0xa855f7,
 };
 
+const S = 3;
+
 export const SIZES = {
-  agentBody: 20,
-  patrolBody: 16,
-  superintendentBody: 24,
-  investigatorBody: 18,
-  desk: { width: 50, height: 30 },
-  selectionRingRadius: 28,
-  auraRadius: 32,
+  agentBody: 20 * S,
+  patrolBody: 16 * S,
+  superintendentBody: 24 * S,
+  investigatorBody: 18 * S,
+  desk: { width: 50 * S, height: 30 * S },
+  selectionRingRadius: 28 * S,
+  auraRadius: 32 * S,
 };
 
 export const MOVEMENT = {
   investigatorSpeed: 0.06,
   agentTransitionSpeed: 0.04,
 };
-
-// ── Environment / Tile Sprites (250×250 single-frame) ────────────────────────
-
-export const ENVIRONMENT_SPRITES = {
-  floor: '/sprites/floor.png',
-  quarantine_floor: '/sprites/quarrantine_floor.png',
-  chair: '/sprites/chair.png',
-  table: '/sprites/table.png',
-  monitor_rear: '/sprites/monitor-rear.png',
-  wall_top: '/sprites/wall-top.PNG',
-  wall_top_left: '/sprites/wall-top-left.png',
-  wall_top_right: '/sprites/wall-top-right.png',
-  wall_bottom: '/sprites/wall-bottom.png',
-  wall_bottom_left: '/sprites/wall-bottom-left.png',
-  wall_bottom_right: '/sprites/wall-bottom-right.png',
-  wall_left: '/sprites/wall-left.png',
-  wall_right: '/sprites/wall-right.PNG',
-} as const;
-
-export const TILE_SIZE = 250;
 
 // ── Sprite Sheet Configuration ──────────────────────────────────────────────
 
@@ -88,6 +70,25 @@ export const SPRITE_SHEETS = {
   superintendent: '/sprites/superintendent.png',
   network: '/sprites/network.png',
 } as const;
+
+export const FURNITURE_SPRITES = {
+  table: '/sprites/table.png',
+  chair: '/sprites/chair.png',
+  monitor: '/sprites/monitor-rear.png',
+} as const;
+
+export const FLOOR_SPRITES = {
+  room: '/sprites/floor.png',
+  quarantine: '/sprites/quarrantine_floor.png',
+} as const;
+
+export const FLOOR_TILE_SIZE = 40 * S;
+
+export const FURNITURE_SIZES = {
+  table: { width: 50 * S, height: 40 * S },
+  chair: { width: 24 * S, height: 24 * S },
+  monitor: { width: 40 * S, height: 40 * S },
+};
 
 export const RISK_SPRITE_MAP: Record<RiskLevel, keyof typeof SPRITE_SHEETS> = {
   normal: 'normal_agent',
@@ -105,9 +106,9 @@ export const SPRITE_FRAMES = {
 export type SpriteDirection = (typeof SPRITE_FRAMES)[keyof typeof SPRITE_FRAMES];
 
 export const SPRITE_DISPLAY_SIZES = {
-  agent: 40,
-  patrol: 32,
-  superintendent: 48,
-  investigator: 36,
-  network: 36,
+  agent: 40 * S,
+  patrol: 40 * S,
+  superintendent: 52 * S,
+  investigator: 40 * S,
+  network: 40 * S,
 };
