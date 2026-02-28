@@ -90,7 +90,7 @@ export function useAgentState() {
       const override = statusOverrides.get(agentId);
       if (override) return override;
       const agent = agents.find((a) => a.id === agentId);
-      return agent?.status ?? 'clean';
+      return agent?.status ?? 'idle';
     },
     [statusOverrides, agents]
   );

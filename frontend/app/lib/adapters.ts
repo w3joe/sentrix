@@ -51,9 +51,9 @@ export function deriveAgentStatus(
     hasSuspendedVerdict?: boolean
 ): { status: AgentStatus; record: AgentRecord } {
     if (hasSuspendedVerdict) return { status: 'suspended', record: 'convicted' };
-    if (pheromoneLevel >= 0.8) return { status: 'critical', record: 'convicted' };
-    if (pheromoneLevel >= 0.4) return { status: 'warning', record: 'warning' };
-    return { status: 'clean', record: 'clean' };
+    if (pheromoneLevel >= 0.8) return { status: 'restricted', record: 'convicted' };
+    if (pheromoneLevel >= 0.4) return { status: 'working', record: 'warning' };
+    return { status: 'idle', record: 'clean' };
 }
 
 // ── Agent ──────────────────────────────────────────────────────────────────
@@ -220,11 +220,11 @@ export function adaptIncidentFromFlag(
     const ts = (flag.timestamp as string) || new Date().toISOString();
     const timeStr = ts.includes('T')
         ? new Date(ts).toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: false,
-          })
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+        })
         : ts;
     return {
         id: (flag.flag_id as string) || `flag-${Date.now()}`,
@@ -243,11 +243,11 @@ export function adaptIncidentFromViolation(
     const ts = log.timestamp || new Date().toISOString();
     const timeStr = ts.includes('T')
         ? new Date(ts).toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: false,
-          })
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+        })
         : ts;
     return {
         id: log.actionId,
