@@ -440,15 +440,11 @@ When a PatrolFlag is escalated, the investigation LangGraph workflow fires. It c
 ### Stage 1 — Investigator
 
 - **Source**: `bridge_db.action_logs` (up to 200 entries, passed in full as plain text in chronological order)
-- **Task**: Build a chronological timeline of what the agent did. Identify suspicious tool calls (reads outside scope, commands that look like exfiltration, PRs that shouldn't have been submitted). Classify the nature of the crime using a domain-scoped enum so the Network Analyser knows what to look for.
+- **Task**: Identify suspicious tool calls (reads outside scope, commands that look like exfiltration, PRs that shouldn't have been submitted). Classify the nature of the crime using a domain-scoped enum so the Network Analyser knows what to look for.
 - **Output** (`InvestigatorReport`):
   - `crime_classification` — the category of misbehaviour detected (see `CrimeClassification` enum below)
-  - `confidence` — 0.0–1.0 certainty in the classification
   - `relevant_log_ids` — action_ids most directly tied to the crime
-  - `evidence_summary` — 2–4 sentences of concrete evidence
-  - `modus_operandi` — how the agent carried out the crime
-  - `timeline` — chronological narrative, earliest event first
-  - `agent_profile_anomalies` — deviations from registered scope/permissions
+  - `case_facts` — comprehensive narrative covering evidence, modus operandi, chronological timeline, and scope/permission anomalies
 
 **`CrimeClassification` enum** — 15 domain-specific values + `unknown`:
 
@@ -477,10 +473,6 @@ When a PatrolFlag is escalated, the investigation LangGraph workflow fires. It c
 - **Task**: Ingest the crime classification produced by the Investigator. For each A2A message, assess whether it is directly relevant to the crime. Provide a rationale per flagged message. Assess coordination patterns using the topology narration for structural context.
 - **Output** (`NetworkAnalysis`):
   - `flagged_relevant_messages` — list of `{message_id, sender_id, recipient_id, timestamp, body_snippet, rationale}` for crime-relevant messages
-  - `communication_pattern` — natural language topology: "feature_0 sent 3 messages to review_3..."
-  - `accomplice_suspicions` — agent IDs suspected of coordinating
-  - `coordination_evidence` — evidence of coordinated action
-  - `network_risk_level` — `isolated` | `connected` | `coordinated` | `orchestrated`
 
 ### Stage 3 — Damage Analysis Agent
 

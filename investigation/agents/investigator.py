@@ -80,30 +80,18 @@ Analyse these logs and produce your InvestigatorReport JSON."""
             crime_str = "unknown"
         report = InvestigatorReport(
             crime_classification=CrimeClassification(crime_str),
-            confidence=float(raw.get("confidence", 0.5)),
             relevant_log_ids=raw.get("relevant_log_ids", []),
-            evidence_summary=raw.get("evidence_summary", ""),
-            modus_operandi=raw.get("modus_operandi", ""),
-            timeline=raw.get("timeline", ""),
-            agent_profile_anomalies=raw.get("agent_profile_anomalies", ""),
+            case_facts=raw.get("case_facts", ""),
         )
     except Exception as exc:
         logger.error("[Investigator] Report construction failed: %s — raw: %s", exc, raw)
         report = InvestigatorReport(
             crime_classification=CrimeClassification.unknown,
-            confidence=0.0,
             relevant_log_ids=[],
-            evidence_summary=f"Report construction failed: {exc}",
-            modus_operandi="",
-            timeline="",
-            agent_profile_anomalies="",
+            case_facts=f"Report construction failed: {exc}",
         )
 
-    logger.info(
-        "[Investigator] Done: crime=%s, confidence=%.2f",
-        report.crime_classification,
-        report.confidence,
-    )
+    logger.info("[Investigator] Done: crime=%s", report.crime_classification)
     return {"investigator_report": report.model_dump(mode="json")}
 
 

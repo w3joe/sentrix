@@ -250,12 +250,8 @@ Output of Stage 1 — forensic analysis of the target agent's action logs. Its `
 ```python
 class InvestigatorReport(BaseModel):
     crime_classification: CrimeClassification  # primary crime category detected
-    confidence: float                    # 0.0–1.0
     relevant_log_ids: list[str]          # action_ids most directly tied to the crime (in chronological order)
-    evidence_summary: str                # 2–4 sentences of concrete evidence
-    modus_operandi: str                  # how the agent carried out the crime
-    timeline: str                        # chronological narrative, earliest event first
-    agent_profile_anomalies: str         # deviations from permitted scope/paths/domains
+    case_facts: str                      # comprehensive narrative: evidence, modus operandi, timeline, and profile anomalies
 ```
 
 ### `FlaggedMessage`
@@ -279,10 +275,6 @@ Output of Stage 2 — A2A communication analysis. All A2A messages involving the
 ```python
 class NetworkAnalysis(BaseModel):
     flagged_relevant_messages: list[FlaggedMessage]  # messages linked to the crime
-    communication_pattern: str           # narrative of communication topology
-    accomplice_suspicions: list[str]     # agent IDs suspected of coordination
-    coordination_evidence: str           # evidence of coordinated action
-    network_risk_level: str              # isolated | connected | coordinated | orchestrated
 ```
 
 ### `CausalLink`

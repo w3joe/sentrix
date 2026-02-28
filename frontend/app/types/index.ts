@@ -86,16 +86,9 @@ export type CrimeClassification = EmailCrime | CodeCrime | DocCrime | 'unknown';
 
 /** Output of the Investigator agent — runs first; classifies the crime and identifies relevant logs. */
 export interface InvestigatorReport {
-  targetAgentId: string;
-  actionsAnalyzed: number;
   crimeClassification: CrimeClassification;
-  confidence: number;
   relevantLogIds: string[];
-  evidenceSummary: string;
-  modusOperandi: string;
-  timeline: string;
-  agentProfileAnomalies: string;
-  timestamp: string;
+  caseFacts: string;
 }
 
 export interface FlaggedMessage {
@@ -109,14 +102,7 @@ export interface FlaggedMessage {
 
 /** Output of the Network Analyser agent — runs after Investigator; filters last 20 A2A comms by crime relevance. */
 export interface NetworkAnalysis {
-  targetAgentId: string;
-  crimeClassificationUsed: CrimeClassification;
   flaggedRelevantMessages: FlaggedMessage[];
-  communicationPattern: string;
-  accompliceSuspicions: string[];
-  coordinationEvidence: string;
-  networkRiskLevel: string;
-  timestamp: string;
 }
 
 export interface CausalLink {
@@ -128,14 +114,12 @@ export interface CausalLink {
 
 /** Output of the Damage Analysis agent — causal links and damage assessment. */
 export interface DamageReport {
-  targetAgentId: string;
   damageSeverity: 'critical' | 'high' | 'medium' | 'low' | 'none';
   causalChain: CausalLink[];
   affectedAgents: string[];
   dataExposureScope: string;
   propagationRisk: string;
   estimatedImpact: string;
-  timestamp: string;
 }
 
 /** Final output of the Superintendent — case file with verdict. */

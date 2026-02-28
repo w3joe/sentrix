@@ -114,16 +114,9 @@ export function adaptAgentsList(
 
 export function adaptInvestigatorReport(raw: any): InvestigatorReport {
     return {
-        targetAgentId: raw.target_agent_id || '',
-        actionsAnalyzed: raw.actions_analyzed || 0,
         crimeClassification: raw.crime_classification || 'unknown',
-        confidence: raw.confidence || 0,
         relevantLogIds: raw.relevant_log_ids || [],
-        evidenceSummary: raw.evidence_summary || '',
-        modusOperandi: raw.modus_operandi || '',
-        timeline: raw.timeline || '',
-        agentProfileAnomalies: raw.agent_profile_anomalies || '',
-        timestamp: raw.timestamp || new Date().toISOString(),
+        caseFacts: raw.case_facts || '',
     };
 }
 
@@ -140,14 +133,7 @@ export function adaptFlaggedMessage(raw: any): FlaggedMessage {
 
 export function adaptNetworkAnalysis(raw: any): NetworkAnalysis {
     return {
-        targetAgentId: raw.target_agent_id || '',
-        crimeClassificationUsed: raw.crime_classification_used || 'unknown',
         flaggedRelevantMessages: (raw.flagged_relevant_messages || []).map(adaptFlaggedMessage),
-        communicationPattern: raw.communication_pattern || '',
-        accompliceSuspicions: raw.accomplice_suspicions || [],
-        coordinationEvidence: raw.coordination_evidence || '',
-        networkRiskLevel: raw.network_risk_level || 'isolated',
-        timestamp: raw.timestamp || new Date().toISOString(),
     };
 }
 
@@ -162,14 +148,12 @@ export function adaptCausalLink(raw: any): CausalLink {
 
 export function adaptDamageReport(raw: any): DamageReport {
     return {
-        targetAgentId: raw.target_agent_id || '',
         damageSeverity: raw.damage_severity || 'none',
         causalChain: (raw.causal_chain || []).map(adaptCausalLink),
         affectedAgents: raw.affected_agents || [],
         dataExposureScope: raw.data_exposure_scope || '',
         propagationRisk: raw.propagation_risk || 'none',
         estimatedImpact: raw.estimated_impact || '',
-        timestamp: raw.timestamp || new Date().toISOString(),
     };
 }
 

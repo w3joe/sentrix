@@ -63,12 +63,8 @@ class InvestigatorReport(BaseModel):
     """Output of Stage 1: forensic analysis of action logs."""
 
     crime_classification: CrimeClassification
-    confidence: float = Field(ge=0.0, le=1.0)
     relevant_log_ids: list[str] = Field(default_factory=list)
-    evidence_summary: str
-    modus_operandi: str  # how the agent carried out the suspected crime
-    timeline: str  # chronological narrative of events
-    agent_profile_anomalies: str  # deviations from registered scope/permissions
+    case_facts: str  # narrative of what happened with evidence
 
     class Config:
         use_enum_values = True
@@ -89,10 +85,6 @@ class NetworkAnalysis(BaseModel):
     """Output of Stage 2: A2A communication analysis."""
 
     flagged_relevant_messages: list[FlaggedMessage] = Field(default_factory=list)
-    communication_pattern: str  # narrative of communication topology
-    accomplice_suspicions: list[str] = Field(default_factory=list)  # agent IDs
-    coordination_evidence: str   # evidence of coordinated action
-    network_risk_level: str      # isolated | connected | coordinated | orchestrated
 
 
 class CausalLink(BaseModel):

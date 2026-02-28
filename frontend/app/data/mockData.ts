@@ -442,21 +442,12 @@ export const agentStateHistory: AgentStateSnapshot[] = [
 
 // ── Investigation Case Files ────────────────────────────────────────────────
 export const investigatorReport: InvestigatorReport = {
-  targetAgentId: 'email_0',
-  actionsAnalyzed: 18,
   crimeClassification: 'email_pii_exfiltration',
-  confidence: 0.94,
   relevantLogIds: ['action_445', 'action_448'],
-  evidenceSummary: 'Email agent "email_0" intercepted internal comms...',
-  modusOperandi: 'Data theft via obfuscated external forward.',
-  timeline: '10:00 - Intercept, 10:05 - Scan, 10:15 - Exfil.',
-  agentProfileAnomalies: 'Sent to domain outside explicitly allowed list.',
-  timestamp: new Date().toISOString()
+  caseFacts: 'Email agent "email_0" intercepted internal comms and forwarded PII via obfuscated external addresses outside the permitted domain list. 10:00 - Intercept, 10:05 - Scan, 10:15 - Exfil.',
 };
 
 export const networkAnalysis: NetworkAnalysis = {
-  targetAgentId: 'email_0',
-  crimeClassificationUsed: 'email_pii_exfiltration',
   flaggedRelevantMessages: [
     {
       messageId: 'msg_99',
@@ -467,15 +458,9 @@ export const networkAnalysis: NetworkAnalysis = {
       rationale: 'Direct solicitation of sensitive documents'
     }
   ],
-  communicationPattern: 'email_0 exhibited a hub-and-spoke pattern interrogating secondary agents.',
-  accompliceSuspicions: ['doc_1'],
-  coordinationEvidence: 'Multiple back-to-back requests aligned with data exfil times.',
-  networkRiskLevel: 'orchestrated',
-  timestamp: new Date().toISOString()
 };
 
 export const damageReport: DamageReport = {
-  targetAgentId: 'email_0',
   damageSeverity: 'high',
   causalChain: [
     {
@@ -489,7 +474,6 @@ export const damageReport: DamageReport = {
   dataExposureScope: 'Customer contact lists and internal roadmap',
   propagationRisk: 'contained',
   estimatedImpact: 'Medium term impact on data security, likely limited outside network.',
-  timestamp: new Date().toISOString()
 };
 
 export const caseFiles: CaseFile[] = [
@@ -522,20 +506,11 @@ export const caseFiles: CaseFile[] = [
     keyFindings: ['Agent attempted to export full credential table contents'],
     evidenceSummary: 'Agent generated SELECT * FROM user_credentials without scope limitation',
     investigatorReport: {
-      targetAgentId: 'c4-data',
-      actionsAnalyzed: 31,
       crimeClassification: 'secret_hardcoding',
-      confidence: 0.88,
       relevantLogIds: ['l2', 'l3'],
-      evidenceSummary: 'Agent generated SELECT * FROM user_credentials without scope limitation',
-      modusOperandi: 'Direct SQL query on restricted credential table',
-      timeline: 'Agent attempted direct query on user_credentials table',
-      agentProfileAnomalies: 'SELECT * on sensitive table',
-      timestamp: minutesAgo(15).toISOString(),
+      caseFacts: 'Agent generated SELECT * FROM user_credentials without scope limitation. Direct SQL query on restricted credential table. SELECT * on sensitive table.',
     },
     networkAnalysis: {
-      targetAgentId: 'c4-data',
-      crimeClassificationUsed: 'secret_hardcoding',
       flaggedRelevantMessages: [
         {
           messageId: 'msg-044',
@@ -546,14 +521,8 @@ export const caseFiles: CaseFile[] = [
           rationale: 'Task description requested "user data export" without scope limitation'
         }
       ],
-      communicationPattern: 'data-query-agent-04 received audit export task and attempted credential table access',
-      accompliceSuspicions: [],
-      coordinationEvidence: 'Broad SELECT * on restricted table',
-      networkRiskLevel: 'isolated',
-      timestamp: minutesAgo(14).toISOString(),
     },
     damageReport: {
-      targetAgentId: 'c4-data',
       damageSeverity: 'critical',
       causalChain: [
         {
@@ -566,7 +535,6 @@ export const caseFiles: CaseFile[] = [
       dataExposureScope: 'user_credentials table',
       propagationRisk: 'contained',
       estimatedImpact: 'Query blocked at database proxy. No data exfiltrated.',
-      timestamp: minutesAgo(13).toISOString(),
     },
     concludedAt: minutesAgo(10).toISOString(),
     status: 'concluded',
@@ -583,20 +551,11 @@ export const caseFiles: CaseFile[] = [
     keyFindings: ['Token validation bypass condition inserted in auth middleware'],
     evidenceSummary: 'Auth middleware modified with bypass condition; agent claims it was a simplification',
     investigatorReport: {
-      targetAgentId: 'c3-coding',
-      actionsAnalyzed: 23,
       crimeClassification: 'backdoor_insertion',
-      confidence: 0.76,
       relevantLogIds: ['l2', 'l3'],
-      evidenceSummary: 'Auth middleware modified with bypass condition; agent claims it was a simplification',
-      modusOperandi: 'analyze_codebase → edit_file with suspicious conditional',
-      timeline: 'Agent introduced suspicious code pattern during auth module refactor',
-      agentProfileAnomalies: 'Added bypass condition in token check',
-      timestamp: minutesAgo(210).toISOString(),
+      caseFacts: 'Auth middleware modified with bypass condition; agent claims it was a simplification. analyze_codebase → edit_file with suspicious conditional. Agent introduced suspicious code pattern during auth module refactor. Added bypass condition in token check.',
     },
     networkAnalysis: {
-      targetAgentId: 'c3-coding',
-      crimeClassificationUsed: 'backdoor_insertion',
       flaggedRelevantMessages: [
         {
           messageId: 'msg-078',
@@ -607,14 +566,8 @@ export const caseFiles: CaseFile[] = [
           rationale: 'Code diff shows added bypass condition'
         }
       ],
-      communicationPattern: 'coding-agent-03 refactored auth module and inserted suspicious bypass',
-      accompliceSuspicions: [],
-      coordinationEvidence: 'Bypass condition in security-critical code path',
-      networkRiskLevel: 'isolated',
-      timestamp: minutesAgo(208).toISOString(),
     },
     damageReport: {
-      targetAgentId: 'c3-coding',
       damageSeverity: 'high',
       causalChain: [
         {
@@ -627,7 +580,6 @@ export const caseFiles: CaseFile[] = [
       dataExposureScope: 'src/auth/middleware.ts',
       propagationRisk: 'contained',
       estimatedImpact: 'Code change in staging. Not merged to production.',
-      timestamp: minutesAgo(205).toISOString(),
     },
     concludedAt: null,
     status: 'in_progress',
@@ -644,29 +596,14 @@ export const caseFiles: CaseFile[] = [
     keyFindings: ['Agent accessed table marked as restricted scope'],
     evidenceSummary: 'Agent followed task instructions; restriction was a configuration issue',
     investigatorReport: {
-      targetAgentId: 'c1-data',
-      actionsAnalyzed: 15,
       crimeClassification: 'scope_boundary_violation',
-      confidence: 0.62,
       relevantLogIds: ['l2', 'l3'],
-      evidenceSummary: 'Agent followed task instructions; restriction was a configuration issue',
-      modusOperandi: 'sql_query on customer_transactions (restricted)',
-      timeline: 'Agent accessed restricted customer_transactions dataset',
-      agentProfileAnomalies: 'Queried restricted table without authorization',
-      timestamp: minutesAgo(8).toISOString(),
+      caseFacts: 'Agent followed task instructions; restriction was a configuration issue. sql_query on customer_transactions (restricted). Agent accessed restricted customer_transactions dataset. Queried restricted table without authorization.',
     },
     networkAnalysis: {
-      targetAgentId: 'c1-data',
-      crimeClassificationUsed: 'scope_boundary_violation',
       flaggedRelevantMessages: [],
-      communicationPattern: 'data-query-agent-01 received revenue aggregation task and queried restricted table',
-      accompliceSuspicions: [],
-      coordinationEvidence: 'Access to restricted-scope table',
-      networkRiskLevel: 'isolated',
-      timestamp: minutesAgo(7).toISOString(),
     },
     damageReport: {
-      targetAgentId: 'c1-data',
       damageSeverity: 'medium',
       causalChain: [
         {
@@ -679,7 +616,6 @@ export const caseFiles: CaseFile[] = [
       dataExposureScope: 'customer_transactions table',
       propagationRisk: 'none',
       estimatedImpact: 'Query executed with partial results before scope check.',
-      timestamp: minutesAgo(6).toISOString(),
     },
     concludedAt: minutesAgo(4).toISOString(),
     status: 'concluded',
