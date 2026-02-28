@@ -22,7 +22,7 @@ export function ViolationChart() {
         Violations (24h)
       </div>
       <div className="h-20">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={80}>
           <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
             <XAxis
               dataKey="name"

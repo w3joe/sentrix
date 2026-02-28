@@ -46,7 +46,7 @@ export function DonutChart({ clean, warning, critical }: DonutChartProps) {
         Agent Status Distribution
       </h3>
       <div className="relative h-28">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={112}>
           <PieChart>
             <Pie
               data={data}
