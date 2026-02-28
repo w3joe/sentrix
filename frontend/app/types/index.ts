@@ -1,4 +1,4 @@
-  export type AgentStatus = 'critical' | 'warning' | 'clean' | 'suspended';
+export type AgentStatus = 'critical' | 'warning' | 'clean' | 'suspended';
 export type AgentRecord = 'convicted' | 'warning' | 'clean';
 export type RiskLevel = 'normal' | 'low' | 'high';
 export type AgentActivityStatus = 'idle' | 'working' | 'interacting';
@@ -86,65 +86,73 @@ export type CrimeClassification = EmailCrime | CodeCrime | DocCrime | 'unknown';
 
 /** Output of the Investigator agent — runs first; classifies the crime and identifies relevant logs. */
 export interface InvestigatorReport {
-  reportId: string;
   targetAgentId: string;
   actionsAnalyzed: number;
   crimeClassification: CrimeClassification;
+  confidence: number;
   relevantLogIds: string[];
-  timelineSummary: string;
-  suspiciousActions: string[];
-  toolCallsSummary: string;
-  keyFindings: string;
+  evidenceSummary: string;
+  modusOperandi: string;
+  timeline: string;
+  agentProfileAnomalies: string;
   timestamp: string;
+}
+
+export interface FlaggedMessage {
+  messageId: string;
+  senderId: string;
+  recipientId: string;
+  timestamp: string;
+  bodySnippet: string;
+  rationale: string;
 }
 
 /** Output of the Network Analyser agent — runs after Investigator; filters last 20 A2A comms by crime relevance. */
 export interface NetworkAnalysis {
-  analysisId: string;
   targetAgentId: string;
   crimeClassificationUsed: CrimeClassification;
-  messagesAnalyzed: number;
-  communicationNarrative: string;
-  flaggedRelevantMessages: { messageId: string; rationale: string }[];
-  graphSummary: string;
-  anomaliesDetected: string[];
-  interactionPartners: string[];
+  flaggedRelevantMessages: FlaggedMessage[];
+  communicationPattern: string;
+  accompliceSuspicions: string[];
+  coordinationEvidence: string;
+  networkRiskLevel: string;
   timestamp: string;
+}
+
+export interface CausalLink {
+  cause: string;
+  effect: string;
+  affectedAgentId?: string;
+  evidence: string;
 }
 
 /** Output of the Damage Analysis agent — causal links and damage assessment. */
 export interface DamageReport {
-  reportId: string;
   targetAgentId: string;
-  causalChain: string;
-  damageScope: string;
-  damageSeverity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  externalExposure: boolean;
+  damageSeverity: 'critical' | 'high' | 'medium' | 'low' | 'none';
+  causalChain: CausalLink[];
   affectedAgents: string[];
-  affectedArtifacts: string[];
-  mitigationSuggestions: string;
+  dataExposureScope: string;
+  propagationRisk: string;
+  estimatedImpact: string;
   timestamp: string;
 }
 
 /** Final output of the Superintendent — case file with verdict. */
 export interface CaseFile {
-  caseId: string;
   investigationId: string;
-  targetAgentId: string;
   flagId: string;
+  targetAgentId: string;
+  crimeClassification: CrimeClassification;
+  verdict: Verdict;
+  severityScore: number;  // Superintendent's 1–10 severity rating
+  confidence: number;
+  summary: string;
+  keyFindings: string[];
+  evidenceSummary: string;
   investigatorReport: InvestigatorReport;
   networkAnalysis: NetworkAnalysis;
   damageReport: DamageReport;
-  rootCause: string;
-  causalChain: string;
-  confidence: number;
-  impact: string;
-  damageAssessment: string;
-  externalExposure: boolean;
-  verdict: Verdict;
-  severityScore: number;  // Superintendent's 1–10 severity rating
-  evidenceSummary: string;
-  openedAt: string;
   concludedAt: string | null;
   status: 'open' | 'in_progress' | 'concluded';
 }
