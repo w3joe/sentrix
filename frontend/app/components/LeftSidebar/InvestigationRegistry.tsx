@@ -7,18 +7,19 @@ interface InvestigationRegistryProps {
   cases: CaseFile[];
   selectedCaseId: string | null;
   onSelectCase: (caseId: string) => void;
+  isLoading?: boolean;
 }
 
 const verdictColors: Record<string, string> = {
-  confirmed_violation: 'bg-[#ff3355]/20 text-[#ff3355] border-[#ff3355]/30',
-  false_positive: 'bg-[#00c853]/20 text-[#00c853] border-[#00c853]/30',
-  inconclusive: 'bg-[#ffaa00]/20 text-[#ffaa00] border-[#ffaa00]/30',
+  guilty: 'bg-[#ff3355]/20 text-[#ff3355] border-[#ff3355]/30',
+  not_guilty: 'bg-[#00c853]/20 text-[#00c853] border-[#00c853]/30',
+  under_watch: 'bg-[#ffaa00]/20 text-[#ffaa00] border-[#ffaa00]/30',
 };
 
 const verdictLabels: Record<string, string> = {
-  confirmed_violation: 'Violation',
-  false_positive: 'False Positive',
-  inconclusive: 'Inconclusive',
+  guilty: 'Violation',
+  not_guilty: 'False Positive',
+  under_watch: 'Inconclusive',
 };
 
 const statusColors: Record<string, string> = {
@@ -34,10 +35,11 @@ const statusLabels: Record<string, string> = {
 };
 
 const severityColors: Record<string, string> = {
-  LOW: '#00c853',
-  MEDIUM: '#ffaa00',
-  HIGH: '#ff6b35',
-  CRITICAL: '#ff3355',
+  low: '#00c853',
+  medium: '#ffaa00',
+  high: '#ff6b35',
+  critical: '#ff3355',
+  none: '#6b7280',
 };
 
 function formatTimeAgo(isoString: string): string {
@@ -49,7 +51,7 @@ function formatTimeAgo(isoString: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-export function InvestigationRegistry({ cases, selectedCaseId, onSelectCase }: InvestigationRegistryProps) {
+export function InvestigationRegistry({ cases, selectedCaseId, onSelectCase, isLoading }: InvestigationRegistryProps) {
   const [filter, setFilter] = useState<'all' | 'open' | 'concluded'>('all');
 
   const filteredCases = cases.filter(c => {
@@ -106,13 +108,18 @@ export function InvestigationRegistry({ cases, selectedCaseId, onSelectCase }: I
 
       {/* Case List */}
       <div className="flex-1 overflow-y-auto">
-        {filteredCases.map((caseFile) => {
-          const isSelected = selectedCaseId === caseFile.caseId;
+        {isLoading && (
+          <div className="px-3 py-6 text-center text-[10px] text-[#6b7280]">
+            Loading cases...
+          </div>
+        )}
+        {!isLoading && filteredCases.map((caseFile) => {
+          const isSelected = selectedCaseId === caseFile.investigationId;
 
           return (
             <button
-              key={caseFile.caseId}
-              onClick={() => onSelectCase(caseFile.caseId)}
+              key={caseFile.investigationId}
+              onClick={() => onSelectCase(caseFile.investigationId)}
               className={`w-full px-3 py-2.5 text-left transition-colors border-l-2 border-b border-b-[#1f2937]/50 ${
                 isSelected
                   ? 'bg-[#1f2937] border-l-[#9b59b6]'
@@ -122,7 +129,7 @@ export function InvestigationRegistry({ cases, selectedCaseId, onSelectCase }: I
               {/* Case Header */}
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] font-mono font-semibold text-[#9ca3af]">
-                  {caseFile.caseId}
+                  {caseFile.investigationId}
                 </span>
                 <div className="flex items-center gap-1">
                   <div
@@ -142,7 +149,7 @@ export function InvestigationRegistry({ cases, selectedCaseId, onSelectCase }: I
 
               {/* Crime Classification */}
               <div className="text-[9px] text-[#6b7280] mb-1.5 truncate font-mono">
-                {caseFile.investigatorReport.crimeClassification.replace(/_/g, ' ')}
+                {caseFile.investigatorReport?.crimeClassification?.replace(/_/g, ' ') ?? 'unknown'}
               </div>
 
               {/* Bottom Row: Verdict + Severity + Time */}
@@ -151,11 +158,11 @@ export function InvestigationRegistry({ cases, selectedCaseId, onSelectCase }: I
                 <span
                   className="text-[9px] px-1 py-0.5 rounded font-semibold"
                   style={{
-                    color: severityColors[caseFile.damageReport.damageSeverity],
-                    backgroundColor: `${severityColors[caseFile.damageReport.damageSeverity]}20`,
+                    color: severityColors[caseFile.damageReport?.damageSeverity ?? 'none'],
+                    backgroundColor: `${severityColors[caseFile.damageReport?.damageSeverity ?? 'none']}20`,
                   }}
                 >
-                  {caseFile.damageReport.damageSeverity}
+                  {caseFile.damageReport?.damageSeverity ?? 'none'}
                 </span>
 
                 {/* Verdict */}
@@ -169,7 +176,11 @@ export function InvestigationRegistry({ cases, selectedCaseId, onSelectCase }: I
 
                 {/* Time */}
                 <span className="text-[9px] text-[#6b7280] ml-auto">
-                  {formatTimeAgo(caseFile.openedAt)}
+                  {formatTimeAgo(
+                    caseFile.investigatorReport?.timestamp ??
+                      caseFile.concludedAt ??
+                      new Date().toISOString(),
+                  )}
                 </span>
               </div>
 
@@ -179,18 +190,18 @@ export function InvestigationRegistry({ cases, selectedCaseId, onSelectCase }: I
                   <div
                     className="h-full rounded-full transition-all"
                     style={{
-                      width: `${caseFile.confidence}%`,
+                      width: `${(caseFile.confidence * 100).toFixed(0)}%`,
                       backgroundColor:
-                        caseFile.confidence >= 80
+                        caseFile.confidence >= 0.8
                           ? '#00c853'
-                          : caseFile.confidence >= 60
+                          : caseFile.confidence >= 0.6
                           ? '#ffaa00'
                           : '#ff3355',
                     }}
                   />
                 </div>
                 <span className="text-[9px] text-[#6b7280] font-mono">
-                  {caseFile.confidence}%
+                  {(caseFile.confidence * 100).toFixed(0)}%
                 </span>
               </div>
             </button>

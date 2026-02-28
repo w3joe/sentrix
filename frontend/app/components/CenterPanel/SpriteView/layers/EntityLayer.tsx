@@ -3,7 +3,7 @@
 import { useMemo, useCallback } from 'react';
 import type { AgentStatus, InvestigatorSelection } from '../../../../types';
 import { agents as allAgents, agentActivityStatuses } from '../../../../data/mockData';
-import { rooms, getDeskPosition, controlRoom, getQuarantineCellPosition } from '../config/roomLayout';
+import { rooms, getDeskPosition, controlRoom, getQuarantineCellPosition, getEntertainmentSeatPosition } from '../config/roomLayout';
 import { AgentSprite } from '../entities/AgentSprite';
 import { PatrolSprite } from '../entities/PatrolSprite';
 import { SuperintendentSprite } from '../entities/SuperintendentSprite';
@@ -47,6 +47,7 @@ export function EntityLayer({
   const agentSprites = useMemo(() => {
     const sprites: React.JSX.Element[] = [];
     let quarantineSlot = 0;
+    let entertainmentSlot = 0;
 
     for (const room of rooms) {
       for (const desk of room.desks) {
@@ -54,6 +55,7 @@ export function EntityLayer({
         if (!agent) continue;
 
         const status = getEffectiveStatus(agent.id);
+        const activityStatus = agentActivityStatuses[agent.id] || 'idle';
         let targetX = desk.x;
         let targetY = desk.y;
 
@@ -63,6 +65,12 @@ export function EntityLayer({
           targetX = cellPos.x;
           targetY = cellPos.y;
           quarantineSlot++;
+        } else if (activityStatus === 'idle') {
+          // If idle, send to entertainment room
+          const seatPos = getEntertainmentSeatPosition(entertainmentSlot);
+          targetX = seatPos.x;
+          targetY = seatPos.y;
+          entertainmentSlot++;
         }
 
         sprites.push(

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { rooms, controlRoom, quarantineRoom } from '../config/roomLayout';
+import { rooms, controlRoom, quarantineRoom, entertainmentRoom } from '../config/roomLayout';
 
 // Room labels drawn as text overlay
 export function EffectsLayer() {
@@ -45,6 +45,17 @@ export function EffectsLayer() {
         style={{
           fontSize: 11,
           fill: '#ff3355',
+          fontFamily: 'monospace',
+          fontWeight: 'bold',
+        }}
+      />
+      <pixiText
+        text="Entertainment"
+        x={entertainmentRoom.x + 15}
+        y={entertainmentRoom.y + 13}
+        style={{
+          fontSize: 11,
+          fill: '#4a9a9a',
           fontFamily: 'monospace',
           fontWeight: 'bold',
         }}

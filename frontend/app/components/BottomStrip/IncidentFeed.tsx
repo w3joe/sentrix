@@ -1,6 +1,8 @@
 'use client';
 
-import { incidents } from '../../data/mockData';
+import { useFlags } from '../../hooks/api/usePatrolQueries';
+import { adaptIncidentFromFlag } from '../../lib/adapters';
+import { incidents as mockIncidents } from '../../data/mockData';
 
 const severityColors: Record<string, { bg: string; text: string; label: string }> = {
   critical: { bg: 'bg-[#ff3355]/10', text: 'text-[#ff3355]', label: 'CRITICAL' },
@@ -8,7 +10,12 @@ const severityColors: Record<string, { bg: string; text: string; label: string }
   clear: { bg: 'bg-[#00c853]/10', text: 'text-[#00c853]', label: 'CLEAR' },
 };
 
-export function IncidentFeed() {
+export function IncidentFeed({ useMocks = false }: { useMocks?: boolean }) {
+  const { data: flags = [], isLoading } = useFlags();
+  const incidents = useMocks
+    ? mockIncidents
+    : (flags as Record<string, unknown>[]).map((f) => adaptIncidentFromFlag(f));
+
   return (
     <div className="h-full flex flex-col">
       <div className="px-3 py-2 border-b border-[#1f2937]">
@@ -17,6 +24,9 @@ export function IncidentFeed() {
         </h3>
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+        {isLoading && !useMocks && (
+          <div className="text-[10px] text-[#6b7280] py-4 text-center">Loading...</div>
+        )}
         {incidents.map((incident) => {
           const style = severityColors[incident.severity];
           return (

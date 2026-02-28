@@ -28,21 +28,86 @@ export function getAgentRiskLevel(dbRiskStatus: string): RiskLevel {
     }
 }
 
+/** Map risk_status to AgentRecord. */
+export function getAgentRecordFromRisk(dbRiskStatus: string): AgentRecord {
+    switch (dbRiskStatus) {
+        case 'high_risk':
+            return 'convicted';
+        case 'low_risk':
+            return 'warning';
+        case 'clear':
+        default:
+            return 'clean';
+    }
+}
+
+/**
+ * Derive AgentStatus from pheromone level and investigation verdict.
+ * Pheromone >= 0.8 → critical, >= 0.4 → warning, else clean.
+ * Sentence quarantine/suspend → suspended overrides.
+ */
+export function deriveAgentStatus(
+    pheromoneLevel: number,
+    hasSuspendedVerdict?: boolean
+): { status: AgentStatus; record: AgentRecord } {
+    if (hasSuspendedVerdict) return { status: 'suspended', record: 'convicted' };
+    if (pheromoneLevel >= 0.8) return { status: 'critical', record: 'convicted' };
+    if (pheromoneLevel >= 0.4) return { status: 'warning', record: 'warning' };
+    return { status: 'clean', record: 'clean' };
+}
+
 // ── Agent ──────────────────────────────────────────────────────────────────
 
-export function adaptAgent(raw: any): Agent {
-    // Frontend derives `status` and `record` from backend investigations and pheromones,
-    // but for the basic registry fetch we map baseline risk.
-    // In a full implementation, these would be computed dynamically alongside live signals.
+export function adaptAgent(
+    raw: Record<string, unknown>,
+    options?: {
+        pheromoneLevel?: number;
+        hasSuspendedVerdict?: boolean;
+    }
+): Agent {
+    const riskScore = getAgentRiskLevel((raw.risk_status as string) || 'clear');
+    const record = options?.hasSuspendedVerdict
+        ? 'convicted'
+        : getAgentRecordFromRisk((raw.risk_status as string) || 'clear');
 
-    return {
-        id: raw.agent_id,
-        name: raw.name || raw.agent_id,
-        role: raw.agent_type || 'Unknown Role',
-        status: 'clean', // Defaulting cleanly; real implementation should derive this
-        record: 'clean', // Defaulting cleanly; real implementation should derive this
-        riskScore: getAgentRiskLevel(raw.risk_status || 'clear'),
+    const pheromone = options?.pheromoneLevel ?? 0;
+    const { status } = options
+        ? deriveAgentStatus(pheromone, options.hasSuspendedVerdict)
+        : { status: 'clean' as AgentStatus };
+
+    const agentType = (raw.agent_type as string) || 'unknown';
+    const roleMap: Record<string, string> = {
+        code: 'CODING_AGENT',
+        email: 'EMAIL_AGENT',
+        document: 'DOCUMENT_AGENT',
     };
+
+    const clusterId = (raw.cluster_id as string) || 'default';
+    return {
+        id: (raw.agent_id as string) || '',
+        name: (raw.name as string) || (raw.agent_id as string) || 'Unknown',
+        role: roleMap[agentType] || agentType.toUpperCase(),
+        status,
+        record,
+        riskScore,
+        clusterId,
+    } as Agent & { clusterId: string };
+}
+
+/** Convert Bridge DB agents dict to frontend Agent array with pheromone/verdict context. */
+export function adaptAgentsList(
+    agentsDict: Record<string, Record<string, unknown>>,
+    pheromones?: Record<string, number>,
+    suspendedAgentIds?: Set<string>
+): Agent[] {
+    return Object.entries(agentsDict).map(([agentId, raw]) => {
+        const pheromoneLevel = pheromones?.[agentId] ?? 0;
+        const hasSuspended = suspendedAgentIds?.has(agentId);
+        return adaptAgent(
+            { ...raw, agent_id: agentId },
+            { pheromoneLevel, hasSuspendedVerdict: hasSuspended }
+        );
+    });
 }
 
 // ── Investigation Stages ───────────────────────────────────────────────────
@@ -140,17 +205,95 @@ export function adaptA2AMessage(raw: any): A2AMessage {
     };
 }
 
-export function adaptActionLog(raw: any): AgentActionLog {
+export function adaptActionLog(raw: Record<string, unknown>): AgentActionLog {
     return {
-        actionId: raw.action_id,
-        agentId: raw.agent_id,
-        actionType: raw.action_type,
-        timestamp: raw.timestamp,
-        toolName: raw.tool_name,
-        inputSummary: raw.input_summary,
-        outputSummary: raw.output_summary,
+        actionId: (raw.action_id as string) ?? '',
+        agentId: (raw.agent_id as string) ?? '',
+        actionType: (raw.action_type as string) ?? '',
+        timestamp: (raw.timestamp as string) ?? '',
+        toolName: (raw.tool_name as string) ?? null,
+        inputSummary: (raw.input_summary as string) ?? '',
+        outputSummary: (raw.output_summary as string) ?? '',
         violation: Boolean(raw.violation),
-        violationType: raw.violation_type,
+        violationType: (raw.violation_type as string) ?? null,
         critical: Boolean(raw.critical),
     };
+}
+
+// ── Incident synthesis ──────────────────────────────────────────────────────
+
+/** Map PatrolFlag consensus_severity to Incident severity. */
+function flagSeverityToIncident(sev: string): Incident['severity'] {
+    if (sev === 'HIGH') return 'critical';
+    if (sev === 'MEDIUM') return 'warning';
+    return 'clear';
+}
+
+export function adaptIncidentFromFlag(
+    flag: Record<string, unknown>,
+    agentName?: string
+): Incident {
+    const ts = (flag.timestamp as string) || new Date().toISOString();
+    const timeStr = ts.includes('T')
+        ? new Date(ts).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false,
+          })
+        : ts;
+    return {
+        id: (flag.flag_id as string) || `flag-${Date.now()}`,
+        timestamp: timeStr,
+        severity: flagSeverityToIncident((flag.consensus_severity as string) || 'LOW'),
+        agentId: (flag.target_agent_id as string) || '',
+        agentName: agentName || (flag.target_agent_id as string) || 'Unknown',
+        message: (flag.referral_summary as string) || 'Patrol flag raised',
+    };
+}
+
+export function adaptIncidentFromViolation(
+    log: AgentActionLog,
+    agentName?: string
+): Incident {
+    const ts = log.timestamp || new Date().toISOString();
+    const timeStr = ts.includes('T')
+        ? new Date(ts).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false,
+          })
+        : ts;
+    return {
+        id: log.actionId,
+        timestamp: timeStr,
+        severity: log.critical ? 'critical' : 'warning',
+        agentId: log.agentId,
+        agentName: agentName || log.agentId,
+        message: log.outputSummary || log.inputSummary || 'Violation detected',
+    };
+}
+
+/** Merge flags and violation logs into Incidents, sorted by timestamp (newest first). */
+export function synthesizeIncidents(
+    flags: Record<string, unknown>[],
+    violationLogs: AgentActionLog[],
+    agentNames?: Record<string, string>
+): Incident[] {
+    const fromFlags = flags.map((f) =>
+        adaptIncidentFromFlag(f, agentNames?.[(f.target_agent_id as string) ?? ''])
+    );
+    const fromViolations = violationLogs.map((l) =>
+        adaptIncidentFromViolation(l, agentNames?.[l.agentId])
+    );
+    const combined = [...fromFlags, ...fromViolations];
+    combined.sort((a, b) => {
+        const da = new Date(a.timestamp).getTime();
+        const db = new Date(b.timestamp).getTime();
+        if (Number.isNaN(da)) return 1;
+        if (Number.isNaN(db)) return -1;
+        return db - da;
+    });
+    return combined.slice(0, 100);
 }

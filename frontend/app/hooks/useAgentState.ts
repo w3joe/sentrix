@@ -1,72 +1,144 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import type { AgentStatus } from '../types';
-import { agents as initialAgents, clusters as initialClusters } from '../data/mockData';
+import { useState, useCallback, useMemo } from 'react';
+import type { Agent, AgentStatus, Cluster } from '../types';
+import { useAgentsRaw, useInvestigationsRaw } from './api/useBridgeQueries';
+import { usePheromones } from './api/usePatrolQueries';
+import { adaptAgentsList } from '../lib/adapters';
+import { agents as mockAgents, clusters as mockClusters } from '../data/mockData';
 
-interface AgentState {
-  id: string;
-  status: AgentStatus;
+const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
+
+/** Derive suspended agent IDs from concluded investigations with quarantine/suspend sentence. */
+function getSuspendedAgentIds(
+  investigations: Array<Record<string, unknown>>
+): Set<string> {
+  const suspended = new Set<string>();
+  for (const inv of investigations) {
+    let caseFile: Record<string, unknown> | undefined;
+    const raw = inv.case_file ?? inv.case_file_json;
+    if (typeof raw === 'string') {
+      try {
+        caseFile = JSON.parse(raw) as Record<string, unknown>;
+      } catch {
+        caseFile = undefined;
+      }
+    } else if (raw && typeof raw === 'object') {
+      caseFile = raw as Record<string, unknown>;
+    }
+    const sentence = (caseFile?.sentence ?? inv.sentence) as string | undefined;
+    if (sentence === 'quarantine' || sentence === 'suspend') {
+      const tid = inv.target_agent_id as string;
+      if (tid) suspended.add(tid);
+    }
+  }
+  return suspended;
+}
+
+/** Build clusters from agents grouped by cluster_id. */
+function buildClusters(agents: Agent[]): Cluster[] {
+  const byCluster = new Map<string, Agent[]>();
+  for (const a of agents) {
+    const cid = (a as Agent & { clusterId?: string }).clusterId ?? 'default';
+    if (!byCluster.has(cid)) byCluster.set(cid, []);
+    byCluster.get(cid)!.push(a);
+  }
+  const clusters: Cluster[] = [];
+  for (const [cid, ags] of byCluster) {
+    const name = cid === 'default' ? 'Unassigned' : `Host ${cid.replace('cluster-', '')}`;
+    clusters.push({ id: cid, name, agents: ags });
+  }
+  return clusters;
 }
 
 export function useAgentState() {
-  const [selectedAgentId, setSelectedAgentId] = useState<string | null>('n1'); // Default to email-drafter-01
-  const [agentStates, setAgentStates] = useState<Map<string, AgentStatus>>(() => {
-    const map = new Map<string, AgentStatus>();
-    initialAgents.forEach(agent => {
-      map.set(agent.id, agent.status);
-    });
-    return map;
-  });
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [statusOverrides, setStatusOverrides] = useState<Map<string, AgentStatus>>(new Map());
+
+  const { data: agentsData, isLoading: agentsLoading, isError: agentsError } = useAgentsRaw();
+  const { data: pheromones = {} } = usePheromones();
+  const { data: investigationsData } = useInvestigationsRaw();
+
+  const investigations = useMemo(
+    () =>
+      (investigationsData?.investigations as Array<Record<string, unknown>>) ??
+      [],
+    [investigationsData]
+  );
+
+  const suspendedIds = useMemo(
+    () => getSuspendedAgentIds(investigations),
+    [investigations]
+  );
+
+  const agents = useMemo(() => {
+    if (USE_MOCKS) return mockAgents;
+    if (!agentsData?.agents || Object.keys(agentsData.agents).length === 0)
+      return [];
+    const raw = agentsData.agents as Record<string, Record<string, unknown>>;
+    return adaptAgentsList(raw, pheromones, suspendedIds);
+  }, [agentsData, pheromones, suspendedIds]);
+
+  const clusters = useMemo(() => {
+    if (USE_MOCKS) return mockClusters;
+    const withCluster = agents as (Agent & { clusterId: string })[];
+    return buildClusters(withCluster);
+  }, [agents]);
+
+  const getAgentStatus = useCallback(
+    (agentId: string): AgentStatus => {
+      const override = statusOverrides.get(agentId);
+      if (override) return override;
+      const agent = agents.find((a) => a.id === agentId);
+      return agent?.status ?? 'clean';
+    },
+    [statusOverrides, agents]
+  );
 
   const selectAgent = useCallback((agentId: string | null) => {
     setSelectedAgentId(agentId);
   }, []);
 
-  const getAgentStatus = useCallback((agentId: string): AgentStatus => {
-    return agentStates.get(agentId) ?? 'clean';
-  }, [agentStates]);
-
   const clearAgent = useCallback((agentId: string) => {
-    setAgentStates(prev => {
-      const newMap = new Map(prev);
-      newMap.set(agentId, 'clean');
-      return newMap;
+    setStatusOverrides((prev) => {
+      const next = new Map(prev);
+      next.set(agentId, 'clean');
+      return next;
     });
   }, []);
 
   const restrictAgent = useCallback((agentId: string) => {
-    setAgentStates(prev => {
-      const newMap = new Map(prev);
-      newMap.set(agentId, 'warning');
-      return newMap;
+    setStatusOverrides((prev) => {
+      const next = new Map(prev);
+      next.set(agentId, 'warning');
+      return next;
     });
   }, []);
 
   const suspendAgent = useCallback((agentId: string) => {
-    setAgentStates(prev => {
-      const newMap = new Map(prev);
-      newMap.set(agentId, 'suspended');
-      return newMap;
+    setStatusOverrides((prev) => {
+      const next = new Map(prev);
+      next.set(agentId, 'suspended');
+      return next;
     });
   }, []);
 
-  const getAgentsWithCurrentStatus = useCallback(() => {
-    return initialAgents.map(agent => ({
-      ...agent,
-      status: agentStates.get(agent.id) ?? agent.status,
-    }));
-  }, [agentStates]);
-
-  const getClustersWithCurrentStatus = useCallback(() => {
-    return initialClusters.map(cluster => ({
+  const getClustersWithCurrentStatus = useCallback((): Cluster[] => {
+    return clusters.map((cluster) => ({
       ...cluster,
-      agents: cluster.agents.map(agent => ({
+      agents: cluster.agents.map((agent) => ({
         ...agent,
-        status: agentStates.get(agent.id) ?? agent.status,
+        status: getAgentStatus(agent.id),
       })),
     }));
-  }, [agentStates]);
+  }, [clusters, getAgentStatus]);
+
+  const getAgentsWithCurrentStatus = useCallback(() => {
+    return agents.map((agent) => ({
+      ...agent,
+      status: getAgentStatus(agent.id),
+    }));
+  }, [agents, getAgentStatus]);
 
   return {
     selectedAgentId,
@@ -75,8 +147,11 @@ export function useAgentState() {
     clearAgent,
     restrictAgent,
     suspendAgent,
-    getAgentsWithCurrentStatus,
     getClustersWithCurrentStatus,
-    agentStates,
+    getAgentsWithCurrentStatus,
+    clusters,
+    agents,
+    isLoading: agentsLoading,
+    isError: agentsError,
   };
 }

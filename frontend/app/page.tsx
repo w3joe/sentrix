@@ -11,8 +11,11 @@ import { ContextPanel } from './components/RightSidebar/ContextPanel';
 import { Timeline } from './components/Timeline/Timeline';
 import { useAgentState } from './hooks/useAgentState';
 import { useTimelineState } from './hooks/useTimelineState';
-import { caseFiles } from './data/mockData';
+import { useCaseFiles } from './hooks/api/useBridgeQueries';
+import { caseFiles as mockCaseFiles } from './data/mockData';
 import type { InvestigatorSelection } from './types';
+
+const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 
 export type ViewMode = 'graph' | 'sprite';
 export type SidebarMode = 'agents' | 'investigations' | 'analytics' | 'settings' | null;
@@ -27,6 +30,7 @@ export default function Dashboard() {
   }, []);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [investigatorSelection, setInvestigatorSelection] = useState<InvestigatorSelection | null>(null);
+  const { data: caseFiles = [], isLoading: casesLoading } = useCaseFiles();
   const [pendingAssignment, setPendingAssignment] = useState<{ investigatorId: string; targetAgentId: string } | null>(null);
 
   const {
@@ -37,6 +41,9 @@ export default function Dashboard() {
     restrictAgent,
     suspendAgent,
     getClustersWithCurrentStatus,
+    agents,
+    isLoading: agentsLoading,
+    isError: agentsError,
   } = useAgentState();
 
   const {
@@ -114,13 +121,16 @@ export default function Dashboard() {
                 selectedAgentId={selectedAgentId}
                 onSelectAgent={selectAgent}
                 getAgentStatus={getEffectiveAgentStatus}
+                isLoading={!USE_MOCKS && agentsLoading}
+                isError={!USE_MOCKS && !!agentsError}
               />
             )}
             {sidebarMode === 'investigations' && (
               <InvestigationRegistry
-                cases={caseFiles}
+                cases={USE_MOCKS ? mockCaseFiles : caseFiles}
                 selectedCaseId={selectedCaseId}
                 onSelectCase={setSelectedCaseId}
+                isLoading={!USE_MOCKS && casesLoading}
               />
             )}
             {sidebarMode === 'analytics' && (
@@ -166,6 +176,8 @@ export default function Dashboard() {
         <div className="w-[15%] min-w-[240px]">
           <ContextPanel
             selectedAgentId={selectedAgentId}
+            selectedCaseId={selectedCaseId}
+            agents={agents}
             onClear={clearAgent}
             onRestrict={restrictAgent}
             onSuspend={suspendAgent}
@@ -175,6 +187,7 @@ export default function Dashboard() {
             investigatorSelection={investigatorSelection}
             onAgentAssign={handleAgentAssign}
             onCancelInvestigatorSelection={handleCancelInvestigatorSelection}
+            useMocks={USE_MOCKS}
           />
         </div>
       </div>

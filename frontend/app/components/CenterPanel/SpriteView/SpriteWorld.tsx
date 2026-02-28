@@ -2,17 +2,18 @@
 
 import { useRef, useCallback, useState } from 'react';
 import { Application, extend } from '@pixi/react';
-import { Container, Graphics, Text, Sprite } from 'pixi.js';
+import { Container, Graphics, Text, Sprite, TilingSprite } from 'pixi.js';
 import type { AgentStatus, InvestigatorSelection } from '../../../types';
 import { WORLD_COLORS } from './config/spriteConfig';
 import { WORLD_WIDTH, WORLD_HEIGHT } from './config/roomLayout';
 import { FloorLayer } from './layers/FloorLayer';
 import { FurnitureLayer } from './layers/FurnitureLayer';
+import { WallsLayer } from './layers/WallsLayer';
 import { EntityLayer } from './layers/EntityLayer';
 import { EffectsLayer } from './layers/EffectsLayer';
 
 // Register PixiJS components
-extend({ Container, Graphics, Text, Sprite });
+extend({ Container, Graphics, Text, Sprite, TilingSprite });
 
 interface SpriteWorldProps {
   selectedAgentId: string | null;
@@ -109,6 +110,9 @@ export default function SpriteWorld({
 
           {/* Floor layer (rooms, corridors) */}
           <FloorLayer />
+
+          {/* Walls around rooms (behind furniture) */}
+          <WallsLayer />
 
           {/* Furniture layer (desks, monitors) */}
           <FurnitureLayer />
