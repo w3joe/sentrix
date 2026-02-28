@@ -202,3 +202,44 @@ export interface InvestigatorSelection {
   investigatorId: string;
   investigatorLabel: string;
 }
+
+// ── Backend API types (Patrol Swarm, Bridge DB) ─────────────────────────────
+
+/** Per-agent pheromone level from Patrol Swarm. Higher = more attention. */
+export type PheromoneMap = Record<string, number>;
+
+/** Quorum referral from patrol swarm — not a verdict, referral to investigation. */
+export interface PatrolFlag {
+  flag_id: string;
+  target_agent_id: string;
+  consensus_severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CLEAN';
+  consensus_confidence: number;
+  votes?: unknown[];
+  pii_labels_union?: string[];
+  referral_summary?: string;
+  pheromone_level?: number;
+  timestamp?: string;
+}
+
+/** Sweep cycle metrics from Patrol Swarm. */
+export interface SweepResult {
+  sweep_id: string;
+  cycle_number: number;
+  agents_scanned: string[];
+  signals_posted: number;
+  votes_posted: number;
+  flags_produced: number;
+  pheromone_snapshot?: Record<string, number>;
+  duration_ms: number;
+  timestamp?: string;
+}
+
+/** Swarm status from GET /api/swarm/status */
+export interface SwarmStatus {
+  data_source: string;
+  patrol_pool: string[];
+  current_cycle: number;
+  current_assignments: Record<string, string[]>;
+  monitored_agents: Record<string, unknown>;
+  scheduler_running: boolean;
+}

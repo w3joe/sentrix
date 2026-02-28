@@ -9,6 +9,8 @@ interface AgentRegistryProps {
   selectedAgentId: string | null;
   onSelectAgent: (agentId: string) => void;
   getAgentStatus: (agentId: string) => AgentStatus;
+  isLoading?: boolean;
+  isError?: boolean;
 }
 
 const statusColors: Record<AgentStatus, string> = {
@@ -32,7 +34,7 @@ function getClusterStatus(agents: Agent[], getAgentStatus: (agentId: string) => 
   return 'idle';
 }
 
-export function AgentRegistry({ clusters, selectedAgentId, onSelectAgent, getAgentStatus }: AgentRegistryProps) {
+export function AgentRegistry({ clusters, selectedAgentId, onSelectAgent, getAgentStatus, isLoading, isError }: AgentRegistryProps) {
   const [expandedClusters, setExpandedClusters] = useState<Set<string>>(() => new Set(clusters.map(c => c.id)));
 
   const toggleCluster = (clusterId: string) => {
@@ -58,7 +60,22 @@ export function AgentRegistry({ clusters, selectedAgentId, onSelectAgent, getAge
 
       {/* Cluster List */}
       <div className="flex-1 overflow-y-auto">
-        {clusters.map((cluster) => {
+        {isLoading && (
+          <div className="px-3 py-6 text-center text-[10px] text-[#6b7280]">
+            Loading agents...
+          </div>
+        )}
+        {!isLoading && isError && (
+          <div className="px-3 py-6 text-center text-[10px] text-[#ef4444]">
+            Cannot connect to Bridge DB. Ensure it is running on port 3001 and the frontend proxy is configured.
+          </div>
+        )}
+        {!isLoading && !isError && clusters.length === 0 && (
+          <div className="px-3 py-6 text-center text-[10px] text-[#6b7280]">
+            No agents in registry. Bridge DB is connected.
+          </div>
+        )}
+        {!isLoading && clusters.map((cluster) => {
           const isExpanded = expandedClusters.has(cluster.id);
           const clusterStatus = getClusterStatus(cluster.agents, getAgentStatus);
           const hasSelectedAgent = cluster.agents.some(a => a.id === selectedAgentId);

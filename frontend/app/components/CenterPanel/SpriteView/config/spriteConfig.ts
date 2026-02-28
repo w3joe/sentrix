@@ -28,6 +28,10 @@ export const WORLD_COLORS = {
   quarantineCell: 0x2a0f0f,
   quarantineCellBorder: 0x4a1a1a,
   quarantineBars: 0x882233,
+  entertainmentFloor: 0x0a1a1a,
+  entertainmentBorder: 0x1a4a4a,
+  entertainmentSeat: 0x1a2a2a,
+  entertainmentSeatBorder: 0x2a4a4a,
 };
 
 export const ROLE_COLORS: Record<string, number> = {
@@ -51,6 +55,26 @@ export const MOVEMENT = {
   investigatorSpeed: 0.06,
   agentTransitionSpeed: 0.04,
 };
+
+// ── Environment / Tile Sprites (250×250 single-frame) ────────────────────────
+
+export const ENVIRONMENT_SPRITES = {
+  floor: '/sprites/floor.png',
+  quarantine_floor: '/sprites/quarrantine_floor.png',
+  chair: '/sprites/chair.png',
+  table: '/sprites/table.png',
+  monitor_rear: '/sprites/monitor-rear.png',
+  wall_top: '/sprites/wall-top.PNG',
+  wall_top_left: '/sprites/wall-top-left.png',
+  wall_top_right: '/sprites/wall-top-right.png',
+  wall_bottom: '/sprites/wall-bottom.png',
+  wall_bottom_left: '/sprites/wall-bottom-left.png',
+  wall_bottom_right: '/sprites/wall-bottom-right.png',
+  wall_left: '/sprites/wall-left.png',
+  wall_right: '/sprites/wall-right.PNG',
+} as const;
+
+export const TILE_SIZE = 250;
 
 // ── Sprite Sheet Configuration ──────────────────────────────────────────────
 

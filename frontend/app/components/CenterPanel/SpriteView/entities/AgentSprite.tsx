@@ -127,6 +127,7 @@ export function AgentSprite({
     [status],
   );
 
+
   const handleClick = useCallback(() => {
     onSelect(agentId);
   }, [onSelect, agentId]);
