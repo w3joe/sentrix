@@ -68,10 +68,7 @@ export function adaptFlaggedMessage(raw: any): FlaggedMessage {
 
 export function adaptNetworkAnalysis(raw: any): NetworkAnalysis {
     return {
-        targetAgentId: raw.target_agent_id || '',
-        crimeClassificationUsed: raw.crime_classification_used || 'unknown',
         flaggedRelevantMessages: (raw.flagged_relevant_messages || []).map(adaptFlaggedMessage),
-        timestamp: raw.timestamp || new Date().toISOString(),
     };
 }
 
@@ -86,14 +83,12 @@ export function adaptCausalLink(raw: any): CausalLink {
 
 export function adaptDamageReport(raw: any): DamageReport {
     return {
-        targetAgentId: raw.target_agent_id || '',
         damageSeverity: raw.damage_severity || 'none',
         causalChain: (raw.causal_chain || []).map(adaptCausalLink),
         affectedAgents: raw.affected_agents || [],
         dataExposureScope: raw.data_exposure_scope || '',
         propagationRisk: raw.propagation_risk || 'none',
         estimatedImpact: raw.estimated_impact || '',
-        timestamp: raw.timestamp || new Date().toISOString(),
     };
 }
 
