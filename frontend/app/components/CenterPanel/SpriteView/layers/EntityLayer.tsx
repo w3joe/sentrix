@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useCallback } from 'react';
-import type { AgentStatus, InvestigatorSelection } from '../../../../types';
+import type { AgentStatus, PatrolSelection } from '../../../../types';
 import { agents as allAgents } from '../../../../data/mockData';
 import { rooms, getDeskPosition, controlRoom, getQuarantineCellPosition, getEntertainmentSeatPosition } from '../config/roomLayout';
 import { AgentSprite } from '../entities/AgentSprite';
@@ -16,9 +16,9 @@ interface EntityLayerProps {
   getAgentStatus: (agentId: string) => AgentStatus;
   historicalAgentStates?: Record<string, AgentStatus>;
   isLive?: boolean;
-  investigatorSelection: InvestigatorSelection | null;
-  onInvestigatorSelect: (selection: InvestigatorSelection | null) => void;
-  pendingAssignment: { investigatorId: string; targetAgentId: string } | null;
+  patrolSelection: PatrolSelection | null;
+  onPatrolSelect: (selection: PatrolSelection | null) => void;
+  pendingAssignment: { patrolId: string; targetAgentId: string } | null;
   onAssignmentComplete: () => void;
 }
 
@@ -28,8 +28,8 @@ export function EntityLayer({
   getAgentStatus,
   historicalAgentStates,
   isLive,
-  investigatorSelection,
-  onInvestigatorSelect,
+  patrolSelection,
+  onPatrolSelect,
   pendingAssignment,
   onAssignmentComplete,
 }: EntityLayerProps) {
@@ -90,20 +90,36 @@ export function EntityLayer({
     return sprites;
   }, [selectedAgentId, onSelectAgent, getEffectiveStatus]);
 
-  // Determine investigator targets
-  const f1Target = pendingAssignment?.investigatorId === 'f1' ? pendingAssignment.targetAgentId : null;
-  const f2Target = pendingAssignment?.investigatorId === 'f2' ? pendingAssignment.targetAgentId : null;
-  const f1TargetPos = f1Target ? getDeskPosition(f1Target) : null;
-  const f2TargetPos = f2Target ? getDeskPosition(f2Target) : null;
+  // Determine patrol targets
+  const p1Target = pendingAssignment?.patrolId === 'p1' ? pendingAssignment.targetAgentId : null;
+  const p2Target = pendingAssignment?.patrolId === 'p2' ? pendingAssignment.targetAgentId : null;
+  const p1TargetPos = p1Target ? getDeskPosition(p1Target) : null;
+  const p2TargetPos = p2Target ? getDeskPosition(p2Target) : null;
+  
+  console.log('[EntityLayer] patrol targets:', { pendingAssignment, p1Target, p2Target, p1TargetPos, p2TargetPos });
 
   return (
     <pixiContainer>
       {/* Agent sprites */}
       {agentSprites}
 
-      {/* Patrol sprites */}
-      <PatrolSprite patrolId="p1" label="Patrol-1" />
-      <PatrolSprite patrolId="p2" label="Patrol-2" />
+      {/* Patrol sprites (clickable to select agent for investigation) */}
+      <PatrolSprite
+        patrolId="p1"
+        label="Patrol-1"
+        targetAgentId={p1Target}
+        targetAgentPos={p1TargetPos}
+        onSelect={onPatrolSelect}
+        onArrived={onAssignmentComplete}
+      />
+      <PatrolSprite
+        patrolId="p2"
+        label="Patrol-2"
+        targetAgentId={p2Target}
+        targetAgentPos={p2TargetPos}
+        onSelect={onPatrolSelect}
+        onArrived={onAssignmentComplete}
+      />
 
       {/* Superintendent */}
       <SuperintendentSprite />
@@ -111,22 +127,14 @@ export function EntityLayer({
       {/* Network */}
       <NetworkSprite x={controlRoom.networkPos.x} y={controlRoom.networkPos.y} />
 
-      {/* Investigators */}
+      {/* Investigators (non-interactive) */}
       <InvestigatorSprite
         investigatorId="f1"
         label="Investigator-1"
-        targetAgentId={f1Target}
-        targetAgentPos={f1TargetPos}
-        onSelect={onInvestigatorSelect}
-        onArrived={onAssignmentComplete}
       />
       <InvestigatorSprite
         investigatorId="f2"
         label="Investigator-2"
-        targetAgentId={f2Target}
-        targetAgentPos={f2TargetPos}
-        onSelect={onInvestigatorSelect}
-        onArrived={onAssignmentComplete}
       />
     </pixiContainer>
   );

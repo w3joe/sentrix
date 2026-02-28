@@ -1,4 +1,4 @@
-# AI Sentinel: Detection-to-Investigation Workflow
+# Sentrix: Detection-to-Investigation Workflow
 
 This document describes the complete agentic workflow — from the moment a sandbox agent does something suspicious, through patrol detection, pheromone-based coordination, quorum voting, flag escalation, and investigation — in plain English. Every data structure and DB attribute is explained in context so you can see exactly what gets created, stored, and passed along at each step.
 

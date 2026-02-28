@@ -9,7 +9,7 @@ interface BaseNodeData {
   status: string;
   isSelected?: boolean;
   currentStatus?: AgentStatus;
-  onInvestigatorClick?: (nodeId: string) => void;
+  onPatrolClick?: (nodeId: string) => void;
 }
 
 // Agent Node - Circle
@@ -118,8 +118,8 @@ export const TripwireNode = memo(function TripwireNode({ data }: NodeProps<BaseN
 export const PatrolNode = memo(function PatrolNode({ data, id }: NodeProps<BaseNodeData>) {
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (data.onInvestigatorClick) {
-      data.onInvestigatorClick(id);
+    if (data.onPatrolClick) {
+      data.onPatrolClick(id);
     }
   };
 

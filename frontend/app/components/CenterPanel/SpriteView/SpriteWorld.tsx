@@ -3,7 +3,7 @@
 import { useRef, useCallback, useState } from 'react';
 import { Application, extend } from '@pixi/react';
 import { Container, Graphics, Text, Sprite, TilingSprite } from 'pixi.js';
-import type { AgentStatus, InvestigatorSelection } from '../../../types';
+import type { AgentStatus, PatrolSelection } from '../../../types';
 import { WORLD_COLORS } from './config/spriteConfig';
 import { WORLD_WIDTH, WORLD_HEIGHT } from './config/roomLayout';
 import { FloorLayer } from './layers/FloorLayer';
@@ -21,9 +21,9 @@ interface SpriteWorldProps {
   getAgentStatus: (agentId: string) => AgentStatus;
   historicalAgentStates?: Record<string, AgentStatus>;
   isLive?: boolean;
-  investigatorSelection: InvestigatorSelection | null;
-  onInvestigatorSelect: (selection: InvestigatorSelection | null) => void;
-  pendingAssignment: { investigatorId: string; targetAgentId: string } | null;
+  patrolSelection: PatrolSelection | null;
+  onPatrolSelect: (selection: PatrolSelection | null) => void;
+  pendingAssignment: { patrolId: string; targetAgentId: string } | null;
   onAssignmentComplete: () => void;
 }
 
@@ -33,8 +33,8 @@ export default function SpriteWorld({
   getAgentStatus,
   historicalAgentStates,
   isLive,
-  investigatorSelection,
-  onInvestigatorSelect,
+  patrolSelection,
+  onPatrolSelect,
   pendingAssignment,
   onAssignmentComplete,
 }: SpriteWorldProps) {
@@ -127,8 +127,8 @@ export default function SpriteWorld({
             getAgentStatus={getAgentStatus}
             historicalAgentStates={historicalAgentStates}
             isLive={isLive}
-            investigatorSelection={investigatorSelection}
-            onInvestigatorSelect={onInvestigatorSelect}
+            patrolSelection={patrolSelection}
+            onPatrolSelect={onPatrolSelect}
             pendingAssignment={pendingAssignment}
             onAssignmentComplete={onAssignmentComplete}
           />
@@ -145,10 +145,10 @@ export default function SpriteWorld({
         </div>
       )}
 
-      {/* Investigator selection banner */}
-      {investigatorSelection && (
-        <div className="absolute top-3 right-3 bg-purple-900/80 text-purple-200 px-3 py-1 rounded text-xs font-mono">
-          Select agent for {investigatorSelection.investigatorLabel}
+      {/* Patrol selection banner */}
+      {patrolSelection && (
+        <div className="absolute top-3 right-3 bg-cyan-900/80 text-cyan-200 px-3 py-1 rounded text-xs font-mono">
+          Select agent for {patrolSelection.patrolLabel}
         </div>
       )}
 

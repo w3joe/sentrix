@@ -13,7 +13,7 @@ import { useAgentState } from './hooks/useAgentState';
 import { useTimelineState } from './hooks/useTimelineState';
 import { useCaseFiles } from './hooks/api/useBridgeQueries';
 import { caseFiles as mockCaseFiles } from './data/mockData';
-import type { InvestigatorSelection } from './types';
+import type { PatrolSelection } from './types';
 
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 
@@ -29,9 +29,9 @@ export default function Dashboard() {
     setSidebarMode(prev => prev === mode ? null : mode);
   }, []);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
-  const [investigatorSelection, setInvestigatorSelection] = useState<InvestigatorSelection | null>(null);
+  const [patrolSelection, setPatrolSelection] = useState<PatrolSelection | null>(null);
   const { data: caseFiles = [], isLoading: casesLoading } = useCaseFiles();
-  const [pendingAssignment, setPendingAssignment] = useState<{ investigatorId: string; targetAgentId: string } | null>(null);
+  const [pendingAssignment, setPendingAssignment] = useState<{ patrolId: string; targetAgentId: string } | null>(null);
 
   const {
     selectedAgentId,
@@ -79,30 +79,31 @@ export default function Dashboard() {
     })),
   }));
 
-  // Handle investigator selection from graph
-  const handleInvestigatorSelect = useCallback((selection: InvestigatorSelection | null) => {
-    setInvestigatorSelection(selection);
+  // Handle patrol selection from sprite view
+  const handlePatrolSelect = useCallback((selection: PatrolSelection | null) => {
+    setPatrolSelection(selection);
   }, []);
 
   // Handle agent assignment from sidebar
   const handleAgentAssign = useCallback((targetAgentId: string) => {
-    if (investigatorSelection) {
+    console.log('[page] handleAgentAssign called:', { patrolSelection, targetAgentId });
+    if (patrolSelection) {
       setPendingAssignment({
-        investigatorId: investigatorSelection.investigatorId,
+        patrolId: patrolSelection.patrolId,
         targetAgentId,
       });
     }
-  }, [investigatorSelection]);
+  }, [patrolSelection]);
 
   // Clear pending assignment after it's processed
   const handleAssignmentComplete = useCallback(() => {
     setPendingAssignment(null);
-    setInvestigatorSelection(null);
+    setPatrolSelection(null);
   }, []);
 
-  // Cancel investigator selection
-  const handleCancelInvestigatorSelection = useCallback(() => {
-    setInvestigatorSelection(null);
+  // Cancel patrol selection
+  const handleCancelPatrolSelection = useCallback(() => {
+    setPatrolSelection(null);
   }, []);
 
   return (
@@ -151,8 +152,8 @@ export default function Dashboard() {
               getAgentStatus={getAgentStatus}
               historicalAgentStates={currentAgentStates}
               isLive={isLive}
-              investigatorSelection={investigatorSelection}
-              onInvestigatorSelect={handleInvestigatorSelect}
+              patrolSelection={patrolSelection}
+              onPatrolSelect={handlePatrolSelect}
               pendingAssignment={pendingAssignment}
               onAssignmentComplete={handleAssignmentComplete}
               showHeatmap={sidebarMode === 'analytics'}
@@ -164,8 +165,8 @@ export default function Dashboard() {
               getAgentStatus={getAgentStatus}
               historicalAgentStates={currentAgentStates}
               isLive={isLive}
-              investigatorSelection={investigatorSelection}
-              onInvestigatorSelect={handleInvestigatorSelect}
+              patrolSelection={patrolSelection}
+              onPatrolSelect={handlePatrolSelect}
               pendingAssignment={pendingAssignment}
               onAssignmentComplete={handleAssignmentComplete}
             />
@@ -184,9 +185,9 @@ export default function Dashboard() {
             getAgentStatus={getEffectiveAgentStatus}
             visibleEvents={visibleEvents}
             isLive={isLive}
-            investigatorSelection={investigatorSelection}
+            patrolSelection={patrolSelection}
             onAgentAssign={handleAgentAssign}
-            onCancelInvestigatorSelection={handleCancelInvestigatorSelection}
+            onCancelPatrolSelection={handleCancelPatrolSelection}
             useMocks={USE_MOCKS}
           />
         </div>

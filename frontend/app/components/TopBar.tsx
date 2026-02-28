@@ -15,7 +15,7 @@ export function TopBar({ viewMode, onViewModeChange, sidebarMode, onSidebarModeC
     <header className="h-12 bg-[#111827] border-b border-[#1f2937] flex items-center justify-between px-6">
       {/* Left: Wordmark and Navigation */}
       <div className="flex items-center gap-8">
-        <span className="text-xl font-bold text-white tracking-wide">Sentinel</span>
+        <span className="text-xl font-bold text-white tracking-wide">Sentrix</span>
 
         {/* Navigation */}
         <nav className="hidden lg:flex items-center gap-6 ml-4">

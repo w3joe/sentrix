@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Agent, AgentStatus, TimelineEvent, InvestigatorSelection } from '../../types';
+import type { Agent, AgentStatus, TimelineEvent, PatrolSelection } from '../../types';
 import { investigatorReport, damageAssessment, agents as mockAgents, agentActivities } from '../../data/mockData';
 import { useInvestigationDetail } from '../../hooks/api/useInvestigationQueries';
 import { useAgentActions } from '../../hooks/api/useBridgeQueries';
@@ -16,9 +16,9 @@ interface ContextPanelProps {
   getAgentStatus: (agentId: string) => AgentStatus;
   visibleEvents?: TimelineEvent[];
   isLive?: boolean;
-  investigatorSelection?: InvestigatorSelection | null;
+  patrolSelection?: PatrolSelection | null;
   onAgentAssign?: (targetAgentId: string) => void;
-  onCancelInvestigatorSelection?: () => void;
+  onCancelPatrolSelection?: () => void;
   useMocks?: boolean;
 }
 
@@ -54,9 +54,9 @@ export function ContextPanel({
   getAgentStatus,
   visibleEvents = [],
   isLive = true,
-  investigatorSelection,
+  patrolSelection,
   onAgentAssign,
-  onCancelInvestigatorSelection,
+  onCancelPatrolSelection,
   useMocks = false,
 }: ContextPanelProps) {
   const [isClient, setIsClient] = useState(false);
@@ -70,10 +70,10 @@ export function ContextPanel({
     setIsClient(true);
   }, []);
 
-  // Reset expanded agent when investigator selection changes
+  // Reset expanded agent when patrol selection changes
   useEffect(() => {
     setExpandedAgentId(null);
-  }, [investigatorSelection]);
+  }, [patrolSelection]);
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId);
   const currentStatus = selectedAgentId ? getAgentStatus(selectedAgentId) : null;
@@ -118,7 +118,7 @@ export function ContextPanel({
       {/* Title */}
       <div className="px-3 py-3 border-b border-[#1f2937]">
         <h2 className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">
-          {investigatorSelection
+          {patrolSelection
             ? 'Select Agent to Investigate'
             : selectedCaseId
               ? `Case: ${selectedCaseId}`
@@ -126,20 +126,20 @@ export function ContextPanel({
                 ? selectedAgent.name
                 : 'Event Log'}
         </h2>
-        {investigatorSelection && (
-          <span className="text-[10px] text-[#9b59b6]">{investigatorSelection.investigatorLabel}</span>
+        {patrolSelection && (
+          <span className="text-[10px] text-[#00d4ff]">{patrolSelection.patrolLabel}</span>
         )}
-        {!investigatorSelection && !selectedAgent && !isLive && (
+        {!patrolSelection && !selectedAgent && !isLive && (
           <span className="text-[10px] text-[#ffaa00]">Historical View</span>
         )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {/* Investigator Agent Selection Mode */}
-        {investigatorSelection ? (
+        {/* Patrol Agent Selection Mode */}
+        {patrolSelection ? (
           <div className="space-y-3">
             <p className="text-xs text-[#a0aec0]">
-              Select an agent for {investigatorSelection.investigatorLabel} to investigate:
+              Select an agent for {patrolSelection.patrolLabel} to investigate:
             </p>
             <div className="space-y-1.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
               {agents.map((agent) => {
@@ -250,14 +250,17 @@ export function ContextPanel({
 
                         {/* Assign Button */}
                         <button
-                          onClick={() => onAgentAssign?.(agent.id)}
+                          onClick={() => {
+                            console.log('[ContextPanel] Assign clicked:', agent.id);
+                            onAgentAssign?.(agent.id);
+                          }}
                           className="w-full py-1.5 rounded text-xs font-semibold transition-all mt-2"
                           style={{
                             backgroundColor: colors.text,
                             color: '#000',
                           }}
                         >
-                          Assign {investigatorSelection.investigatorLabel}
+                          Assign {patrolSelection.patrolLabel}
                         </button>
                       </div>
                     )}
