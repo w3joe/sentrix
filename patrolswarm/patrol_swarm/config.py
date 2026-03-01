@@ -10,8 +10,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ─── Deployment selector ─────────────────────────────────────────────────────
-# Set PATROL_DEPLOYMENT=local  to use LM Studio (or any local OpenAI-compatible server)
-# Set PATROL_DEPLOYMENT=brev   to use Brev NIM (production — Nemotron Nano + Super)
+# Set PATROL_DEPLOYMENT=local   to use LM Studio (or any local OpenAI-compatible server)
+# Set PATROL_DEPLOYMENT=brev    to use Brev NIM (production — Nemotron Nano + Super)
+# Set PATROL_DEPLOYMENT=claude  to use Anthropic Claude API
 DEPLOYMENT: str = os.environ.get("PATROL_DEPLOYMENT", "brev").lower()
 
 # ─── Thinking / chain-of-thought toggle ──────────────────────────────────────
@@ -50,7 +51,14 @@ LOCAL_TOOL_CHOICE: str = os.environ.get("LOCAL_TOOL_CHOICE", "auto")
 # ─── Active endpoint resolution (agents use these, never the raw Brev/Local vars)
 # These are read-only computed values; do not set them directly — use
 # PATROL_DEPLOYMENT to switch, and the Brev/Local vars above to configure each.
-if DEPLOYMENT == "local":
+if DEPLOYMENT == "claude":
+    ACTIVE_PATROL_ENDPOINT: str = ""          # not used by ChatAnthropic
+    ACTIVE_ORCHESTRATOR_ENDPOINT: str = ""    # not used by ChatAnthropic
+    ACTIVE_API_KEY: str = os.environ.get("ANTHROPIC_API_KEY", "no-key-set")
+    ACTIVE_PATROL_MODEL: str = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+    ACTIVE_ORCHESTRATOR_MODEL: str = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+    ACTIVE_TOOL_CHOICE: str = "auto"
+elif DEPLOYMENT == "local":
     ACTIVE_PATROL_ENDPOINT: str = LOCAL_ENDPOINT
     ACTIVE_ORCHESTRATOR_ENDPOINT: str = LOCAL_ENDPOINT
     ACTIVE_API_KEY: str = LOCAL_API_KEY
