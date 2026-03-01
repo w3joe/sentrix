@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { Agent, AgentStatus, Cluster } from '../../types';
-import { ViolationChart } from './ViolationChart';
 
 interface AgentRegistryProps {
   clusters: Cluster[];
@@ -170,8 +170,59 @@ export function AgentRegistry({ clusters, selectedAgentId, onSelectAgent, getAge
         })}
       </div>
 
-      {/* Violation Chart */}
-      <ViolationChart clusters={clusters} useMocks={useMocks} />
+      {/* Status Pie Chart */}
+      <StatusPieChart clusters={clusters} getAgentStatus={getAgentStatus} />
+    </div>
+  );
+}
+
+const STATUS_COLORS: Record<AgentStatus, string> = {
+  working:    '#00c853',
+  idle:       '#4a9eff',
+  restricted: '#ffaa00',
+  suspended:  '#6b7280',
+};
+
+const tooltipStyle = {
+  contentStyle: { backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '4px', fontSize: '10px' },
+  labelStyle: { color: '#e0e6ed' },
+  itemStyle: { color: '#00d4ff' },
+};
+
+function StatusPieChart({ clusters, getAgentStatus }: { clusters: Cluster[]; getAgentStatus: (id: string) => AgentStatus }) {
+  const allAgents = clusters.flatMap(c => c.agents);
+  const counts = { working: 0, idle: 0, restricted: 0, suspended: 0 } as Record<AgentStatus, number>;
+  for (const a of allAgents) counts[getAgentStatus(a.id)]++;
+  const total = allAgents.length;
+
+  const data = (Object.keys(counts) as AgentStatus[])
+    .map(s => ({ name: s.charAt(0).toUpperCase() + s.slice(1), value: counts[s], color: STATUS_COLORS[s] }))
+    .filter(d => d.value > 0);
+
+  return (
+    <div className="border-t border-[#1f2937] px-3 py-2">
+      <div className="text-[10px] uppercase tracking-wider text-[#6b7280] font-semibold mb-1">Agent Status</div>
+      <div className="relative h-24">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} cx="50%" cy="50%" innerRadius={28} outerRadius={42} paddingAngle={2} dataKey="value" strokeWidth={0}>
+              {data.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+            </Pie>
+            <Tooltip {...tooltipStyle} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="text-base font-bold text-[#e0e6ed]">{total}</span>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+        {data.map(d => (
+          <div key={d.name} className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
+            <span className="text-[9px] text-[#6b7280]">{d.name} {d.value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -126,8 +126,8 @@ export default function Dashboard() {
     setPatrolSelection(selection);
   }, []);
 
-  // Sprite view agent selection — clears patrolSelection unless clicking a patrol itself
-  const handleSpriteSelectAgent = useCallback((agentId: string | null) => {
+  // Unified agent selection — clears patrolSelection when switching to a non-patrol entity
+  const handleSelectAgent = useCallback((agentId: string | null) => {
     if (agentId !== 'p1' && agentId !== 'p2') {
       setPatrolSelection(null);
     }
@@ -220,7 +220,7 @@ export default function Dashboard() {
           {viewMode === 'graph' ? (
             <BehavioralGraph
               selectedAgentId={selectedAgentId}
-              onSelectAgent={selectAgent}
+              onSelectAgent={handleSelectAgent}
               getAgentStatus={getAgentStatus}
               historicalAgentStates={currentAgentStates}
               isLive={isLive}
@@ -233,7 +233,7 @@ export default function Dashboard() {
           ) : (
             <SpriteView
               selectedAgentId={selectedAgentId}
-              onSelectAgent={handleSpriteSelectAgent}
+              onSelectAgent={handleSelectAgent}
               getAgentStatus={getAgentStatus}
               historicalAgentStates={currentAgentStates}
               isLive={isLive}
