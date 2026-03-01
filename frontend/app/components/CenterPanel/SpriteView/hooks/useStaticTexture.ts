@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Assets, Texture } from 'pixi.js';
-
-const textureCache = new Map<string, Texture>();
-const loadingPromises = new Map<string, Promise<void>>();
+import type { Texture } from 'pixi.js';
+import { textureCache, loadStaticTexture } from './spriteLoader';
 
 export function useStaticTexture(path: string): Texture | null {
   const [texture, setTexture] = useState<Texture | null>(
@@ -17,17 +15,9 @@ export function useStaticTexture(path: string): Texture | null {
       return;
     }
 
-    if (!loadingPromises.has(path)) {
-      const promise = Assets.load(path).then((tex: Texture) => {
-        textureCache.set(path, tex);
-        loadingPromises.delete(path);
-      });
-      loadingPromises.set(path, promise);
-    }
-
-    loadingPromises.get(path)!.then(() => {
-      setTexture(textureCache.get(path)!);
-    });
+    loadStaticTexture(path)
+      .then(() => setTexture(textureCache.get(path)!))
+      .catch(() => {});
   }, [path]);
 
   return texture;

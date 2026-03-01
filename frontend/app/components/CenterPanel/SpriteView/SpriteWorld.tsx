@@ -1,10 +1,11 @@
 'use client';
 
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { Application, extend } from '@pixi/react';
 import { Container, Graphics, Text, Sprite, TilingSprite } from 'pixi.js';
 import type { AgentStatus, PatrolSelection, Agent } from '../../../types';
 import { WORLD_COLORS } from './config/spriteConfig';
+import { preloadEssentialSprites, preloadAllSprites } from './hooks/spriteLoader';
 import { WORLD_WIDTH, WORLD_HEIGHT } from './config/roomLayout';
 import { FloorLayer } from './layers/FloorLayer';
 import { FurnitureLayer, MonitorLayer } from './layers/FurnitureLayer';
@@ -39,7 +40,17 @@ export default function SpriteWorld({
   response,
 }: SpriteWorldProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [preloaded, setPreloaded] = useState(false);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+
+  // Preload floor + furniture (5 assets) first — fast. Then background-load character sheets.
+  useEffect(() => {
+    preloadEssentialSprites()
+      .then(() => {
+        setPreloaded(true);
+        preloadAllSprites(); // Load characters in background — may be ready before needed
+      });
+  }, []);
   const [scale, setScale] = useState(1);
   const isDragging = useRef(false);
   const hasMoved = useRef(false);
@@ -95,6 +106,14 @@ export default function SpriteWorld({
     },
     [],
   );
+
+  if (!preloaded) {
+    return (
+      <div className="w-full h-full bg-[#0a0e1a] flex items-center justify-center">
+        <div className="text-gray-500 font-mono text-sm">Loading sprites...</div>
+      </div>
+    );
+  }
 
   return (
     <div
