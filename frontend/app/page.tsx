@@ -79,6 +79,11 @@ export default function Dashboard() {
     })),
   }));
 
+  const handleSelectCase = useCallback((caseId: string) => {
+    setSelectedCaseId(prev => prev === caseId ? null : caseId);
+    selectAgent(null);
+  }, [selectAgent]);
+
   // Handle patrol selection from sprite view
   const handlePatrolSelect = useCallback((selection: PatrolSelection | null) => {
     setPatrolSelection(selection);
@@ -129,7 +134,7 @@ export default function Dashboard() {
               <InvestigationRegistry
                 cases={USE_MOCKS ? mockCaseFiles : caseFiles}
                 selectedCaseId={selectedCaseId}
-                onSelectCase={setSelectedCaseId}
+                onSelectCase={handleSelectCase}
                 isLoading={!USE_MOCKS && casesLoading}
               />
             )}

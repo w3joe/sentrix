@@ -25,6 +25,7 @@ const NODE_RADII: Record<string, number> = {
   agent: 32,        // 64px / 2
   superintendent: 28, // 56px / 2
   investigator: 24,  // 48px / 2
+  network: 24,       // 48px / 2
   tripwire: 25,      // 50px / 2
   patrol: 20,        // ~40px / 2
 };
@@ -166,16 +167,39 @@ const FALLBACK_AGENTS: Record<string, Record<string, unknown>> = {
   'c4-data':     { cluster_id: 'cluster-4', agent_type: 'code',     agent_status: 'working' },
 };
 
-// System nodes (patrol, superintendent, investigators) — always static
+// System nodes (patrol, superintendent, investigators, network) — always static
 const systemNodes: Node[] = [
   { id: 'p1', type: 'patrol', position: { x: 280, y: 330 }, data: { label: 'Patrol-1', status: 'active' } },
   { id: 'p2', type: 'patrol', position: { x: 320, y: 330 }, data: { label: 'Patrol-2', status: 'active' } },
   { id: 'inv', type: 'superintendent', position: { x: 300, y: 360 }, data: { label: 'Superintendent', status: 'active' } },
-  { id: 'f1', type: 'investigator', position: { x: 270, y: 390 }, data: { label: 'Investigator-1', status: 'active' } },
-  { id: 'f2', type: 'investigator', position: { x: 330, y: 390 }, data: { label: 'Investigator-2', status: 'active' } },
+  { id: 'f1', type: 'investigator', position: { x: 270, y: 400 }, data: { label: 'Investigator-1', status: 'active' } },
+  { id: 'f2', type: 'investigator', position: { x: 330, y: 400 }, data: { label: 'Investigator-2', status: 'active' } },
+  { id: 'net', type: 'network', position: { x: 300, y: 420 }, data: { label: 'Network', status: 'active' } },
 ];
 
-const systemEdges: Edge[] = [];
+const systemEdges: Edge[] = [
+  {
+    id: 'sys-f1-inv',
+    source: 'f1',
+    target: 'inv',
+    type: 'dashed',
+    data: { color: '#9b59b6' },
+  },
+  {
+    id: 'sys-f2-inv',
+    source: 'f2',
+    target: 'inv',
+    type: 'dashed',
+    data: { color: '#9b59b6' },
+  },
+  {
+    id: 'sys-net-inv',
+    source: 'net',
+    target: 'inv',
+    type: 'dashed',
+    data: { color: '#7c3aed' },
+  },
+];
 
 
 

@@ -149,7 +149,7 @@ export function InvestigationRegistry({ cases, selectedCaseId, onSelectCase, isL
 
               {/* Crime Classification */}
               <div className="text-[9px] text-[#6b7280] mb-1.5 truncate font-mono">
-                {caseFile.investigatorReport?.crimeClassification?.replace(/_/g, ' ') ?? 'unknown'}
+                {caseFile.crimeClassification?.replace(/_/g, ' ') ?? 'unknown'}
               </div>
 
               {/* Bottom Row: Verdict + Severity + Time */}
@@ -177,9 +177,7 @@ export function InvestigationRegistry({ cases, selectedCaseId, onSelectCase, isL
                 {/* Time */}
                 <span className="text-[9px] text-[#6b7280] ml-auto">
                   {formatTimeAgo(
-                    caseFile.investigatorReport?.timestamp ??
-                      caseFile.concludedAt ??
-                      new Date().toISOString(),
+                    caseFile.concludedAt ?? new Date().toISOString(),
                   )}
                 </span>
               </div>
@@ -218,11 +216,11 @@ export function InvestigationRegistry({ cases, selectedCaseId, onSelectCase, isL
       {/* Summary Footer */}
       <div className="px-3 py-2 border-t border-[#1f2937] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
+          <div key="active-stat" className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-[#00d4ff]" />
             <span className="text-[9px] text-[#6b7280]">{openCount} active</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div key="closed-stat" className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-[#6b7280]" />
             <span className="text-[9px] text-[#6b7280]">{concludedCount} closed</span>
           </div>
