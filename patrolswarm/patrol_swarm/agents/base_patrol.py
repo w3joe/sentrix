@@ -135,11 +135,16 @@ class BasePatrolAgent(ABC):
                 temperature=cfg.NANO_TEMPERATURE,
                 max_tokens=cfg.NANO_MAX_TOKENS,
             )
-        # Bind domain tools. tool_choice="none" for local models that don't
-        # support function-calling — agents fall back to raw JSON parsing.
-        self._llm_with_tools = self._llm.bind_tools(
-            self.tools, tool_choice=cfg.ACTIVE_TOOL_CHOICE
-        )
+        # For Claude: all artefact content is already injected into the prompt,
+        # so tools are redundant. Skipping bind_tools avoids the broken single-turn
+        # tool-call extraction path (no multi-turn ReAct loop exists).
+        # For local/brev models: bind tools so the model can query the mock stores.
+        if cfg.DEPLOYMENT == "claude":
+            self._llm_with_tools = self._llm
+        else:
+            self._llm_with_tools = self._llm.bind_tools(
+                self.tools, tool_choice=cfg.ACTIVE_TOOL_CHOICE
+            )
 
     # ─── Abstract interface ───────────────────────────────────────────────────
 
