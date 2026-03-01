@@ -14,6 +14,9 @@ export interface PatrolNotification extends Incident {
  * against the previously seen set of flag IDs. Emits one notification
  * per new flag so the banner can display them sequentially.
  */
+// Timestamp when the page loaded — flags older than this are considered "already seen"
+const PAGE_LOAD_TIME = Date.now();
+
 export function usePatrolFlagNotifications() {
   const { data: flags = [] } = useFlags();
   const seenIds = useRef<Set<string>>(new Set());
@@ -26,14 +29,20 @@ export function usePatrolFlagNotifications() {
 
     const incoming = flags as Record<string, unknown>[];
 
-    // On the very first load, just seed seenIds without notifying
     if (!isInitialized.current) {
+      // Seed only flags that existed before the page loaded (older than PAGE_LOAD_TIME)
+      // Flags created after page load (e.g. a run that just finished) will still notify
       incoming.forEach((f) => {
         const id = (f.flag_id as string) || '';
-        if (id) seenIds.current.add(id);
+        if (!id) return;
+        const ts = (f.timestamp as string) || '';
+        const flagTime = ts ? new Date(ts).getTime() : 0;
+        if (flagTime < PAGE_LOAD_TIME) {
+          seenIds.current.add(id);
+        }
       });
       isInitialized.current = true;
-      return;
+      // Fall through so any new flags from this first fetch are processed below
     }
 
     const newFlags = incoming.filter((f) => {
@@ -59,9 +68,17 @@ export function usePatrolFlagNotifications() {
   useEffect(() => {
     if (current !== null) return;
     if (queue.length === 0) return;
-    const [next, ...rest] = queue;
-    setCurrent(next);
-    setQueue(rest);
+    setQueue((prev) => {
+      if (prev.length === 0) return prev;
+      const [next, ...rest] = prev;
+      setCurrent(next);
+      // Play notification sound
+      try {
+        const audio = new Audio('/sound/notification.mp3');
+        audio.play().catch(() => {});
+      } catch {}
+      return rest;
+    });
   }, [current, queue]);
 
   const dismiss = () => setCurrent(null);

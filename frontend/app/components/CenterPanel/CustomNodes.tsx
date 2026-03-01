@@ -7,43 +7,35 @@ import type { AgentStatus } from '../../types';
 interface BaseNodeData {
   label: string;
   status: string;
+  record?: string;
   isSelected?: boolean;
   currentStatus?: AgentStatus;
   onPatrolClick?: (nodeId: string) => void;
   isUnderInvestigation?: boolean;
 }
 
-// Agent Node - Circle
+// Agent Node — colors by record: clear=blue, low_risk=yellow, high_risk=red
+const RECORD_COLORS: Record<string, { bg: string; border: string }> = {
+  clear:     { bg: '#1e3a5f', border: '#3b82f6' },
+  low_risk:  { bg: '#3a3500', border: '#eab308' },
+  high_risk: { bg: '#3a1a1a', border: '#ff3355' },
+};
+
 export const AgentNode = memo(function AgentNode({ data }: NodeProps<BaseNodeData>) {
   const status = data.currentStatus || data.status;
+  const record = (data.record as string) || 'clear';
+  const recordStyles = RECORD_COLORS[record] ?? RECORD_COLORS.clear;
 
   const getStyles = () => {
     switch (status) {
       case 'working':
-        return {
-          bg: '#003a1a',
-          border: '#00c853',
-          pulse: false,
-        };
+        return { ...recordStyles, pulse: false };
       case 'restricted':
-        return {
-          bg: '#3a2a00',
-          border: '#ffaa00',
-          pulse: false,
-          subtlePulse: true,
-        };
+        return { bg: recordStyles.bg, border: '#ffaa00', pulse: false, subtlePulse: true };
       case 'suspended':
-        return {
-          bg: '#1f2937',
-          border: '#6b7280',
-          pulse: false,
-        };
+        return { bg: '#1f2937', border: '#6b7280', pulse: false };
       default: // idle
-        return {
-          bg: '#1e3a5f',
-          border: '#4a9eff',
-          pulse: false,
-        };
+        return { ...recordStyles, pulse: false };
     }
   };
 

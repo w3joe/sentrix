@@ -113,8 +113,8 @@ Each agent accumulates a **criminal score** updated after every investigation. S
 
 | Effective Score | `record` | Frontend colour |
 |----------------|--------------|----------------|
-| 0 | `clear` | Green |
-| 0 < score < 10 | `low_risk` | Amber |
+| 0 | `clear` | Blue |
+| 0 < score < 10 | `low_risk` | Yellow |
 | ≥ 10 | `high_risk` | Red |
 
 ---

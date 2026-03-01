@@ -126,6 +126,14 @@ export default function Dashboard() {
     setPatrolSelection(selection);
   }, []);
 
+  // Sprite view agent selection — clears patrolSelection unless clicking a patrol itself
+  const handleSpriteSelectAgent = useCallback((agentId: string | null) => {
+    if (agentId !== 'p1' && agentId !== 'p2') {
+      setPatrolSelection(null);
+    }
+    selectAgent(agentId);
+  }, [selectAgent]);
+
   // Handle agent assignment from sidebar — same flow as notification: visual sequence + backend investigation
   const handleAgentAssign = useCallback((targetAgentId: string) => {
     if (!patrolSelection) return;
@@ -225,7 +233,7 @@ export default function Dashboard() {
           ) : (
             <SpriteView
               selectedAgentId={selectedAgentId}
-              onSelectAgent={selectAgent}
+              onSelectAgent={handleSpriteSelectAgent}
               getAgentStatus={getAgentStatus}
               historicalAgentStates={currentAgentStates}
               isLive={isLive}
@@ -241,6 +249,7 @@ export default function Dashboard() {
                 onInvestigatorArrived,
                 onInvestigatorReturnArrived,
                 networkTargetPos: responseState.networkTargetPos,
+                networkRoamZone: responseState.networkRoamZone,
                 onNetworkArrived,
                 onNetworkReturnArrived,
                 phase: responseState.phase,
@@ -249,23 +258,26 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Right Sidebar - 15% */}
-        <div className="w-[15%] min-w-[240px]">
-          <ContextPanel
-            selectedAgentId={selectedAgentId}
-            agents={agents}
-            onClear={clearAgent}
-            onRestrict={restrictAgent}
-            onSuspend={suspendAgent}
-            getAgentStatus={getEffectiveAgentStatus}
-            visibleEvents={visibleEvents}
-            isLive={isLive}
-            patrolSelection={patrolSelection}
-            onAgentAssign={handleAgentAssign}
-            onCancelPatrolSelection={handleCancelPatrolSelection}
-            useMocks={USE_MOCKS}
-          />
-        </div>
+        {/* Right Sidebar - only shown when something is selected */}
+        {selectedAgentId && (
+          <div className="w-[15%] min-w-[240px]">
+            <ContextPanel
+              selectedAgentId={selectedAgentId}
+              agents={agents}
+              onClear={clearAgent}
+              onRestrict={restrictAgent}
+              onSuspend={suspendAgent}
+              getAgentStatus={getEffectiveAgentStatus}
+              visibleEvents={visibleEvents}
+              isLive={isLive}
+              patrolSelection={patrolSelection}
+              onAgentAssign={handleAgentAssign}
+              onCancelPatrolSelection={handleCancelPatrolSelection}
+              useMocks={USE_MOCKS}
+              responseState={responseState}
+            />
+          </div>
+        )}
       </div>
 
       {/* Collapsible Bottom Strip: Incidents & Thought Stream */}

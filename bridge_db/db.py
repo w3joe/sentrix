@@ -511,6 +511,23 @@ class SandboxDB:
         logger.info("Criminal score for %s: %.2f → %.2f", agent_id, effective, new_score)
         return new_score
 
+    async def set_criminal_score(self, agent_id: str, score: float) -> bool:
+        """
+        Set the raw criminal score for *agent_id* (for seeding/variety).
+        record thresholds: 0=clear, 0<score<10=low_risk, score>=10=high_risk.
+        Returns True if agent was found.
+        """
+        async with aiosqlite.connect(self._path) as db:
+            now = datetime.utcnow().isoformat()
+            cursor = await db.execute(
+                "UPDATE agent_registry SET criminal_score = ?, score_updated_at = ? WHERE agent_id = ?",
+                (max(0.0, score), now, agent_id),
+            )
+            await db.commit()
+        if cursor.rowcount:
+            logger.info("Set criminal score for %s to %.2f", agent_id, score)
+        return cursor.rowcount > 0
+
     async def get_agent_criminal_score(self, agent_id: str) -> dict:
         """
         Return the effective criminal score and record for *agent_id*.

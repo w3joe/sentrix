@@ -14,6 +14,7 @@ interface InvestigatorSpriteProps {
   /** Direct world-space target — used by response sequence */
   targetPos?: { x: number; y: number } | null;
   onArrived?: () => void;
+  onSelect?: (id: string) => void;
 }
 
 export function InvestigatorSprite({
@@ -21,9 +22,15 @@ export function InvestigatorSprite({
   label,
   targetPos,
   onArrived,
+  onSelect,
 }: InvestigatorSpriteProps) {
   const position = useInvestigatorMovement(investigatorId, null, onArrived, targetPos);
   const direction = useMovementDirection(position.x, position.y);
+
+  const handleClick = useCallback((e: any) => {
+    e?.stopPropagation();
+    onSelect?.(investigatorId);
+  }, [onSelect, investigatorId]);
 
   const drawLabel = useCallback(
     (g: any) => {
@@ -36,7 +43,7 @@ export function InvestigatorSprite({
   );
 
   return (
-    <pixiContainer x={position.x} y={position.y}>
+    <pixiContainer x={position.x} y={position.y} eventMode="static" cursor="pointer" onClick={handleClick} onTap={handleClick}>
       <CharacterSprite
         sheetPath={SPRITE_SHEETS.investigator}
         direction={direction}

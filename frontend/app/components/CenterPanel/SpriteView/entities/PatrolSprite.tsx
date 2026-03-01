@@ -14,6 +14,7 @@ interface PatrolSpriteProps {
   label: string;
   targetAgentPos: { x: number; y: number } | null;
   onSelect: (selection: PatrolSelection | null) => void;
+  onSelectAgent?: (id: string) => void;
   onArrived: () => void;
 }
 
@@ -22,6 +23,7 @@ export function PatrolSprite({
   label,
   targetAgentPos,
   onSelect,
+  onSelectAgent,
   onArrived,
 }: PatrolSpriteProps) {
   const [isMounted, setIsMounted] = useState(false);
@@ -78,9 +80,11 @@ export function PatrolSprite({
     [targetAgentPos, position.x, position.y],
   );
 
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback((e: any) => {
+    e?.stopPropagation();
     onSelect({ patrolId, patrolLabel: label });
-  }, [onSelect, patrolId, label]);
+    onSelectAgent?.(patrolId);
+  }, [onSelect, onSelectAgent, patrolId, label]);
 
   return (
     <pixiContainer x={position.x} y={position.y}>

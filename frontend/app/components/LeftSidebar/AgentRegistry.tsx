@@ -22,9 +22,9 @@ const statusColors: Record<AgentStatus, string> = {
 };
 
 const recordBadgeColors: Record<string, string> = {
+  clear:     'bg-[#3b82f6]/20 text-[#3b82f6] border-[#3b82f6]/30',
+  low_risk:  'bg-[#eab308]/20 text-[#eab308] border-[#eab308]/30',
   high_risk: 'bg-[#ff3355]/20 text-[#ff3355] border-[#ff3355]/30',
-  low_risk:  'bg-[#ffaa00]/20 text-[#ffaa00] border-[#ffaa00]/30',
-  clear:     'bg-[#00c853]/20 text-[#00c853] border-[#00c853]/30',
 };
 
 function getClusterStatus(agents: Agent[], getAgentStatus: (agentId: string) => AgentStatus): AgentStatus {

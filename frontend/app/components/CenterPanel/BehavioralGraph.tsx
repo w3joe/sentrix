@@ -82,6 +82,7 @@ function layoutClusterNodes(
   agentIds: string[],
   agentLabels: Record<string, string>,
   agentStatuses: Record<string, string>,
+  agentRecords: Record<string, string>,
   originX: number,
   originY: number,
 ): Node[] {
@@ -101,6 +102,7 @@ function layoutClusterNodes(
       data: {
         label: agentLabels[agentId] ?? agentId,
         status: agentStatuses[agentId] ?? 'idle',
+        record: agentRecords[agentId] ?? 'clear',
       },
     };
   });
@@ -118,12 +120,14 @@ function buildGraphFromDbAgents(agentsDict: Record<string, Record<string, unknow
   const clusterMap = new Map<string, string[]>();
   const agentLabels: Record<string, string> = {};
   const agentStatuses: Record<string, string> = {};
+  const agentRecords: Record<string, string> = {};
   for (const [agentId, profile] of Object.entries(agentsDict)) {
     const clusterId = (profile.cluster_id as string) || 'default';
     if (!clusterMap.has(clusterId)) clusterMap.set(clusterId, []);
     clusterMap.get(clusterId)!.push(agentId);
     agentLabels[agentId] = (profile.name as string) || agentId;
     agentStatuses[agentId] = (profile.agent_status as string) || 'idle';
+    agentRecords[agentId] = (profile.record as string) || 'clear';
   }
   const clusterIds = Array.from(clusterMap.keys()).sort();
   const CLUSTER_SPACING_X = 380;
@@ -138,7 +142,7 @@ function buildGraphFromDbAgents(agentsDict: Record<string, Record<string, unknow
     const originX = 150 + col * CLUSTER_SPACING_X;
     const originY = 150 + row * CLUSTER_SPACING_Y;
     const ids = clusterMap.get(clusterId)!;
-    agentNodes.push(...layoutClusterNodes(ids, agentLabels, agentStatuses, originX, originY));
+    agentNodes.push(...layoutClusterNodes(ids, agentLabels, agentStatuses, agentRecords, originX, originY));
     agentEdges.push(...generateClusterEdges(ids, clusterId));
     clusterDefs.push({ prefix: clusterId, label: clusterId, ids });
   });
@@ -150,22 +154,22 @@ function buildGraphFromDbAgents(agentsDict: Record<string, Record<string, unknow
  * Mirrors the original 4-cluster hardcoded layout.
  */
 const FALLBACK_AGENTS: Record<string, Record<string, unknown>> = {
-  'c1-email':    { cluster_id: 'cluster-1', agent_type: 'email',    agent_status: 'working' },
-  'c1-coding':   { cluster_id: 'cluster-1', agent_type: 'code',     agent_status: 'idle' },
-  'c1-document': { cluster_id: 'cluster-1', agent_type: 'document', agent_status: 'idle' },
-  'c1-data':     { cluster_id: 'cluster-1', agent_type: 'code',     agent_status: 'restricted' },
-  'c2-email':    { cluster_id: 'cluster-2', agent_type: 'email',    agent_status: 'idle' },
-  'c2-coding':   { cluster_id: 'cluster-2', agent_type: 'code',     agent_status: 'idle' },
-  'c2-document': { cluster_id: 'cluster-2', agent_type: 'document', agent_status: 'idle' },
-  'c2-data':     { cluster_id: 'cluster-2', agent_type: 'code',     agent_status: 'idle' },
-  'c3-email':    { cluster_id: 'cluster-3', agent_type: 'email',    agent_status: 'idle' },
-  'c3-coding':   { cluster_id: 'cluster-3', agent_type: 'code',     agent_status: 'idle' },
-  'c3-document': { cluster_id: 'cluster-3', agent_type: 'document', agent_status: 'restricted' },
-  'c3-data':     { cluster_id: 'cluster-3', agent_type: 'code',     agent_status: 'idle' },
-  'c4-email':    { cluster_id: 'cluster-4', agent_type: 'email',    agent_status: 'idle' },
-  'c4-coding':   { cluster_id: 'cluster-4', agent_type: 'code',     agent_status: 'idle' },
-  'c4-document': { cluster_id: 'cluster-4', agent_type: 'document', agent_status: 'idle' },
-  'c4-data':     { cluster_id: 'cluster-4', agent_type: 'code',     agent_status: 'working' },
+  'c1-email':    { cluster_id: 'cluster-1', agent_type: 'email',    agent_status: 'working', record: 'high_risk' },
+  'c1-coding':   { cluster_id: 'cluster-1', agent_type: 'code',     agent_status: 'idle',   record: 'clear' },
+  'c1-document': { cluster_id: 'cluster-1', agent_type: 'document', agent_status: 'idle',  record: 'low_risk' },
+  'c1-data':     { cluster_id: 'cluster-1', agent_type: 'code',     agent_status: 'restricted', record: 'low_risk' },
+  'c2-email':    { cluster_id: 'cluster-2', agent_type: 'email',    agent_status: 'idle',  record: 'clear' },
+  'c2-coding':   { cluster_id: 'cluster-2', agent_type: 'code',     agent_status: 'idle',  record: 'clear' },
+  'c2-document': { cluster_id: 'cluster-2', agent_type: 'document', agent_status: 'idle',  record: 'low_risk' },
+  'c2-data':     { cluster_id: 'cluster-2', agent_type: 'code',     agent_status: 'idle',  record: 'clear' },
+  'c3-email':    { cluster_id: 'cluster-3', agent_type: 'email',    agent_status: 'idle',  record: 'clear' },
+  'c3-coding':   { cluster_id: 'cluster-3', agent_type: 'code',     agent_status: 'idle',  record: 'high_risk' },
+  'c3-document': { cluster_id: 'cluster-3', agent_type: 'document', agent_status: 'restricted', record: 'low_risk' },
+  'c3-data':     { cluster_id: 'cluster-3', agent_type: 'code',     agent_status: 'idle',  record: 'clear' },
+  'c4-email':    { cluster_id: 'cluster-4', agent_type: 'email',    agent_status: 'idle',  record: 'low_risk' },
+  'c4-coding':   { cluster_id: 'cluster-4', agent_type: 'code',     agent_status: 'idle',  record: 'clear' },
+  'c4-document': { cluster_id: 'cluster-4', agent_type: 'document', agent_status: 'idle',  record: 'high_risk' },
+  'c4-data':     { cluster_id: 'cluster-4', agent_type: 'code',     agent_status: 'working', record: 'high_risk' },
 };
 
 // System nodes (patrol, superintendent, investigators, network) — always static
@@ -955,14 +959,9 @@ export function BehavioralGraph({
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
-      // Only select agent nodes
-      if (node.type === 'agent') {
-        // Toggle selection if clicking the same node
-        if (node.id === selectedAgentId) {
-          onSelectAgent(null);
-        } else {
-          onSelectAgent(node.id);
-        }
+      const selectable = node.type === 'agent' || node.type === 'investigator' || node.type === 'network' || node.type === 'superintendent';
+      if (selectable) {
+        onSelectAgent(node.id === selectedAgentId ? null : node.id);
       }
     },
     [onSelectAgent, selectedAgentId]

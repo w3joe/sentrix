@@ -24,8 +24,8 @@ interface AgentSpriteProps {
 }
 
 const RECORD_COLORS: Record<string, string> = {
-  clear:     '#00c853',
-  low_risk:  '#ffaa00',
+  clear:     '#3b82f6',
+  low_risk:  '#eab308',
   high_risk: '#ff3355',
 };
 
@@ -132,7 +132,8 @@ export function AgentSprite({
     [status, isMounted],
   );
 
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback((e: any) => {
+    e?.stopPropagation();
     onSelect(agentId);
   }, [onSelect, agentId]);
 

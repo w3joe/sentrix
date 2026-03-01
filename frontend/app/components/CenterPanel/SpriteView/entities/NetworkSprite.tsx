@@ -36,12 +36,15 @@ function getRandomPauseDuration(): number {
 interface NetworkSpriteProps {
   x: number;
   y: number;
-  /** Direct world-space target — used by response sequence */
+  /** Direct world-space target — used as travel destination during summoning */
   targetPos?: { x: number; y: number } | null;
+  /** When set, network roams within this zone instead of standing still */
+  roamZone?: { x: number; y: number; width: number; height: number } | null;
   onArrived?: () => void;
+  onSelect?: (id: string) => void;
 }
 
-export function NetworkSprite({ x: homeX, y: homeY, targetPos, onArrived }: NetworkSpriteProps) {
+export function NetworkSprite({ x: homeX, y: homeY, targetPos, roamZone, onArrived, onSelect }: NetworkSpriteProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [position, setPosition] = useState({ x: homeX, y: homeY });
   const posRef = useRef({ x: homeX, y: homeY });
@@ -49,14 +52,17 @@ export function NetworkSprite({ x: homeX, y: homeY, targetPos, onArrived }: Netw
   const pauseUntilRef = useRef<number>(0);
   const arrivedRef = useRef(false);
 
-  // Keep callback and targetPos in refs so animation loop always reads latest
+  // Keep callback and targetPos/roamZone in refs so animation loop always reads latest
   const onArrivedRef = useRef(onArrived);
   useEffect(() => { onArrivedRef.current = onArrived; }, [onArrived]);
   const targetPosRef = useRef(targetPos ?? null);
+  const roamZoneRef = useRef(roamZone ?? null);
   useEffect(() => {
     targetPosRef.current = targetPos ?? null;
+    roamZoneRef.current = roamZone ?? null;
     arrivedRef.current = false;
-  }, [targetPos]);
+    roamTargetRef.current = null;
+  }, [targetPos, roamZone]);
 
   const direction = useMovementDirection(position.x, position.y);
 
@@ -73,8 +79,68 @@ export function NetworkSprite({ x: homeX, y: homeY, targetPos, onArrived }: Netw
       const cur = posRef.current;
       const override = targetPosRef.current;
 
+      const zone = roamZoneRef.current;
+
+      if (zone) {
+        // Has a roam zone — travel toward it first, then roam within it
+        if (!arrivedRef.current) {
+          // Still travelling to the zone center
+          const cx = zone.x + zone.width / 2;
+          const cy = zone.y + zone.height / 2;
+          const dx = cx - cur.x;
+          const dy = cy - cur.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > ROAM_SPEED * 8) {
+            const nx = dx / dist;
+            const ny = dy / dist;
+            posRef.current = { x: cur.x + nx * ROAM_SPEED * 8, y: cur.y + ny * ROAM_SPEED * 8 };
+            setPosition({ ...posRef.current });
+          } else {
+            arrivedRef.current = true;
+            onArrivedRef.current?.();
+          }
+          rafId = requestAnimationFrame(tick);
+          return;
+        }
+
+        // Arrived — roam within zone bounds
+        const margin = 30 * S;
+        const zoneMinX = zone.x + margin;
+        const zoneMaxX = zone.x + zone.width - margin;
+        const zoneMinY = zone.y + margin;
+        const zoneMaxY = zone.y + zone.height - margin;
+
+        if (now < pauseUntilRef.current) {
+          rafId = requestAnimationFrame(tick);
+          return;
+        }
+        if (!roamTargetRef.current) {
+          roamTargetRef.current = {
+            x: zoneMinX + Math.random() * (zoneMaxX - zoneMinX),
+            y: zoneMinY + Math.random() * (zoneMaxY - zoneMinY),
+          };
+        }
+        const rt = roamTargetRef.current;
+        const dx = rt.x - cur.x;
+        const dy = rt.y - cur.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < ROAM_SPEED) {
+          posRef.current = { x: rt.x, y: rt.y };
+          setPosition({ ...posRef.current });
+          roamTargetRef.current = null;
+          pauseUntilRef.current = now + getRandomPauseDuration();
+        } else {
+          const nx = dx / dist;
+          const ny = dy / dist;
+          posRef.current = { x: cur.x + nx * ROAM_SPEED, y: cur.y + ny * ROAM_SPEED };
+          setPosition({ ...posRef.current });
+        }
+        rafId = requestAnimationFrame(tick);
+        return;
+      }
+
       if (override) {
-        // Direct position override (response sequence)
+        // Direct position override (response sequence — returning phase)
         const dx = override.x - cur.x;
         const dy = override.y - cur.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -82,8 +148,8 @@ export function NetworkSprite({ x: homeX, y: homeY, targetPos, onArrived }: Netw
         if (dist > ROAM_SPEED) {
           const nx = dx / dist;
           const ny = dy / dist;
-          // Travel at 3× roam speed when on a mission
-          posRef.current = { x: cur.x + nx * ROAM_SPEED * 3, y: cur.y + ny * ROAM_SPEED * 3 };
+          // Travel at 8× roam speed when on a mission
+          posRef.current = { x: cur.x + nx * ROAM_SPEED * 8, y: cur.y + ny * ROAM_SPEED * 8 };
           setPosition({ ...posRef.current });
         } else if (!arrivedRef.current) {
           arrivedRef.current = true;
@@ -149,6 +215,11 @@ export function NetworkSprite({ x: homeX, y: homeY, targetPos, onArrived }: Netw
     g.stroke();
   }, [isMounted]);
 
+  const handleClick = useCallback((e: any) => {
+    e?.stopPropagation();
+    onSelect?.('network');
+  }, [onSelect]);
+
   const drawLabel = useCallback((g: any) => {
     g.clear();
     g.setFillStyle({ color: 0x0a0e1a, alpha: 0.8 });
@@ -157,7 +228,7 @@ export function NetworkSprite({ x: homeX, y: homeY, targetPos, onArrived }: Netw
   }, []);
 
   return (
-    <pixiContainer x={position.x} y={position.y}>
+    <pixiContainer x={position.x} y={position.y} eventMode="static" cursor="pointer" onClick={handleClick} onTap={handleClick}>
       <pixiGraphics draw={drawPulse} />
       <CharacterSprite
         sheetPath={SPRITE_SHEETS.network}

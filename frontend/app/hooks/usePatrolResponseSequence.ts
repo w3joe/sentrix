@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useCaseFiles } from './api/useBridgeQueries';
-import { getDeskPosition, controlRoom, patrolWaypoints } from '../components/CenterPanel/SpriteView/config/roomLayout';
+import { getDeskPosition, getAgentRoom, rooms, controlRoom, patrolWaypoints } from '../components/CenterPanel/SpriteView/config/roomLayout';
 import type { PatrolNotification } from './usePatrolFlagNotifications';
 
 // How long to wait for a case file before giving up (ms)
-const CASE_FILE_TIMEOUT_MS = 30_000;
+const CASE_FILE_TIMEOUT_MS = 10_000;
 // How long responders stand beside superintendent before returning to idle (ms)
-const REPORT_DURATION_MS = 5_000;
+const REPORT_DURATION_MS = 3_000;
 
 export type ResponsePhase =
   | 'idle'
@@ -28,6 +28,8 @@ export interface PatrolResponseState {
   investigatorTargetPos: { x: number; y: number } | null;
   /** Target position network should move to (beside flagged agent) */
   networkTargetPos: { x: number; y: number } | null;
+  /** Room bounds for network agent to roam within while at scene */
+  networkRoamZone: { x: number; y: number; width: number; height: number } | null;
 }
 
 const IDLE_STATE: PatrolResponseState = {
@@ -37,6 +39,7 @@ const IDLE_STATE: PatrolResponseState = {
   patrolTargetPos: null,
   investigatorTargetPos: null,
   networkTargetPos: null,
+  networkRoamZone: null,
 };
 
 /** Euclidean distance between two positions */
@@ -57,12 +60,18 @@ function pickClosestPatrol(
 
 /** Stand-beside offsets for each responder so they cluster without overlapping */
 const OFFSETS = {
-  patrol:      { dx: -45, dy: 0 },
-  investigator: { dx: +45, dy: 0 },
-  network:     { dx: 0,   dy: -45 },
+  patrol:      { dx: -80, dy: 0 },
+  investigator: { dx: +80, dy: 0 },
+  network:     { dx: 0,   dy: -80 },
 };
 
 const SUPERINTENDENT_POS = controlRoom.superintendentPos;
+
+/** Get the room config for the room containing the given agent */
+function getRoomForAgent(agentId: string) {
+  const roomId = getAgentRoom(agentId);
+  return roomId ? (rooms.find((r) => r.id === roomId) ?? null) : null;
+}
 
 /** Optional: resolves position for live API agent IDs (getDeskPosition only knows static mock IDs) */
 export type GetAgentPosition = (agentId: string) => { x: number; y: number } | null;
@@ -113,6 +122,7 @@ export function usePatrolResponseSequence(
       patrolTargetPos: patrolTarget,
       investigatorTargetPos: null,
       networkTargetPos: null,
+      networkRoamZone: null,
     };
     setState(next);
     stateRef.current = next;
@@ -127,6 +137,7 @@ export function usePatrolResponseSequence(
         patrolTargetPos: { x: SUPERINTENDENT_POS.x - 60, y: SUPERINTENDENT_POS.y },
         investigatorTargetPos: { x: SUPERINTENDENT_POS.x + 60, y: SUPERINTENDENT_POS.y },
         networkTargetPos: { x: SUPERINTENDENT_POS.x, y: SUPERINTENDENT_POS.y - 60 },
+        networkRoamZone: null,
       };
       stateRef.current = next;
       return next;
@@ -155,6 +166,7 @@ export function usePatrolResponseSequence(
       patrolTargetPos: patrolTarget,
       investigatorTargetPos: null,
       networkTargetPos: null,
+      networkRoamZone: null,
     };
     setState(next);
     stateRef.current = next;
@@ -173,16 +185,22 @@ export function usePatrolResponseSequence(
       x: agentPos.x + OFFSETS.investigator.dx,
       y: agentPos.y + OFFSETS.investigator.dy,
     };
-    const networkTarget = {
-      x: agentPos.x + OFFSETS.network.dx,
-      y: agentPos.y + OFFSETS.network.dy,
-    };
+
+    // Network roams the flagged agent's room; use room center as travel destination
+    const agentRoom = agentId ? getRoomForAgent(agentId) : null;
+    const networkRoamZone = agentRoom
+      ? { x: agentRoom.x, y: agentRoom.y, width: agentRoom.width, height: agentRoom.height }
+      : null;
+    const networkTarget = agentRoom
+      ? { x: agentRoom.x + agentRoom.width / 2, y: agentRoom.y + agentRoom.height / 2 }
+      : { x: agentPos.x + OFFSETS.network.dx, y: agentPos.y + OFFSETS.network.dy };
 
     const next: PatrolResponseState = {
       ...stateRef.current,
       phase: 'summoning',
       investigatorTargetPos: investigatorTarget,
       networkTargetPos: networkTarget,
+      networkRoamZone,
     };
     setState(next);
     stateRef.current = next;

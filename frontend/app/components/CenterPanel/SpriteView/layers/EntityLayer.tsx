@@ -18,6 +18,7 @@ export interface PatrolResponseProps {
   onInvestigatorArrived: () => void;
   onInvestigatorReturnArrived: () => void;
   networkTargetPos: { x: number; y: number } | null;
+  networkRoamZone: { x: number; y: number; width: number; height: number } | null;
   onNetworkArrived: () => void;
   onNetworkReturnArrived: () => void;
   phase: string;
@@ -157,6 +158,7 @@ export function EntityLayer({
         label="Patrol-1"
         targetAgentPos={p1TargetPos}
         onSelect={onPatrolSelect}
+        onSelectAgent={onSelectAgent}
         onArrived={p1ArrivedCb}
       />
       <PatrolSprite
@@ -164,20 +166,23 @@ export function EntityLayer({
         label="Patrol-2"
         targetAgentPos={p2TargetPos}
         onSelect={onPatrolSelect}
+        onSelectAgent={onSelectAgent}
         onArrived={p2ArrivedCb}
       />
 
       {/* Superintendent */}
-      <SuperintendentSprite />
+      <SuperintendentSprite onSelect={onSelectAgent} />
 
       {/* Network — driven by response sequence when active */}
       <NetworkSprite
         x={controlRoom.networkPos.x}
         y={controlRoom.networkPos.y}
         targetPos={isResponseActive ? response.networkTargetPos : null}
+        roamZone={isResponseActive && response.phase !== 'returning' ? response.networkRoamZone : null}
         onArrived={isResponseActive
           ? (response.phase === 'returning' ? response.onNetworkReturnArrived : response.onNetworkArrived)
           : undefined}
+        onSelect={onSelectAgent}
       />
 
       {/* Investigators — f1 driven by response sequence, f2 always roams */}
@@ -188,10 +193,12 @@ export function EntityLayer({
         onArrived={isResponseActive
           ? (response.phase === 'returning' ? response.onInvestigatorReturnArrived : response.onInvestigatorArrived)
           : undefined}
+        onSelect={onSelectAgent}
       />
       <InvestigatorSprite
         investigatorId="f2"
         label="Investigator-2"
+        onSelect={onSelectAgent}
       />
     </pixiContainer>
   );

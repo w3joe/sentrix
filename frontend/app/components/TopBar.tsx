@@ -1,7 +1,7 @@
 'use client';
 
 import type { ViewMode, SidebarMode } from '../page';
-import { useSwarmStatus, useTriggerSweep } from '../hooks/api/usePatrolQueries';
+import { useSwarmStatus } from '../hooks/api/usePatrolQueries';
 import { useBridgeHealth } from '../hooks/api/useBridgeQueries';
 import { useInvestigationHealth } from '../hooks/api/useInvestigationQueries';
 
@@ -16,12 +16,10 @@ interface TopBarProps {
 
 export function TopBar({ viewMode, onViewModeChange, sidebarMode, onSidebarModeChange, agentCount = 0, useMocks = false }: TopBarProps) {
   const { data: swarmStatus } = useSwarmStatus();
-  const triggerSweep = useTriggerSweep();
   const { data: bridgeHealth, isError: bridgeError } = useBridgeHealth();
   const { data: invHealth, isError: invError } = useInvestigationHealth();
 
   const monitoredCount = swarmStatus?.monitored_agents ? Object.keys(swarmStatus.monitored_agents).length : 0;
-  const cycle = swarmStatus?.current_cycle ?? 0;
   const agentsDisplay = agentCount > 0 ? agentCount : monitoredCount;
 
   return (
@@ -32,9 +30,6 @@ export function TopBar({ viewMode, onViewModeChange, sidebarMode, onSidebarModeC
 
         {/* Navigation */}
         <nav className="hidden lg:flex items-center gap-6 ml-4">
-          <a href="#" className="flex items-center justify-center w-8 h-8 rounded-md text-white hover:bg-[#1f2937] hover:text-[#00d4ff] transition-colors" title="Dashboard/Overview: Main view with the behavioral graph and timeline">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-          </a>
           <button
             onClick={() => onSidebarModeChange('agents')}
             className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
@@ -57,9 +52,6 @@ export function TopBar({ viewMode, onViewModeChange, sidebarMode, onSidebarModeC
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           </button>
-          <a href="#" className="flex items-center justify-center w-8 h-8 rounded-md text-[#9ca3af] hover:bg-[#1f2937] hover:text-white transition-colors" title="Missions/Operations: View active and past patrol missions">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-          </a>
           <button
             onClick={() => onSidebarModeChange('analytics')}
             className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
@@ -71,9 +63,6 @@ export function TopBar({ viewMode, onViewModeChange, sidebarMode, onSidebarModeC
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
           </button>
-          <a href="#" className="flex items-center justify-center w-8 h-8 rounded-md text-[#9ca3af] hover:bg-[#1f2937] hover:text-white transition-colors" title="Events/Logs: Centralized event monitoring and system logs">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          </a>
           <button
             onClick={() => onSidebarModeChange('settings')}
             className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors ${
@@ -120,16 +109,6 @@ export function TopBar({ viewMode, onViewModeChange, sidebarMode, onSidebarModeC
             <span className="text-[10px] text-[#6b7280] font-mono">
               Agents: <span className="text-[#00d4ff]">{agentsDisplay}</span>
             </span>
-            <span className="text-[10px] text-[#6b7280] font-mono">
-              Cycle: <span className="text-[#00d4ff]">{cycle}</span>
-            </span>
-            <button
-              onClick={() => triggerSweep.mutate()}
-              disabled={triggerSweep.isPending}
-              className="px-2 py-1 rounded text-[10px] font-medium bg-[#00d4ff]/20 text-[#00d4ff] hover:bg-[#00d4ff]/30 disabled:opacity-50"
-            >
-              {triggerSweep.isPending ? 'Sweeping…' : 'Trigger Sweep'}
-            </button>
           </div>
         )}
 

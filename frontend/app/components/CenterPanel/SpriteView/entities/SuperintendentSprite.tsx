@@ -7,7 +7,11 @@ import { controlRoom } from '../config/roomLayout';
 
 const S = 3;
 
-export function SuperintendentSprite() {
+interface SuperintendentSpriteProps {
+  onSelect?: (id: string) => void;
+}
+
+export function SuperintendentSprite({ onSelect }: SuperintendentSpriteProps) {
   const { superintendentPos } = controlRoom;
   const [isMounted, setIsMounted] = useState(false);
 
@@ -26,6 +30,11 @@ export function SuperintendentSprite() {
     g.stroke();
   }, [isMounted]);
 
+  const handleClick = useCallback((e: any) => {
+    e?.stopPropagation();
+    onSelect?.('superintendent');
+  }, [onSelect]);
+
   const drawLabel = useCallback((g: any) => {
     g.clear();
     g.setFillStyle({ color: 0x0a0e1a, alpha: 0.8 });
@@ -34,7 +43,7 @@ export function SuperintendentSprite() {
   }, []);
 
   return (
-    <pixiContainer x={superintendentPos.x} y={superintendentPos.y}>
+    <pixiContainer x={superintendentPos.x} y={superintendentPos.y} eventMode="static" cursor="pointer" onClick={handleClick} onTap={handleClick}>
       <pixiGraphics draw={drawPulse} />
       <CharacterSprite
         sheetPath={SPRITE_SHEETS.superintendent}

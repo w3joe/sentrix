@@ -42,21 +42,33 @@ export default function SpriteWorld({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
   const isDragging = useRef(false);
+  const hasMoved = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
+  const downMouse = useRef({ x: 0, y: 0 });
 
-  // Handle background click to deselect
+  const DRAG_THRESHOLD = 4; // pixels of movement before treating as a drag
+
+  // Handle background click to deselect — only fires when not dragging
   const handleBackgroundClick = useCallback(() => {
-    onSelectAgent(null);
+    if (!hasMoved.current) {
+      onSelectAgent(null);
+    }
   }, [onSelectAgent]);
 
   // Pan handlers
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     isDragging.current = true;
+    hasMoved.current = false;
     lastMouse.current = { x: e.clientX, y: e.clientY };
+    downMouse.current = { x: e.clientX, y: e.clientY };
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return;
+    const totalDx = e.clientX - downMouse.current.x;
+    const totalDy = e.clientY - downMouse.current.y;
+    if (!hasMoved.current && Math.sqrt(totalDx * totalDx + totalDy * totalDy) < DRAG_THRESHOLD) return;
+    hasMoved.current = true;
     const dx = e.clientX - lastMouse.current.x;
     const dy = e.clientY - lastMouse.current.y;
     lastMouse.current = { x: e.clientX, y: e.clientY };
