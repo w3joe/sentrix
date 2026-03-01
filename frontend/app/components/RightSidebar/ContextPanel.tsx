@@ -84,12 +84,22 @@ function EmptyState({ label }: { label: string }) {
 function PatrolPanel({
   patrolId,
   responseState,
+  agents,
+  getAgentStatus,
+  patrolSelection,
+  onAgentAssign,
 }: {
   patrolId: string;
   responseState?: PatrolResponseState;
+  agents: Agent[];
+  getAgentStatus: (agentId: string) => AgentStatus;
+  patrolSelection?: PatrolSelection | null;
+  onAgentAssign?: (targetAgentId: string) => void;
 }) {
   const { data: swarmStatus } = useSwarmStatus();
   const { data: flags = [] } = useFlags();
+  const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
+  const [assignMode, setAssignMode] = useState(false);
 
   const label = patrolId === 'p1' ? 'Patrol-1' : 'Patrol-2';
 
@@ -112,7 +122,19 @@ function PatrolPanel({
     reporting: '#00c853',
   };
 
+  const statusColors = {
+    working:    { bg: '#003a1a', border: '#00c853', text: '#00c853' },
+    idle:       { bg: '#1e3a5f', border: '#4a9eff', text: '#4a9eff' },
+    restricted: { bg: '#3a2a00', border: '#ffaa00', text: '#ffaa00' },
+    suspended:  { bg: '#1f2937', border: '#6b7280', text: '#6b7280' },
+  };
+
   const recentFlags = flags.slice(0, 5);
+
+  // Reset assign mode when patrolSelection changes (e.g. assignment was made)
+  useEffect(() => {
+    if (!patrolSelection) setAssignMode(false);
+  }, [patrolSelection]);
 
   return (
     <div className="space-y-3">
@@ -181,6 +203,88 @@ function PatrolPanel({
           </div>
         )}
       </SectionCard>
+
+      {/* Assign Investigation — toggle */}
+      <div>
+        <button
+          onClick={() => { setAssignMode(m => !m); setExpandedAgentId(null); }}
+          className="w-full py-1.5 rounded text-xs font-semibold transition-all border"
+          style={
+            assignMode
+              ? { backgroundColor: '#00d4ff20', color: '#00d4ff', borderColor: '#00d4ff' }
+              : { backgroundColor: '#1f2937', color: '#a0aec0', borderColor: '#374151' }
+          }
+        >
+          {assignMode ? '✕ Cancel Assignment' : '+ Assign Investigation'}
+        </button>
+
+        {assignMode && (
+          <div className="mt-2 space-y-1.5 max-h-[40vh] overflow-y-auto pr-1">
+            <p className="text-[10px] text-[#6b7280] mb-1">Select an agent for {label} to investigate:</p>
+            {agents.map((agent) => {
+              const status = getAgentStatus(agent.id);
+              const colors = statusColors[status as keyof typeof statusColors] || statusColors.idle;
+              const isExpanded = expandedAgentId === agent.id;
+
+              return (
+                <div
+                  key={agent.id}
+                  className="rounded border transition-all"
+                  style={{
+                    backgroundColor: colors.bg,
+                    borderColor: isExpanded ? colors.text : colors.border,
+                    borderWidth: isExpanded ? '2px' : '1px',
+                  }}
+                >
+                  <button
+                    onClick={() => setExpandedAgentId(isExpanded ? null : agent.id)}
+                    className="w-full p-2.5 text-left hover:brightness-110 transition-all"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-medium text-white block truncate">{agent.name}</span>
+                        <span className="text-[10px] text-[#6b7280]">{agent.role}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0"
+                          style={{ color: colors.text, backgroundColor: `${colors.border}20`, border: `1px solid ${colors.border}` }}
+                        >
+                          {status}
+                        </span>
+                        <span className="text-[#6b7280] text-xs">{isExpanded ? '▼' : '▶'}</span>
+                      </div>
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="px-2.5 pb-2.5 space-y-2 border-t border-[#1f2937]">
+                      <div className="pt-1">
+                        <span className="text-[10px] text-[#6b7280]">Record: </span>
+                        <span
+                          className="text-[10px]"
+                          style={{
+                            color: agent.record === 'high_risk' ? '#ff3355' : agent.record === 'low_risk' ? '#eab308' : '#3b82f6',
+                          }}
+                        >
+                          {agent.record}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => { onAgentAssign?.(agent.id); setAssignMode(false); }}
+                        className="w-full py-1.5 rounded text-xs font-semibold transition-all mt-1"
+                        style={{ backgroundColor: colors.text, color: '#000' }}
+                      >
+                        Assign {label}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -526,7 +630,6 @@ export function ContextPanel({
   responseState,
 }: ContextPanelProps) {
   const [isClient, setIsClient] = useState(false);
-  const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
 
   const agents = useMocks ? mockAgents : (agentsProp ?? []);
   const isSystemEntity = selectedAgentId
@@ -546,10 +649,6 @@ export function ContextPanel({
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  useEffect(() => {
-    setExpandedAgentId(null);
-  }, [patrolSelection]);
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId);
   const currentStatus = selectedAgentId ? getAgentStatus(selectedAgentId) : null;
@@ -596,8 +695,6 @@ export function ContextPanel({
       ? 'Network Agent'
       : isSuperintendent(selectedAgentId)
       ? 'Superintendent'
-      : patrolSelection
-      ? 'Select Agent to Investigate'
       : selectedAgent?.name ?? selectedAgentId
     : 'Context';
 
@@ -608,10 +705,7 @@ export function ContextPanel({
         <h2 className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">
           {panelTitle}
         </h2>
-        {patrolSelection && (
-          <span className="text-[10px] text-[#00d4ff]">{patrolSelection.patrolLabel}</span>
-        )}
-        {!patrolSelection && !selectedAgent && !isLive && !isSystemEntity && (
+        {!selectedAgent && !isLive && !isSystemEntity && (
           <span className="text-[10px] text-[#ffaa00]">Historical View</span>
         )}
       </div>
@@ -619,14 +713,21 @@ export function ContextPanel({
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {/* System entity panels */}
         {selectedAgentId && isPatrol(selectedAgentId) ? (
-          <PatrolPanel patrolId={selectedAgentId} responseState={responseState} />
+          <PatrolPanel
+            patrolId={selectedAgentId}
+            responseState={responseState}
+            agents={agents}
+            getAgentStatus={getAgentStatus}
+            patrolSelection={patrolSelection}
+            onAgentAssign={onAgentAssign}
+          />
         ) : selectedAgentId && isInvestigator(selectedAgentId) ? (
           <InvestigatorPanel investigatorId={selectedAgentId} responseState={responseState} />
         ) : selectedAgentId && isNetwork(selectedAgentId) ? (
           <NetworkPanel />
         ) : selectedAgentId && isSuperintendent(selectedAgentId) ? (
           <SuperintendentPanel responseState={responseState} />
-        ) : selectedAgentId && !patrolSelection ? (
+        ) : selectedAgentId ? (
           <>
             {/* Current Activity (mock) */}
             {activity && (
@@ -862,119 +963,6 @@ export function ContextPanel({
               </button>
             </div>
           </>
-        ) : patrolSelection ? (
-          /* Patrol Agent Selection Mode */
-          <div className="space-y-3">
-            <p className="text-xs text-[#a0aec0]">
-              Select an agent for {patrolSelection.patrolLabel} to investigate:
-            </p>
-            <div className="space-y-1.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
-              {agents.map((agent) => {
-                const status = getAgentStatus(agent.id);
-                const colors = statusColors[status as keyof typeof statusColors] || statusColors.idle;
-                const isExpanded = expandedAgentId === agent.id;
-                const agentActivity = agentActivities[agent.id];
-
-                return (
-                  <div
-                    key={agent.id}
-                    className="rounded border transition-all"
-                    style={{
-                      backgroundColor: colors.bg,
-                      borderColor: isExpanded ? colors.text : colors.border,
-                      borderWidth: isExpanded ? '2px' : '1px',
-                    }}
-                  >
-                    <button
-                      onClick={() => setExpandedAgentId(isExpanded ? null : agent.id)}
-                      className="w-full p-2.5 text-left hover:brightness-110 transition-all"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <span className="text-xs font-medium text-white block truncate">{agent.name}</span>
-                          <span className="text-[10px] text-[#6b7280]">{agent.role}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0"
-                            style={{
-                              color: colors.text,
-                              backgroundColor: `${colors.border}20`,
-                              border: `1px solid ${colors.border}`,
-                            }}
-                          >
-                            {status}
-                          </span>
-                          <span className="text-[#6b7280] text-xs">
-                            {isExpanded ? '▼' : '▶'}
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-
-                    {isExpanded && (
-                      <div className="px-2.5 pb-2.5 space-y-2 border-t border-[#1f2937]">
-                        {agentActivity && (
-                          <div className="pt-2">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] uppercase tracking-wider text-[#6b7280]">
-                                Current Activity
-                              </span>
-                              <span
-                                className="text-[9px] font-mono px-1 py-0.5 rounded"
-                                style={{
-                                  color: activityStatusColors[agentActivity.status],
-                                  backgroundColor: activityStatusColors[agentActivity.status] + '20',
-                                }}
-                              >
-                                {agentActivity.status.toUpperCase()}
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-[#a0aec0] mb-2">{agentActivity.currentTask}</p>
-                            <div className="space-y-0.5 font-mono max-h-20 overflow-y-auto">
-                              {agentActivity.logs.slice(-3).map((log) => (
-                                <div key={log.id} className="flex items-start gap-1 text-[9px]">
-                                  <span className="flex-shrink-0" style={{ color: logTypeColors[log.type] }}>
-                                    {logTypePrefixes[log.type]}
-                                  </span>
-                                  <span className="text-[#4b5563] flex-shrink-0">{log.timestamp}</span>
-                                  <span className="truncate" style={{ color: logTypeColors[log.type] }}>
-                                    {log.message}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        <div className="pt-1">
-                          <span className="text-[10px] text-[#6b7280]">Record: </span>
-                          <span
-                            className="text-[10px]"
-                            style={{
-                              color: agent.record === 'high_risk'
-                                ? '#ff3355'
-                                : agent.record === 'low_risk'
-                                  ? '#eab308'
-                                  : '#3b82f6',
-                            }}
-                          >
-                            {agent.record}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => onAgentAssign?.(agent.id)}
-                          className="w-full py-1.5 rounded text-xs font-semibold transition-all mt-2"
-                          style={{ backgroundColor: colors.text, color: '#000' }}
-                        >
-                          Assign {patrolSelection.patrolLabel}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         ) : null}
       </div>
     </div>

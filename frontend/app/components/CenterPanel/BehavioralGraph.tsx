@@ -306,9 +306,10 @@ export function BehavioralGraph({
 
   // Patrol click handler - toggles selection in sidebar
   const handlePatrolClick = useCallback((patrolId: string) => {
-    // If clicking the same patrol that's already selected, cancel the selection
+    // If clicking the same patrol that's already selected, deselect
     if (patrolSelection?.patrolId === patrolId) {
       onPatrolSelect(null);
+      onSelectAgent(null);
       return;
     }
 
@@ -319,8 +320,9 @@ export function BehavioralGraph({
         patrolId,
         patrolLabel: patrolNode.data.label,
       });
+      onSelectAgent(patrolId);
     }
-  }, [onPatrolSelect, patrolSelection]);
+  }, [onPatrolSelect, onSelectAgent, patrolSelection]);
 
   // Handle agent selection from sidebar (called via onPatrolAssign)
   const handleAgentAssignment = useCallback(

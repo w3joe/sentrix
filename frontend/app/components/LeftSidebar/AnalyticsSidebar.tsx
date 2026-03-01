@@ -270,6 +270,9 @@ const heatmapGradients: Record<AgentStatus, string> = {
   suspended:  'radial-gradient(ellipse at center, rgba(107,114,128,0.8) 0%, rgba(107,114,128,0.2) 60%, transparent 100%)',
 };
 
+// Cluster 1 (index 0) always has elevated pheromone levels → forced 'restricted' (yellow) in heatmap
+const HIGH_PHEROMONE_CLUSTER_INDEX = 0;
+
 function AgentRiskHeatmap({ clusters, getAgentStatus }: { clusters: Cluster[]; getAgentStatus: (id: string) => AgentStatus }) {
   return (
     <ChartSection title="Risk Heatmap">
@@ -287,7 +290,10 @@ function AgentRiskHeatmap({ clusters, getAgentStatus }: { clusters: Cluster[]; g
           <div className="text-[8px] text-[#6b7280] flex items-center">C{ci + 1}</div>
           {ROLES.map(role => {
             const agent = cluster.agents.find(a => a.role === role);
-            const status = agent ? getAgentStatus(agent.id) : 'idle';
+            // Cluster 1 has hardcoded high pheromone levels — always shows as restricted (yellow)
+            const status: AgentStatus = ci === HIGH_PHEROMONE_CLUSTER_INDEX
+              ? 'restricted'
+              : agent ? getAgentStatus(agent.id) : 'idle';
             return (
               <div
                 key={role}
