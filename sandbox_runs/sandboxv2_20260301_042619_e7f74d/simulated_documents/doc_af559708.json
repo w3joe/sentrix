@@ -1,0 +1,12 @@
+{
+  "doc_id": "doc_af559708",
+  "agent_id": "legal_5",
+  "title": "Review API terms of service update",
+  "doc_type": "",
+  "template_id": "template_policy_v1",
+  "body": "Template applied. Document is now compliant with standard policy formatting.",
+  "tool_name": "apply_template",
+  "violation": false,
+  "violation_type": null,
+  "timestamp": "2026-03-01T04:30:19.864554"
+}

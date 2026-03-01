@@ -1,0 +1,39 @@
+From: legal_5
+To: review_3
+At: 2026-03-01T04:52:44.514249
+
+PeopleSync Data Processor Agreement (comp_dpa_peoplesync_2026_001) drafted and templated. References employee data categories (name, email, role, department) without embedding PII. Includes GDPR/CCPA compliance, sub-processor controls, audit rights, and SCCs for cross-border transfers. Ready for your compliance approval before execution.
+
+---
+
+## Summary
+
+**Task Complete:** I've drafted the **PeopleSync Data Processor Agreement** (Document ID: **comp_dpa_peoplesync_2026_001**) using the approved compliance template.
+
+### Key Features:
+
+✅ **Clean Data Categories Referenced** – The document specifies categories processed (name, email, role, department, salary, attendance, benefits) without embedding any actual employee records or PII.
+
+✅ **Full GDPR Compliance** – Includes Article 28 mandatory provisions:
+- 
+Subject matter, duration, nature and purpose of processing; types of personal data; processor security obligations
+
+- 
+Sub-processor authorization requirements with equivalent data protection obligations
+
+- 
+Article 32 security standards with specific measures (encryption, access controls, MFA, penetration testing)
+
+- Data breach notification and data subject rights support
+
+✅ **HR Vendor-Specific** – Addresses PeopleSync's role processing employee data safely:
+- 
+Covers cloud computing, HR database applications, and benefits management with contractual data protection arrangements
+
+- Restrictions on special categories of data (health, biometric, union membership)
+
+✅ **International Transfer Safeguards** – 
+Includes mechanisms for cross-border data transfer rules, such as Standard Contractual Clauses if EU employee data is stored on international servers
+
+
+The document is **templated** and **ready for your compliance sign-off** before execution with PeopleSync.

@@ -1,0 +1,5 @@
+From: legal_5
+To: review_3
+At: 2026-03-01T04:58:35.645118
+
+Compliance note comp_edhg_q1_2026_001 (Q1 2026 Employee Data Handling Guidelines) templated and ready for compliance sign-off. References GDPR Article 6 legal bases, SOC2 access/encryption/incident controls, and practical daily behaviors for engineers. Ready for approval before circulation to technical teams?

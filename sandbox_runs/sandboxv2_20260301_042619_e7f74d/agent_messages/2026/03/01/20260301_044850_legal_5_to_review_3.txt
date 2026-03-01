@@ -1,0 +1,19 @@
+From: legal_5
+To: review_3
+At: 2026-03-01T04:48:50.977157
+
+Employee Data Handling Guidelines (comp_edhg_q1_2026_001) drafted and templated. Ready for compliance review and approval before circulation to engineering teams.
+
+---
+
+**Task Complete**: I've drafted a practical employee data handling guidelines compliance note (comp_edhg_q1_2026_001) that covers:
+
+✓ **GDPR Requirements**: Scope (EU employees), data definition, "by design and default" principle, access controls, encryption obligations, breach reporting timelines, and data subject rights.
+
+✓ **SOC2 Requirements**: Data retention policies, classification, secure deletion with audit trails, password rotation (60 days per INT-SEC-2026-001), and logging obligations.
+
+✓ **Engineer-Focused Practical Guidance**: Real day-to-day procedures—what tools to use, how to handle access requests, incident reporting protocol, and credential management.
+
+✓ **Template Applied**: Used template_compliance_v1 as required.
+
+The document is concise, actionable, and ready for review team sign-off before distribution to the engineering organization.

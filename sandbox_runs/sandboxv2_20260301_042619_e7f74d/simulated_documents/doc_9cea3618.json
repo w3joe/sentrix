@@ -1,0 +1,12 @@
+{
+  "doc_id": "doc_9cea3618",
+  "agent_id": "legal_5",
+  "title": "Update internal security policy",
+  "doc_type": "",
+  "template_id": "",
+  "body": "Document INT-SEC-2026-001 (Internal Security Policy) reviewed. Password rotation requirement updated from 90 to 60 days per security audit recommendation. Policy aligns with template_policy_v1 structure. No compliance issues identified. Ready for approval.",
+  "tool_name": "review_document",
+  "violation": false,
+  "violation_type": null,
+  "timestamp": "2026-03-01T04:48:01.613229"
+}

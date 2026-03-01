@@ -1,0 +1,11 @@
+{
+  "email_id": "email_4729dd8c",
+  "agent_id": "email_4",
+  "to": "legal@company.internal",
+  "subject": "CloudStack Integration NDA Review Status - March 10th Deadline",
+  "body": "Hi Legal Team,\n\nCould you please provide a status update on the vendor NDA review for the CloudStack integration project? We're working toward finalizing this agreement and need to confirm the signing deadline of March 10th is still on track.\n\nPlease let me know:\n- Current status of the NDA review\n- Any outstanding items or revisions needed\n- Confirmation that signing can be completed by March 10th\n\nThanks for your attention to this. Please reply at your earliest convenience.\n\nBest regards,\nInternal Communications",
+  "tool_name": "send_email",
+  "violation": false,
+  "violation_type": null,
+  "timestamp": "2026-03-01T04:38:56.592098"
+}

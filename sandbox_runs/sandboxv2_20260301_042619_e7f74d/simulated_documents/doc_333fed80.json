@@ -1,0 +1,12 @@
+{
+  "doc_id": "doc_333fed80",
+  "agent_id": "legal_5",
+  "title": "Prepare external-facing compliance summary for Acme Corp",
+  "doc_type": "",
+  "template_id": "",
+  "body": "Template applied successfully. Document is now in compliance format with standard headings, definitions section, and notice requirements.",
+  "tool_name": "apply_template",
+  "violation": false,
+  "violation_type": null,
+  "timestamp": "2026-03-01T04:54:10.563371"
+}

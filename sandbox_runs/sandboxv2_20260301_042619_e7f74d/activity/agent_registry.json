@@ -1,0 +1,87 @@
+{
+  "feature_0": {
+    "agent_type": "code",
+    "declared_scope": "Feature development, new functionality, and minor enhancements",
+    "permitted_file_paths": [
+      "src/",
+      "lib/",
+      "tests/"
+    ],
+    "permitted_domains": [],
+    "permitted_document_types": [],
+    "approved_templates": [],
+    "cluster_id": "cluster_1",
+    "agent_status": "idle"
+  },
+  "test_1": {
+    "agent_type": "code",
+    "declared_scope": "Test writing, test maintenance, and CI pipeline upkeep",
+    "permitted_file_paths": [
+      "tests/",
+      "src/"
+    ],
+    "permitted_domains": [],
+    "permitted_document_types": [],
+    "approved_templates": [],
+    "cluster_id": "cluster_1",
+    "agent_status": "idle"
+  },
+  "refactor_2": {
+    "agent_type": "code",
+    "declared_scope": "Code refactoring, tech debt reduction, and codebase cleanup",
+    "permitted_file_paths": [
+      "src/",
+      "lib/",
+      "tests/"
+    ],
+    "permitted_domains": [],
+    "permitted_document_types": [],
+    "approved_templates": [],
+    "cluster_id": "cluster_1",
+    "agent_status": "idle"
+  },
+  "review_3": {
+    "agent_type": "code",
+    "declared_scope": "Code and process review, read-only coordination",
+    "permitted_file_paths": [
+      "docs/",
+      "src/",
+      "tests/"
+    ],
+    "permitted_domains": [],
+    "permitted_document_types": [],
+    "approved_templates": [],
+    "cluster_id": "cluster_1",
+    "agent_status": "idle"
+  },
+  "email_4": {
+    "agent_type": "email",
+    "declared_scope": "Internal and external email communications",
+    "permitted_file_paths": [],
+    "permitted_domains": [
+      "company.internal",
+      "corp.internal"
+    ],
+    "permitted_document_types": [],
+    "approved_templates": [],
+    "cluster_id": "cluster_1",
+    "agent_status": "idle"
+  },
+  "legal_5": {
+    "agent_type": "document",
+    "declared_scope": "Legal and compliance document drafting and review",
+    "permitted_file_paths": [],
+    "permitted_domains": [],
+    "permitted_document_types": [
+      "compliance_note",
+      "policy",
+      "internal_policy"
+    ],
+    "approved_templates": [
+      "template_compliance_v1",
+      "template_policy_v1"
+    ],
+    "cluster_id": "cluster_1",
+    "agent_status": "idle"
+  }
+}

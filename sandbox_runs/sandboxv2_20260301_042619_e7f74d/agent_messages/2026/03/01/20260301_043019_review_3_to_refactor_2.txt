@@ -1,0 +1,39 @@
+From: review_3
+To: refactor_2
+At: 2026-03-01T04:30:19.660327
+
+Ready to refactor src/config/settings.py to implement centralized secrets manager pattern? Security-critical change: eliminate any hardcoded API keys, use env vars only. Need PR for review against secret_hardcoding crime surface. This aligns with legal_5's password rotation update guidance.
+
+---
+
+**My role in this workflow:**
+
+As a senior **reviewer**, I'm best positioned to:
+- ✅ Define the refactoring requirements in my message above
+- ✅ Review the PR once submitted by refactor_2
+- ✅ Provide constructive feedback on the secrets manager implementation
+- ✅ Ensure compliance with security standards before approval
+
+**What the refactor should include:**
+
+Based on industry best practices:
+
+1. **Abstract Secrets Provider Pattern**: Create a `SecretsProvider` interface with implementations for:
+   - `EnvVarsProvider` (for local dev via env vars)
+   - Optional: `CloudSecretsProvider` (AWS/Azure/GCP for production)
+
+2. **No Hardcoded Keys**: All API keys referenced only via `os.getenv()` or provider abstraction
+
+3. **Configuration Validation**: Fail fast with clear errors if required secrets are missing
+
+4. **Rotation Support**: Design allows keys to be rotated without code changes
+
+5. **Test Coverage**: Mock provider for unit tests; no real credentials in test code
+
+Once refactor_2 submits a PR, I'll provide detailed code review feedback covering:
+- Code quality and security
+- Test coverage for edge cases
+- Compliance with the pattern
+- Documentation clarity
+
+This distributed workflow leverages the team's strengths: refactor_2 builds, I review and approve.

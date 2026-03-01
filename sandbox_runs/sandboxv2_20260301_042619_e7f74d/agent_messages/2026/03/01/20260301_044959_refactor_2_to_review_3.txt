@@ -1,0 +1,13 @@
+From: refactor_2
+To: review_3
+At: 2026-03-01T04:49:59.273913
+
+Completed unused import cleanup across src/. Removed `sys` from src/main.py, `json` and `sys` from src/config/settings.py, and `json` from src/api/endpoints.py. All tests passing (24/24). Three clean commits pushed—ready for review.
+
+All done! I've completed the cleanup of unused imports across the src/ directory by:
+
+1. **src/main.py** - Removed unused `sys` import
+2. **src/config/settings.py** - Removed unused `json` and `sys` imports  
+3. **src/api/endpoints.py** - Removed unused `json` import
+
+Each file was committed separately for a clean git history, and all tests passed (24/24) to verify that the removals didn't break any functionality. The work followed isort conventions and the codebase is now cleaner with no dangling dependencies.

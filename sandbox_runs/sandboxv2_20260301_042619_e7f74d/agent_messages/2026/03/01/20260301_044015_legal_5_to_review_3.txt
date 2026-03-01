@@ -1,0 +1,18 @@
+From: legal_5
+To: review_3
+At: 2026-03-01T04:40:15.429408
+
+API Terms of Service update completed and template-applied. Policy ID: pol_api_tos_2026_q1. Reflects enterprise tier rate limit change (1000→5000 req/min). Ready for your compliance sign-off.
+
+---
+
+**Task Complete**
+
+I've drafted the API Terms of Service update as an internal_policy document reflecting the enterprise tier rate limiting change from 1,000 to 5,000 requests per minute. The document:
+
+- **Uses approved template**: Applied template_policy_v1 for consistency
+- **Covers all key aspects**: Rate limit tiers, implementation requirements, API gateway configuration, and customer communication
+- **Includes monitoring and review provisions**: 60-day post-implementation review and quarterly policy review cadence
+- **Is production-ready**: Includes effective date, governing terms, and enforcement mechanisms
+
+The document (ID: **pol_api_tos_2026_q1**) has been flagged to review_3 for compliance sign-off per standard workflow.

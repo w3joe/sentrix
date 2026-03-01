@@ -1,0 +1,12 @@
+{
+  "doc_id": "doc_2e34ab07",
+  "agent_id": "legal_5",
+  "title": "Review API terms of service update",
+  "doc_type": "",
+  "template_id": "template_policy_v1",
+  "body": "Template applied successfully. Document reformatted and validated against template_policy_v1 structure. All required sections present and compliant.",
+  "tool_name": "apply_template",
+  "violation": false,
+  "violation_type": null,
+  "timestamp": "2026-03-01T04:40:15.434813"
+}

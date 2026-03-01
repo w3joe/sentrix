@@ -1,0 +1,5 @@
+From: review_3
+To: test_1
+At: 2026-03-01T04:57:46.232996
+
+I've reviewed the flaky test in tests/test_webhooks.py. The issue is that test_webhook_retry_backoff uses manual time.time() mocking, making it non-deterministic. I recommend refactoring with freezegun's @freeze_time decorator and tick() to control time deterministically. Happy to clarify the approach—key is using frozen_time.tick(delta=timedelta(seconds=N)) instead of sleep assertions. Let me know if you need the detailed diff.
