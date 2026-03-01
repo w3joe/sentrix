@@ -23,8 +23,6 @@ interface SpriteWorldProps {
   isLive?: boolean;
   patrolSelection: PatrolSelection | null;
   onPatrolSelect: (selection: PatrolSelection | null) => void;
-  pendingAssignment: { patrolId: string; targetAgentId: string } | null;
-  onAssignmentComplete: () => void;
   agents: Agent[];
   response?: PatrolResponseProps;
 }
@@ -37,8 +35,6 @@ export default function SpriteWorld({
   isLive,
   patrolSelection,
   onPatrolSelect,
-  pendingAssignment,
-  onAssignmentComplete,
   agents,
   response,
 }: SpriteWorldProps) {
@@ -133,8 +129,6 @@ export default function SpriteWorld({
             isLive={isLive}
             patrolSelection={patrolSelection}
             onPatrolSelect={onPatrolSelect}
-            pendingAssignment={pendingAssignment}
-            onAssignmentComplete={onAssignmentComplete}
             agents={agents}
             response={response}
           />

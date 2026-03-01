@@ -52,12 +52,16 @@ export function useInvestigationDetail(investigationId: string | null) {
   });
 }
 
+// Bridge DB also stores investigations; invalidate so useCaseFiles picks up new/concluded ones
+const BRIDGE_INVESTIGATIONS_KEY = ['investigations'] as const;
+
 export function useStartInvestigation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: investigationApi.startInvestigation,
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: INV_KEYS.list });
+      qc.invalidateQueries({ queryKey: BRIDGE_INVESTIGATIONS_KEY });
       qc.setQueryData(INV_KEYS.detail(data.investigation_id), {
         investigation_id: data.investigation_id,
         status: data.status,

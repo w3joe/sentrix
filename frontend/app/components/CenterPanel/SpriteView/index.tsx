@@ -21,8 +21,6 @@ export interface SpriteViewProps {
   isLive?: boolean;
   patrolSelection: PatrolSelection | null;
   onPatrolSelect: (selection: PatrolSelection | null) => void;
-  pendingAssignment: { patrolId: string; targetAgentId: string } | null;
-  onAssignmentComplete: () => void;
   agents: Agent[];
   response?: PatrolResponseProps;
 }

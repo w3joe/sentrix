@@ -263,11 +263,11 @@ function InvestigationOutcomes() {
 const ROLES = ['EMAIL_AGENT', 'CODING_AGENT', 'DOCUMENT_AGENT', 'DATA_QUERY_AGENT'];
 const ROLE_SHORT = ['Email', 'Code', 'Doc', 'Data'];
 
-const heatmapColors: Record<AgentStatus, string> = {
-  working:    'bg-[#00c853]/60',
-  idle:       'bg-[#4a9eff]/40',
-  restricted: 'bg-[#ffaa00]',
-  suspended:  'bg-[#6b7280]',
+const heatmapGradients: Record<AgentStatus, string> = {
+  working:    'radial-gradient(ellipse at center, rgba(0,200,83,0.9) 0%, rgba(0,200,83,0.3) 60%, transparent 100%)',
+  idle:       'radial-gradient(ellipse at center, rgba(74,158,255,0.7) 0%, rgba(74,158,255,0.2) 60%, transparent 100%)',
+  restricted: 'radial-gradient(ellipse at center, rgba(255,170,0,1) 0%, rgba(255,170,0,0.4) 60%, transparent 100%)',
+  suspended:  'radial-gradient(ellipse at center, rgba(107,114,128,0.8) 0%, rgba(107,114,128,0.2) 60%, transparent 100%)',
 };
 
 function AgentRiskHeatmap({ clusters, getAgentStatus }: { clusters: Cluster[]; getAgentStatus: (id: string) => AgentStatus }) {
@@ -291,7 +291,8 @@ function AgentRiskHeatmap({ clusters, getAgentStatus }: { clusters: Cluster[]; g
             return (
               <div
                 key={role}
-                className={`h-5 rounded-sm ${heatmapColors[status]} transition-colors`}
+                className="h-5 rounded-sm transition-all"
+                style={{ background: heatmapGradients[status] }}
                 title={agent ? `${agent.name}: ${status}` : ''}
               />
             );

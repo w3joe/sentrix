@@ -16,6 +16,7 @@ import { useTimelineState } from './hooks/useTimelineState';
 import { useCaseFiles } from './hooks/api/useBridgeQueries';
 import { usePatrolFlagNotifications } from './hooks/usePatrolFlagNotifications';
 import { usePatrolResponseSequence } from './hooks/usePatrolResponseSequence';
+import { useStartInvestigation } from './hooks/api/useInvestigationQueries';
 import { caseFiles as mockCaseFiles } from './data/mockData';
 import type { PatrolSelection } from './types';
 
@@ -35,11 +36,10 @@ export default function Dashboard() {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [patrolSelection, setPatrolSelection] = useState<PatrolSelection | null>(null);
   const { data: caseFiles = [], isLoading: casesLoading } = useCaseFiles();
-  const [pendingAssignment, setPendingAssignment] = useState<{ patrolId: string; targetAgentId: string } | null>(null);
-
   const { notification, dismiss, testNotify } = usePatrolFlagNotifications();
   const {
     responseState,
+    triggerManual,
     onPatrolArrived,
     onInvestigatorArrived,
     onNetworkArrived,
@@ -47,6 +47,8 @@ export default function Dashboard() {
     onInvestigatorReturnArrived,
     onNetworkReturnArrived,
   } = usePatrolResponseSequence(notification, dismiss);
+
+  const startInvestigationMutation = useStartInvestigation();
 
   // Dev helper — call window.__testPatrolAlert() in the browser console
   if (typeof window !== 'undefined') {
@@ -111,21 +113,27 @@ export default function Dashboard() {
     setPatrolSelection(selection);
   }, []);
 
-  // Handle agent assignment from sidebar
+  // Handle agent assignment from sidebar — same flow as notification: visual sequence + backend investigation
   const handleAgentAssign = useCallback((targetAgentId: string) => {
-    if (patrolSelection) {
-      setPendingAssignment({
-        patrolId: patrolSelection.patrolId,
-        targetAgentId,
-      });
-    }
-  }, [patrolSelection]);
+    if (!patrolSelection) return;
+    const patrolId = patrolSelection.patrolId as 'p1' | 'p2';
 
-  // Clear pending assignment after it's processed
-  const handleAssignmentComplete = useCallback(() => {
-    setPendingAssignment(null);
+    // 1. Start visual response sequence (patrol moving → summoning → at_scene → returning → reporting)
+    triggerManual(patrolId, targetAgentId);
     setPatrolSelection(null);
-  }, []);
+
+    // 2. Start backend investigation (same as when patrol flag occurs — creates investigation, runs pipeline, produces case file)
+    startInvestigationMutation.mutate({
+      flag_id: `manual-${Date.now()}-${crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)}`,
+      target_agent_id: targetAgentId,
+      consensus_severity: 'HIGH',
+      consensus_confidence: 1,
+      votes: [],
+      pii_labels_union: [],
+      referral_summary: 'Manual patrol assignment by operator',
+      pheromone_level: 0,
+    });
+  }, [patrolSelection, triggerManual, startInvestigationMutation]);
 
   // Cancel patrol selection
   const handleCancelPatrolSelection = useCallback(() => {
@@ -189,8 +197,6 @@ export default function Dashboard() {
               isLive={isLive}
               patrolSelection={patrolSelection}
               onPatrolSelect={handlePatrolSelect}
-              pendingAssignment={pendingAssignment}
-              onAssignmentComplete={handleAssignmentComplete}
               showHeatmap={sidebarMode === 'analytics'}
               response={responseState}
             />
@@ -203,8 +209,6 @@ export default function Dashboard() {
               isLive={isLive}
               patrolSelection={patrolSelection}
               onPatrolSelect={handlePatrolSelect}
-              pendingAssignment={pendingAssignment}
-              onAssignmentComplete={handleAssignmentComplete}
               agents={agents}
               response={{
                 respondingPatrolId: responseState.patrolId,

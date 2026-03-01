@@ -6,7 +6,7 @@ interface Position {
   y: number;
 }
 
-export function useAgentMovement(targetX: number, targetY: number): Position {
+export function useAgentMovement(targetX: number, targetY: number, speed?: number): Position {
   const [position, setPosition] = useState<Position>({ x: targetX, y: targetY });
   const posRef = useRef<Position>({ x: targetX, y: targetY });
   const prevTargetRef = useRef<Position>({ x: targetX, y: targetY });
@@ -28,10 +28,10 @@ export function useAgentMovement(targetX: number, targetY: number): Position {
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist > 1) {
-        const speed = MOVEMENT.agentTransitionSpeed;
+        const lerpFactor = speed ?? MOVEMENT.agentTransitionSpeed;
         const newPos = {
-          x: cur.x + dx * speed,
-          y: cur.y + dy * speed,
+          x: cur.x + dx * lerpFactor,
+          y: cur.y + dy * lerpFactor,
         };
         posRef.current = newPos;
         setPosition(newPos);
@@ -45,7 +45,7 @@ export function useAgentMovement(targetX: number, targetY: number): Position {
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [targetX, targetY]);
+  }, [targetX, targetY, speed]);
 
   return position;
 }

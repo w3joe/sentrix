@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback } from 'react';
 import type { AgentStatus, PatrolSelection, Agent } from '../../../../types';
-import { rooms, getDeskPosition, controlRoom, getQuarantineCellPosition, getEntertainmentSeatPosition } from '../config/roomLayout';
+import { rooms, controlRoom, getQuarantineCellPosition, getEntertainmentSeatPosition } from '../config/roomLayout';
 import { AgentSprite } from '../entities/AgentSprite';
 import { PatrolSprite } from '../entities/PatrolSprite';
 import { SuperintendentSprite } from '../entities/SuperintendentSprite';
@@ -31,8 +31,6 @@ interface EntityLayerProps {
   isLive?: boolean;
   patrolSelection: PatrolSelection | null;
   onPatrolSelect: (selection: PatrolSelection | null) => void;
-  pendingAssignment: { patrolId: string; targetAgentId: string } | null;
-  onAssignmentComplete: () => void;
   agents: Agent[];
   response?: PatrolResponseProps;
 }
@@ -53,8 +51,6 @@ export function EntityLayer({
   isLive,
   patrolSelection,
   onPatrolSelect,
-  pendingAssignment,
-  onAssignmentComplete,
   agents,
   response,
 }: EntityLayerProps) {
@@ -137,64 +133,18 @@ export function EntityLayer({
     return sprites;
   }, [selectedAgentId, onSelectAgent, getEffectiveStatus, agents]);
 
-  const getAgentPosition = useCallback(
-    (agentId: string): { x: number; y: number } | null => {
-      const agent = agents.find((a) => a.id === agentId);
-      if (!agent) return null;
-
-      const status = getEffectiveStatus(agentId);
-
-      // Build ordered list of displayed agents (same logic as agentSprites)
-      const displayedAgents: Agent[] = [];
-      for (const room of rooms) {
-        const clusterAgents = agents
-          .filter((a) => (a as Agent & { clusterId?: string }).clusterId === room.id)
-          .sort((a, b) => (ROLE_ORDER[a.role] ?? 99) - (ROLE_ORDER[b.role] ?? 99));
-        for (let i = 0; i < room.desks.length; i++) {
-          const desk = room.desks[i];
-          const a = agents.find((ag) => ag.id === desk.agentId) ?? clusterAgents[i];
-          if (a) displayedAgents.push(a);
-        }
-      }
-
-      if (status === 'suspended') {
-        const suspended = displayedAgents.filter((a) => getEffectiveStatus(a.id) === 'suspended');
-        const idx = suspended.findIndex((a) => a.id === agentId);
-        if (idx >= 0) return getQuarantineCellPosition(idx);
-      } else if (status === 'idle') {
-        const idle = displayedAgents.filter((a) => getEffectiveStatus(a.id) === 'idle');
-        const idx = idle.findIndex((a) => a.id === agentId);
-        if (idx >= 0) return getEntertainmentSeatPosition(idx);
-      }
-
-      // Default: at desk (static layout or dynamic assignment)
-      return getDeskPosition(agentId) ?? agentToDesk.get(agentId) ?? null;
-    },
-    [getEffectiveStatus, agents, agentToDesk],
-  );
-
-  // Determine patrol targets:
-  // Response sequence takes priority over manual pendingAssignment
+  // Patrol targets come only from response sequence (notification or triggerManual) (notification or triggerManual)
   const isResponseActive = response && response.respondingPatrolId !== null && response.phase !== 'idle';
 
-  const p1ResponseTarget = isResponseActive && response.respondingPatrolId === 'p1' ? response.patrolTargetPos : null;
-  const p2ResponseTarget = isResponseActive && response.respondingPatrolId === 'p2' ? response.patrolTargetPos : null;
+  const p1TargetPos = isResponseActive && response.respondingPatrolId === 'p1' ? response.patrolTargetPos : null;
+  const p2TargetPos = isResponseActive && response.respondingPatrolId === 'p2' ? response.patrolTargetPos : null;
 
-  const p1ManualTarget = !isResponseActive && pendingAssignment?.patrolId === 'p1' ? pendingAssignment.targetAgentId : null;
-  const p2ManualTarget = !isResponseActive && pendingAssignment?.patrolId === 'p2' ? pendingAssignment.targetAgentId : null;
-  const p1ManualPos = p1ManualTarget ? getAgentPosition(p1ManualTarget) : null;
-  const p2ManualPos = p2ManualTarget ? getAgentPosition(p2ManualTarget) : null;
-
-  const p1TargetPos = p1ResponseTarget ?? p1ManualPos;
-  const p2TargetPos = p2ResponseTarget ?? p2ManualPos;
-
-  // Patrol arrived callbacks: response sequence takes priority
   const p1ArrivedCb = isResponseActive && response.respondingPatrolId === 'p1'
     ? (response.phase === 'returning' ? response.onPatrolReturnArrived : response.onPatrolArrived)
-    : onAssignmentComplete;
+    : () => {};
   const p2ArrivedCb = isResponseActive && response.respondingPatrolId === 'p2'
     ? (response.phase === 'returning' ? response.onPatrolReturnArrived : response.onPatrolArrived)
-    : onAssignmentComplete;
+    : () => {};
 
   return (
     <pixiContainer>

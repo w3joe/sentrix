@@ -64,10 +64,18 @@ const OFFSETS = {
 
 const SUPERINTENDENT_POS = controlRoom.superintendentPos;
 
+/** Optional: resolves position for live API agent IDs (getDeskPosition only knows static mock IDs) */
+export type GetAgentPosition = (agentId: string) => { x: number; y: number } | null;
+
 export function usePatrolResponseSequence(
   notification: PatrolNotification | null,
   dismiss: () => void,
+  getAgentPosition?: GetAgentPosition,
 ) {
+  const resolvePos = useCallback(
+    (agentId: string) => (getAgentPosition?.(agentId) ?? getDeskPosition(agentId)),
+    [getAgentPosition],
+  );
   const { data: caseFiles = [] } = useCaseFiles();
 
   const [state, setState] = useState<PatrolResponseState>(IDLE_STATE);
@@ -93,6 +101,23 @@ export function usePatrolResponseSequence(
     stateRef.current = IDLE_STATE;
   }, [clearTimers]);
 
+  const triggerManual = useCallback((patrolId: 'p1' | 'p2', targetAgentId: string) => {
+    if (stateRef.current.phase !== 'idle') return;
+    const agentPos = resolvePos(targetAgentId);
+    if (!agentPos) return;
+    const patrolTarget = { x: agentPos.x + OFFSETS.patrol.dx, y: agentPos.y + OFFSETS.patrol.dy };
+    const next: PatrolResponseState = {
+      phase: 'patrol_moving',
+      patrolId,
+      flaggedAgentId: targetAgentId,
+      patrolTargetPos: patrolTarget,
+      investigatorTargetPos: null,
+      networkTargetPos: null,
+    };
+    setState(next);
+    stateRef.current = next;
+  }, []);
+
   const startReturning = useCallback(() => {
     clearTimers();
     setState((prev) => {
@@ -114,7 +139,7 @@ export function usePatrolResponseSequence(
     if (stateRef.current.phase !== 'idle') return; // already handling one
 
     const agentId = notification.agentId;
-    const agentPos = getDeskPosition(agentId);
+    const agentPos = resolvePos(agentId);
     if (!agentPos) {
       dismiss();
       return;
@@ -134,14 +159,14 @@ export function usePatrolResponseSequence(
     setState(next);
     stateRef.current = next;
     dismiss(); // consume the notification so it doesn't re-trigger
-  }, [notification, dismiss]);
+  }, [notification, dismiss, resolvePos]);
 
   // ── Step 2: Called by PatrolSprite onArrived → SUMMONING ─────────────────
   const onPatrolArrived = useCallback(() => {
     if (stateRef.current.phase !== 'patrol_moving') return;
 
     const agentId = stateRef.current.flaggedAgentId;
-    const agentPos = agentId ? getDeskPosition(agentId) : null;
+    const agentPos = agentId ? resolvePos(agentId) : null;
     if (!agentPos) { resetToIdle(); return; }
 
     const investigatorTarget = {
@@ -161,7 +186,7 @@ export function usePatrolResponseSequence(
     };
     setState(next);
     stateRef.current = next;
-  }, [resetToIdle]);
+  }, [resetToIdle, resolvePos]);
 
   // ── Step 3: Both investigator and network arrived → AT_SCENE ──────────────
   const arrivedRef = useRef({ investigator: false, network: false });
@@ -246,6 +271,7 @@ export function usePatrolResponseSequence(
 
   return {
     responseState: state,
+    triggerManual,
     onPatrolArrived,
     onInvestigatorArrived,
     onNetworkArrived,

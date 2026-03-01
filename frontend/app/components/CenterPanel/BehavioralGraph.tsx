@@ -39,9 +39,6 @@ interface BehavioralGraphProps {
   isLive?: boolean;
   patrolSelection: PatrolSelection | null;
   onPatrolSelect: (selection: PatrolSelection | null) => void;
-  // When set, triggers an assignment of patrol to target agent
-  pendingAssignment: { patrolId: string; targetAgentId: string } | null;
-  onAssignmentComplete: () => void;
   showHeatmap?: boolean;
   response?: PatrolResponseState;
 }
@@ -213,8 +210,6 @@ export function BehavioralGraph({
   isLive = true,
   patrolSelection,
   onPatrolSelect,
-  pendingAssignment,
-  onAssignmentComplete,
   showHeatmap = false,
   response,
 }: BehavioralGraphProps) {
@@ -397,13 +392,18 @@ export function BehavioralGraph({
     [setNodes, setEdges, onPatrolSelect]
   );
 
-  // Watch for pending assignments from the sidebar
+  // When response enters patrol_moving (from triggerManual or notification), drive graph layout
+  const lastHandledAssignment = useRef<string | null>(null);
   useEffect(() => {
-    if (pendingAssignment) {
-      handleAgentAssignment(pendingAssignment.patrolId, pendingAssignment.targetAgentId);
-      onAssignmentComplete();
+    if (response?.phase !== 'patrol_moving' || !response.patrolId || !response.flaggedAgentId) {
+      lastHandledAssignment.current = null;
+      return;
     }
-  }, [pendingAssignment, handleAgentAssignment, onAssignmentComplete]);
+    const key = `${response.patrolId}-${response.flaggedAgentId}`;
+    if (lastHandledAssignment.current === key) return;
+    lastHandledAssignment.current = key;
+    handleAgentAssignment(response.patrolId, response.flaggedAgentId);
+  }, [response?.phase, response?.patrolId, response?.flaggedAgentId, handleAgentAssignment]);
 
   // Update nodes with current status and selection state
   const nodesWithStatus = useMemo(() => {
