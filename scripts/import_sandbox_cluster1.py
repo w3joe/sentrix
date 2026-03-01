@@ -1,7 +1,7 @@
 """
-Import sandboxv2_20260301_012541_220334 into bridge_db as cluster_1.
+Import sandboxv2_20260301_042619_e7f74d into bridge_db as cluster_1.
 
-- Removes the existing seeded cluster_1 agents (feature_0_1 … legal_5_1)
+- Purges existing cluster_1 agents and all their action_logs / a2a_messages
 - Inserts all 6 sandbox agents into cluster_1 with status "working"
 - Imports all A2A messages, PRs, emails, and documents from the sandbox run
 - Leaves cluster_2 / cluster_3 / cluster_4 and their agents untouched
@@ -27,13 +27,13 @@ logger = logging.getLogger(__name__)
 SANDBOX_DIR = (
     Path(__file__).resolve().parent.parent
     / "sandbox_runs"
-    / "sandboxv2_20260301_012541_220334"
+    / "sandboxv2_20260301_042619_e7f74d"
 )
 
-# Old seeded cluster_1 agents to remove before importing sandbox data
+# Current cluster_1 agent IDs to purge before reimporting
 OLD_CLUSTER_1_AGENTS = [
-    "feature_0_1", "test_1_1", "refactor_2_1",
-    "review_3_1", "email_4_1", "legal_5_1",
+    "feature_0", "test_1", "refactor_2",
+    "review_3", "email_4", "legal_5",
 ]
 
 
@@ -78,14 +78,23 @@ async def main() -> None:
     await db.initialize()
     logger.info("Connected to DB at %s", db._path)
 
-    # ── 1. Remove old cluster_1 agents ────────────────────────────────────────
+    # ── 1. Purge cluster_1 agents and all their associated data ───────────────
+    placeholders = ",".join("?" * len(OLD_CLUSTER_1_AGENTS))
     async with aiosqlite.connect(db._path) as raw:
-        for agent_id in OLD_CLUSTER_1_AGENTS:
-            await raw.execute(
-                "DELETE FROM agent_registry WHERE agent_id = ?", (agent_id,)
-            )
+        await raw.execute(
+            f"DELETE FROM action_logs WHERE agent_id IN ({placeholders})",
+            OLD_CLUSTER_1_AGENTS,
+        )
+        await raw.execute(
+            f"DELETE FROM a2a_messages WHERE sender_id IN ({placeholders})",
+            OLD_CLUSTER_1_AGENTS,
+        )
+        await raw.execute(
+            f"DELETE FROM agent_registry WHERE agent_id IN ({placeholders})",
+            OLD_CLUSTER_1_AGENTS,
+        )
         await raw.commit()
-    logger.info("Removed %d old cluster_1 agents.", len(OLD_CLUSTER_1_AGENTS))
+    logger.info("Purged %d cluster_1 agents + their action_logs and a2a_messages.", len(OLD_CLUSTER_1_AGENTS))
 
     # ── 2. Insert sandbox agents into cluster_1 ───────────────────────────────
     registry_path = SANDBOX_DIR / "activity" / "agent_registry.json"
