@@ -8,6 +8,7 @@ import { AnalyticsSidebar } from './components/LeftSidebar/AnalyticsSidebar';
 import { BehavioralGraph } from './components/CenterPanel/BehavioralGraph';
 import { SpriteView } from './components/CenterPanel/SpriteView';
 import { ContextPanel } from './components/RightSidebar/ContextPanel';
+import { CaseFileModal } from './components/CaseFileModal';
 import { Timeline } from './components/Timeline/Timeline';
 import { useAgentState } from './hooks/useAgentState';
 import { useTimelineState } from './hooks/useTimelineState';
@@ -79,10 +80,12 @@ export default function Dashboard() {
     })),
   }));
 
+  const allCaseFiles = USE_MOCKS ? mockCaseFiles : caseFiles;
+  const selectedCaseFile = allCaseFiles.find(c => c.investigationId === selectedCaseId) ?? null;
+
   const handleSelectCase = useCallback((caseId: string) => {
     setSelectedCaseId(prev => prev === caseId ? null : caseId);
-    selectAgent(null);
-  }, [selectAgent]);
+  }, []);
 
   // Handle patrol selection from sprite view
   const handlePatrolSelect = useCallback((selection: PatrolSelection | null) => {
@@ -182,7 +185,6 @@ export default function Dashboard() {
         <div className="w-[15%] min-w-[240px]">
           <ContextPanel
             selectedAgentId={selectedAgentId}
-            selectedCaseId={selectedCaseId}
             agents={agents}
             onClear={clearAgent}
             onRestrict={restrictAgent}
@@ -197,6 +199,14 @@ export default function Dashboard() {
           />
         </div>
       </div>
+
+      {/* Case File Modal */}
+      {selectedCaseFile && (
+        <CaseFileModal
+          caseFile={selectedCaseFile}
+          onClose={() => setSelectedCaseId(null)}
+        />
+      )}
 
       {/* Timeline Bar - 60px */}
       <Timeline
