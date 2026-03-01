@@ -81,7 +81,7 @@ Populated by the investigation workflow when a PatrolFlag is escalated.
 | `investigation_id` | TEXT PK | UUID |
 | `flag_id` | TEXT | PatrolFlag that triggered this |
 | `target_agent_id` | TEXT | Agent under investigation |
-| `status` | TEXT | `open` → `in_progress` → `concluded` |
+| `status` | TEXT | `open` → `concluded` (only two DB writes; `in_progress` exists only in LangGraph state) |
 | `opened_at` | TEXT | ISO datetime |
 | `concluded_at` | TEXT | ISO datetime (nullable) |
 | `verdict` | TEXT | `guilty` \| `not_guilty` \| `under_watch` |
@@ -1360,7 +1360,7 @@ SWARM_CONFIG    = {"configurable": {"thread_id": SWARM_THREAD_ID}}
 When a `PatrolFlag` is produced it is posted to the investigation swarm via:
 
 ```
-POST /superintendent/investigate
+POST /api/investigation/investigate
 Content-Type: application/json
 
 PatrolFlag.to_superintendent_payload()  # → model_dump(mode="json")
