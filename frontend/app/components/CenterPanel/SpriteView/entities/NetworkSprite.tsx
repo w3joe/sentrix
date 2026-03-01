@@ -144,8 +144,9 @@ export function NetworkSprite({ x: homeX, y: homeY, targetPos, roamZone, onArriv
         const dx = override.x - cur.x;
         const dy = override.y - cur.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
+        const ARRIVAL_THRESHOLD = 2 * S; // Match investigator — ensures onArrived fires reliably
 
-        if (dist > ROAM_SPEED) {
+        if (dist > ARRIVAL_THRESHOLD) {
           const nx = dx / dist;
           const ny = dy / dist;
           // Travel at 8× roam speed when on a mission

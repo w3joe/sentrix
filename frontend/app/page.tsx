@@ -37,7 +37,7 @@ export default function Dashboard() {
   }, []);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [patrolSelection, setPatrolSelection] = useState<PatrolSelection | null>(null);
-  const { data: caseFiles = [], isLoading: casesLoading } = useCaseFiles();
+  const { data: caseFiles = [], isLoading: casesLoading, refetch: refetchCaseFiles } = useCaseFiles();
   const { notification, dismiss, testNotify } = usePatrolFlagNotifications();
   // Dev helper — call window.__testPatrolAlert() in the browser console
   if (typeof window !== 'undefined') {
@@ -61,6 +61,28 @@ export default function Dashboard() {
     (agentId: string) => getAgentDeskPosition(agentId, agents),
     [agents],
   );
+
+  const startInvestigationMutation = useStartInvestigation();
+
+  // When a notification triggers the response sequence, start backend investigation only for test notifications.
+  // Real patrol flags are already posted to the investigation API by the patrol swarm backend.
+  const startInvestigationForNotification = useCallback(
+    (agentId: string, notification: { id: string }) => {
+      if (!notification.id.startsWith('test-')) return; // Real flag — patrol swarm already started it
+      startInvestigationMutation.mutate({
+        flag_id: `notify-${Date.now()}-${crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)}`,
+        target_agent_id: agentId,
+        consensus_severity: 'HIGH',
+        consensus_confidence: 1,
+        votes: [],
+        pii_labels_union: [],
+        referral_summary: 'Patrol flag notification',
+        pheromone_level: 0,
+      });
+    },
+    [startInvestigationMutation],
+  );
+
   const {
     responseState,
     triggerManual,
@@ -70,9 +92,13 @@ export default function Dashboard() {
     onPatrolReturnArrived,
     onInvestigatorReturnArrived,
     onNetworkReturnArrived,
-  } = usePatrolResponseSequence(notification, dismiss, getAgentPosition);
-
-  const startInvestigationMutation = useStartInvestigation();
+  } = usePatrolResponseSequence(
+    notification,
+    dismiss,
+    getAgentPosition,
+    startInvestigationForNotification,
+    refetchCaseFiles,
+  );
 
   const agentIds = useMemo(() => agents.map((a) => a.id), [agents]);
   const agentNames = useMemo(() => Object.fromEntries(agents.map((a) => [a.id, a.name])), [agents]);

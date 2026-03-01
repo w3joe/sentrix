@@ -80,6 +80,10 @@ export function usePatrolResponseSequence(
   notification: PatrolNotification | null,
   dismiss: () => void,
   getAgentPosition?: GetAgentPosition,
+  /** Called when a notification triggers a new sequence — use to start backend investigation (e.g. for testNotify; real flags are posted by patrol swarm) */
+  onNotificationTriggered?: (agentId: string, notification: PatrolNotification) => void,
+  /** Called when entering at_scene — use to refetch case files so concluded investigations are detected sooner */
+  refetchCaseFiles?: () => void,
 ) {
   const resolvePos = useCallback(
     (agentId: string) => (getAgentPosition?.(agentId) ?? getDeskPosition(agentId)),
@@ -128,8 +132,11 @@ export function usePatrolResponseSequence(
     stateRef.current = next;
   }, [resolvePos]);
 
+  const returnArrivedRef = useRef({ patrol: false, investigator: false, network: false });
+
   const startReturning = useCallback(() => {
     clearTimers();
+    returnArrivedRef.current = { patrol: false, investigator: false, network: false };
     setState((prev) => {
       const next: PatrolResponseState = {
         ...prev,
@@ -170,8 +177,9 @@ export function usePatrolResponseSequence(
     };
     setState(next);
     stateRef.current = next;
+    onNotificationTriggered?.(agentId, notification);
     dismiss(); // consume the notification so it doesn't re-trigger
-  }, [notification, dismiss, resolvePos]);
+  }, [notification, dismiss, resolvePos, onNotificationTriggered]);
 
   // ── Step 2: Called by PatrolSprite onArrived → SUMMONING ─────────────────
   const onPatrolArrived = useCallback(() => {
@@ -248,8 +256,6 @@ export function usePatrolResponseSequence(
   }, [caseFiles, startReturning]);
 
   // ── Step 5: All returned to superintendent → REPORTING ───────────────────
-  const returnArrivedRef = useRef({ patrol: false, investigator: false, network: false });
-
   const onPatrolReturnArrived = useCallback(() => {
     if (stateRef.current.phase !== 'returning') return;
     returnArrivedRef.current.patrol = true;

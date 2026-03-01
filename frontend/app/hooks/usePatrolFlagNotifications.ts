@@ -17,12 +17,42 @@ export interface PatrolNotification extends Incident {
 // Timestamp when the page loaded — flags older than this are considered "already seen"
 const PAGE_LOAD_TIME = Date.now();
 
+/** Unlocks audio playback on first user interaction (required by browser autoplay policy) */
+function useAudioUnlock() {
+  const unlocked = useRef(false);
+
+  useEffect(() => {
+    const unlock = () => {
+      if (unlocked.current) return;
+      unlocked.current = true;
+      try {
+        const a = new Audio('/sound/notification.mp3');
+        a.volume = 0;
+        void a.play().catch(() => {});
+      } catch {
+        // ignore
+      }
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('keydown', unlock);
+    };
+    document.addEventListener('click', unlock);
+    document.addEventListener('keydown', unlock);
+    return () => {
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('keydown', unlock);
+    };
+  }, []);
+
+  return unlocked;
+}
+
 export function usePatrolFlagNotifications() {
   const { data: flags = [] } = useFlags();
   const seenIds = useRef<Set<string>>(new Set());
   const [queue, setQueue] = useState<PatrolNotification[]>([]);
   const [current, setCurrent] = useState<PatrolNotification | null>(null);
   const isInitialized = useRef(false);
+  const audioUnlocked = useAudioUnlock();
 
   useEffect(() => {
     if (!Array.isArray(flags) || flags.length === 0) return;
@@ -73,24 +103,29 @@ export function usePatrolFlagNotifications() {
     setCurrent(next);
     setQueue(rest);
 
-    // Play notification sound (side effect outside of state updater)
-    try {
-      const audio = new Audio('/sound/notification.mp3');
-      audio.play().catch((err) => console.warn('[PatrolNotify] Sound blocked:', err));
-    } catch (err) {
-      console.warn('[PatrolNotify] Sound error:', err);
+    // Play notification sound only after user has interacted (browser autoplay policy)
+    if (audioUnlocked.current) {
+      try {
+        const audio = new Audio('/sound/notification.mp3');
+        void audio.play().catch((err) => console.warn('[PatrolNotify] Sound failed:', err));
+      } catch (err) {
+        console.warn('[PatrolNotify] Sound error:', err);
+      }
     }
   }, [current, queue]);
 
   const dismiss = () => setCurrent(null);
 
-  const testNotify = (severity: 'critical' | 'warning' | 'clear' = 'critical') => {
+  const testNotify = (
+    severity: 'critical' | 'warning' | 'clear' = 'critical',
+    agentId = 'c1-email',
+  ) => {
     const fake: PatrolNotification = {
       id: `test-${Date.now()}`,
       timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
       severity,
-      agentId: 'c1-email',
-      agentName: 'c1-email',
+      agentId,
+      agentName: agentId,
       message: '[TEST] Patrol detected anomalous outbound data transfer',
     };
     setQueue((prev) => [...prev, fake]);

@@ -183,7 +183,7 @@ export function useCaseFiles() {
   return useQuery({
     queryKey: [...BRIDGE_KEYS.investigations, 'caseFiles'],
     queryFn: bridgeApi.getInvestigations,
-    refetchInterval: 10_000,
+    refetchInterval: 5_000,
     select: (data) => {
       const rows = data.investigations as Record<string, unknown>[];
       return rows
@@ -219,7 +219,9 @@ export function useCaseFiles() {
               status: ((inv.status as string) || 'open') as 'open' | 'in_progress' | 'concluded',
             };
           }
-          return adaptCaseFile(cf) as import('../../types').CaseFile;
+          // adaptCaseFile(cf) uses cf.status which is absent in case_file JSON — status lives on DB row
+          const adapted = adaptCaseFile({ ...cf, status: inv.status });
+          return adapted as import('../../types').CaseFile;
         })
         .filter(Boolean) as import('../../types').CaseFile[];
     },
