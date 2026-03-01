@@ -116,7 +116,7 @@ export function usePatrolResponseSequence(
     };
     setState(next);
     stateRef.current = next;
-  }, []);
+  }, [resolvePos]);
 
   const startReturning = useCallback(() => {
     clearTimers();

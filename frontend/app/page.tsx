@@ -16,6 +16,7 @@ import { useTimelineState } from './hooks/useTimelineState';
 import { useCaseFiles } from './hooks/api/useBridgeQueries';
 import { usePatrolFlagNotifications } from './hooks/usePatrolFlagNotifications';
 import { usePatrolResponseSequence } from './hooks/usePatrolResponseSequence';
+import { getAgentDeskPosition } from './components/CenterPanel/SpriteView/config/roomLayout';
 import { useStartInvestigation } from './hooks/api/useInvestigationQueries';
 import { caseFiles as mockCaseFiles } from './data/mockData';
 import type { PatrolSelection } from './types';
@@ -37,19 +38,6 @@ export default function Dashboard() {
   const [patrolSelection, setPatrolSelection] = useState<PatrolSelection | null>(null);
   const { data: caseFiles = [], isLoading: casesLoading } = useCaseFiles();
   const { notification, dismiss, testNotify } = usePatrolFlagNotifications();
-  const {
-    responseState,
-    triggerManual,
-    onPatrolArrived,
-    onInvestigatorArrived,
-    onNetworkArrived,
-    onPatrolReturnArrived,
-    onInvestigatorReturnArrived,
-    onNetworkReturnArrived,
-  } = usePatrolResponseSequence(notification, dismiss);
-
-  const startInvestigationMutation = useStartInvestigation();
-
   // Dev helper — call window.__testPatrolAlert() in the browser console
   if (typeof window !== 'undefined') {
     (window as any).__testPatrolAlert = testNotify;
@@ -67,6 +55,23 @@ export default function Dashboard() {
     isLoading: agentsLoading,
     isError: agentsError,
   } = useAgentState();
+
+  const getAgentPosition = useCallback(
+    (agentId: string) => getAgentDeskPosition(agentId, agents),
+    [agents],
+  );
+  const {
+    responseState,
+    triggerManual,
+    onPatrolArrived,
+    onInvestigatorArrived,
+    onNetworkArrived,
+    onPatrolReturnArrived,
+    onInvestigatorReturnArrived,
+    onNetworkReturnArrived,
+  } = usePatrolResponseSequence(notification, dismiss, getAgentPosition);
+
+  const startInvestigationMutation = useStartInvestigation();
 
   const {
     timeRange,

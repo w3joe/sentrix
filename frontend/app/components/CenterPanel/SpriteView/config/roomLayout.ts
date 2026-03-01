@@ -244,6 +244,55 @@ export function getDeskPosition(agentId: string): { x: number; y: number } | nul
   return null;
 }
 
+/** Role order for consistent desk assignment (matches EntityLayer) */
+const ROLE_ORDER: Record<string, number> = {
+  EMAIL_AGENT: 0,
+  CODING_AGENT: 1,
+  DOCUMENT_AGENT: 2,
+  DATA_QUERY_AGENT: 3,
+};
+
+/** Agent shape needed for desk resolution (avoids circular imports) */
+interface AgentForDesk {
+  id: string;
+  role: string;
+  clusterId?: string;
+}
+
+/**
+ * Resolve agent desk position for both mock IDs (c1-email) and live API IDs (email_4).
+ * Uses cluster + role to assign desk when agentId isn't in static room layout.
+ */
+export function getAgentDeskPosition(
+  agentId: string,
+  agents: AgentForDesk[],
+): { x: number; y: number } | null {
+  // First try static lookup (mock IDs)
+  const staticPos = getDeskPosition(agentId);
+  if (staticPos) return staticPos;
+
+  const agent = agents.find((a) => a.id === agentId);
+  if (!agent) return null;
+
+  // Resolve by cluster + role (live API)
+  const normalizedCluster = (agent.clusterId ?? 'default').replace(/_/g, '-');
+  for (const room of rooms) {
+    if (room.id !== normalizedCluster) continue;
+    const clusterAgents = agents
+      .filter((a) => (a.clusterId ?? 'default').replace(/_/g, '-') === room.id)
+      .sort((a, b) => (ROLE_ORDER[a.role] ?? 99) - (ROLE_ORDER[b.role] ?? 99));
+    const idx = clusterAgents.findIndex((a) => a.id === agentId);
+    if (idx >= 0 && idx < room.desks.length) {
+      const d = room.desks[idx];
+      return { x: d.x, y: d.y };
+    }
+  }
+
+  // Fallback: agent exists but cluster didn't match — use first desk of first room
+  const firstDesk = rooms[0]?.desks[0];
+  return firstDesk ? { x: firstDesk.x, y: firstDesk.y } : null;
+}
+
 /**
  * Get the room ID that contains a given agent based on their desk assignment
  */

@@ -44,20 +44,20 @@ uvicorn bridge_db.api:app --host 0.0.0.0 --port 3001 --reload &
 PIDS+=($!)
 sleep 1
 
-# # 2. Patrol Swarm API (port 8001)
-# echo -e "${GREEN}[2/4]${NC} Patrol Swarm API → http://localhost:8001 ${YELLOW}(cwd: patrolswarm/)${NC}"
-# (
-#   cd patrolswarm
-#   uvicorn patrol_swarm.api:app --host 0.0.0.0 --port 8001 --reload
-# ) &
-# PIDS+=($!)
-# sleep 1
+# 2. Patrol Swarm API (port 8001)
+echo -e "${GREEN}[2/4]${NC} Patrol Swarm API → http://localhost:8001 ${YELLOW}(cwd: patrolswarm/)${NC}"
+(
+  cd patrolswarm
+  uvicorn patrol_swarm.api:app --host 0.0.0.0 --port 8001 --reload
+) &
+PIDS+=($!)
+sleep 1
 
-# # 3. Investigation API (port 8002)
-# echo -e "${GREEN}[3/4]${NC} Investigation API → http://localhost:8002"
-# uvicorn investigation.api:app --host 0.0.0.0 --port 8002 --reload &
-# PIDS+=($!)
-# sleep 1
+# 3. Investigation API (port 8002)
+echo -e "${GREEN}[3/4]${NC} Investigation API → http://localhost:8002"
+uvicorn investigation.api:app --host 0.0.0.0 --port 8002 --reload &
+PIDS+=($!)
+sleep 1
 
 # 4. Frontend (port 3000)
 echo -e "${GREEN}[4/4]${NC} Frontend → http://localhost:3000"
