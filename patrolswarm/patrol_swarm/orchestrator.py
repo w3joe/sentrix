@@ -114,6 +114,26 @@ class SwarmOrchestrator:
                 agent_ids, pheromone_map, current_cycle, patrol_registry, agent_registry
             )
 
+        # ── Watch-agent override ───────────────────────────────────────────────
+        # PATROL_WATCH_AGENTS are always assigned, regardless of what the LLM
+        # decided.  Assign ALL matching patrol agents for the target's domain
+        # (equivalent to HIGH ALERT tier treatment).
+        if cfg.PATROL_WATCH_AGENTS:
+            patrol_by_domain: dict[str, list[str]] = {}
+            for pname, pinfo in (patrol_registry or {}).items():
+                patrol_by_domain.setdefault(pinfo.get("domain", ""), []).append(pname)
+
+            for watch_id in cfg.PATROL_WATCH_AGENTS:
+                if watch_id not in agent_registry:
+                    continue
+                agent_type = agent_registry[watch_id].get("agent_type", "")
+                domain_patrol = sorted(patrol_by_domain.get(agent_type, []))
+                if domain_patrol:
+                    assignments[watch_id] = domain_patrol
+                    logger.info(
+                        "Watch override: %s force-assigned to %s", watch_id, domain_patrol
+                    )
+
         logger.info("Cycle %d assignments: %s", current_cycle, assignments)
         return assignments
 

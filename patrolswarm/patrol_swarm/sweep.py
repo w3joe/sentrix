@@ -69,12 +69,19 @@ async def run_sweep_cycle(
     """
     graph = build_single_cycle_graph(checkpointer=checkpointer)
 
+    # Pre-seed HIGH ALERT pheromone for watch agents so they are always assigned
+    # to full scrutiny regardless of prior history (deterministic demo guarantee).
+    initial_pheromone: dict = {}
+    for watch_id in cfg.PATROL_WATCH_AGENTS:
+        if watch_id in agent_registry:
+            initial_pheromone[watch_id] = 0.9
+
     # Seed initial state — if checkpointer has a prior snapshot for
     # SWARM_THREAD_ID, LangGraph merges this with the persisted state
     # automatically (persisted fields win over defaults).
     initial: BlackboardState = {
         "threat_signals": {},
-        "pheromone_map": {},
+        "pheromone_map": initial_pheromone,
         "consensus_buffer": {},
         "scan_history": {},
         "current_scan_assignments": {},

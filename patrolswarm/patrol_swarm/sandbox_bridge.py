@@ -409,6 +409,12 @@ def _assemble_pending_actions(
                 })
 
         elif agent_type == "email":
+            # Simulated emails FIRST — direct evidence (PII leaks) lands at
+            # indices 0..N, well within MAX_ACTIONS_PER_SCAN, so it is always
+            # captured even when the A2A backlog is large.
+            for email in simulated_emails.get(agent_id, []):
+                actions.append(email)
+            # A2A messages second — coordination / solicitation context
             for msg in a2a_by_sender.get(agent_id, []):
                 actions.append({
                     "email_id": msg["msg_id"],
@@ -417,9 +423,6 @@ def _assemble_pending_actions(
                     "recipient": msg.get("to", ""),
                     "timestamp": msg.get("timestamp", ""),
                 })
-            # Actual outbound and inbound emails from simulated_emails/
-            for email in simulated_emails.get(agent_id, []):
-                actions.append(email)
 
         else:  # document
             for msg in a2a_by_sender.get(agent_id, []):

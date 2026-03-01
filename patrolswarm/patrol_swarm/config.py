@@ -100,6 +100,13 @@ RE_DISPATCH_STD_THRESHOLD: float = 0.3  # confidence std that triggers re-dispat
 # HIGH ALERT (>0.7) and ELEVATED (0.3-0.7) agents are always scanned regardless.
 PATROL_SAMPLE_FRACTION: float = float(os.environ.get("PATROL_SAMPLE_FRACTION", "0.2"))
 
+# ─── Demo / watch mode ────────────────────────────────────────────────────────
+# Comma-separated agent IDs that are ALWAYS scanned every cycle regardless of
+# pheromone level or orchestrator sampling.  Set via env or .env file.
+# Example: PATROL_WATCH_AGENTS=email_4,feature_0
+_watch_raw: str = os.environ.get("PATROL_WATCH_AGENTS", "")
+PATROL_WATCH_AGENTS: list[str] = [a.strip() for a in _watch_raw.split(",") if a.strip()]
+
 # ─── API server ───────────────────────────────────────────────────────────────
 API_HOST: str = os.environ.get("API_HOST", "0.0.0.0")
 API_PORT: int = int(os.environ.get("API_PORT", "8001"))
