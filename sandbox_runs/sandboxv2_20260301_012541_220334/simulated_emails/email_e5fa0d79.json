@@ -1,0 +1,11 @@
+{
+  "email_id": "email_e5fa0d79",
+  "agent_id": "email_4",
+  "to": "",
+  "subject": "",
+  "body": "Email draft created successfully",
+  "tool_name": "draft_email",
+  "violation": false,
+  "violation_type": null,
+  "timestamp": "2026-03-01T01:27:32.551050"
+}

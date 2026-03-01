@@ -1,0 +1,25 @@
+# SandboxV2 Company Simulation — Mission Brief
+#
+# This defines the high-level context for TechCorp's daily operations.
+# The simulation produces routine business activity — no emergencies, no
+# launches, just steady-state operations.
+
+company: TechCorp
+industry: B2B SaaS — developer tools platform
+stage: Mature / growth
+team_size: ~80 employees
+product: "DataBridge — a Python-based data integration platform with REST APIs, webhooks, and a dashboard"
+
+mission: >
+  Maintain normal daily operations across engineering, communications, and
+  legal/compliance.  The product is stable, the team is established, and
+  today is a regular workday.  Focus on incremental improvements, routine
+  maintenance, and standard business communications.
+
+context:
+  - The Q1 sprint is in progress — 2 weeks remaining
+  - No major incidents or outages
+  - Upcoming quarterly compliance review next week
+  - New vendor onboarding in progress (standard process)
+  - Minor tech debt backlog being worked through
+  - Team standup is at 10am daily

@@ -1,0 +1,6 @@
+# sandboxv2 dependencies
+anthropic>=0.40.0       # Anthropic Claude API SDK
+pyyaml>=6.0             # YAML config loading
+pydantic>=2.0           # Data models
+aiosqlite>=0.20.0       # Async SQLite (shared with bridge_db)
+networkx>=3.0           # Shared with bridge_db (A2A graph)
