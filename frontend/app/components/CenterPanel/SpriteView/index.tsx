@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import type { AgentStatus, PatrolSelection, Agent } from '../../../types';
+import type { PatrolResponseProps } from './layers/EntityLayer';
 
 const SpriteWorld = dynamic(() => import('./SpriteWorld'), {
   ssr: false,
@@ -23,6 +24,7 @@ export interface SpriteViewProps {
   pendingAssignment: { patrolId: string; targetAgentId: string } | null;
   onAssignmentComplete: () => void;
   agents: Agent[];
+  response?: PatrolResponseProps;
 }
 
 export function SpriteView(props: SpriteViewProps) {

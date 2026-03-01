@@ -9,6 +9,20 @@ import { SuperintendentSprite } from '../entities/SuperintendentSprite';
 import { InvestigatorSprite } from '../entities/InvestigatorSprite';
 import { NetworkSprite } from '../entities/NetworkSprite';
 
+export interface PatrolResponseProps {
+  respondingPatrolId: 'p1' | 'p2' | null;
+  patrolTargetPos: { x: number; y: number } | null;
+  onPatrolArrived: () => void;
+  onPatrolReturnArrived: () => void;
+  investigatorTargetPos: { x: number; y: number } | null;
+  onInvestigatorArrived: () => void;
+  onInvestigatorReturnArrived: () => void;
+  networkTargetPos: { x: number; y: number } | null;
+  onNetworkArrived: () => void;
+  onNetworkReturnArrived: () => void;
+  phase: string;
+}
+
 interface EntityLayerProps {
   selectedAgentId: string | null;
   onSelectAgent: (agentId: string | null) => void;
@@ -20,6 +34,7 @@ interface EntityLayerProps {
   pendingAssignment: { patrolId: string; targetAgentId: string } | null;
   onAssignmentComplete: () => void;
   agents: Agent[];
+  response?: PatrolResponseProps;
 }
 
 /** Role order for consistent desk assignment when using live API (agents don't match mock IDs) */
@@ -41,6 +56,7 @@ export function EntityLayer({
   pendingAssignment,
   onAssignmentComplete,
   agents,
+  response,
 }: EntityLayerProps) {
   const getEffectiveStatus = useCallback(
     (agentId: string): AgentStatus => {
@@ -157,11 +173,28 @@ export function EntityLayer({
     [getEffectiveStatus, agents, agentToDesk],
   );
 
-  // Determine patrol targets - use actual agent position (not desk)
-  const p1Target = pendingAssignment?.patrolId === 'p1' ? pendingAssignment.targetAgentId : null;
-  const p2Target = pendingAssignment?.patrolId === 'p2' ? pendingAssignment.targetAgentId : null;
-  const p1TargetPos = p1Target ? getAgentPosition(p1Target) : null;
-  const p2TargetPos = p2Target ? getAgentPosition(p2Target) : null;
+  // Determine patrol targets:
+  // Response sequence takes priority over manual pendingAssignment
+  const isResponseActive = response && response.respondingPatrolId !== null && response.phase !== 'idle';
+
+  const p1ResponseTarget = isResponseActive && response.respondingPatrolId === 'p1' ? response.patrolTargetPos : null;
+  const p2ResponseTarget = isResponseActive && response.respondingPatrolId === 'p2' ? response.patrolTargetPos : null;
+
+  const p1ManualTarget = !isResponseActive && pendingAssignment?.patrolId === 'p1' ? pendingAssignment.targetAgentId : null;
+  const p2ManualTarget = !isResponseActive && pendingAssignment?.patrolId === 'p2' ? pendingAssignment.targetAgentId : null;
+  const p1ManualPos = p1ManualTarget ? getAgentPosition(p1ManualTarget) : null;
+  const p2ManualPos = p2ManualTarget ? getAgentPosition(p2ManualTarget) : null;
+
+  const p1TargetPos = p1ResponseTarget ?? p1ManualPos;
+  const p2TargetPos = p2ResponseTarget ?? p2ManualPos;
+
+  // Patrol arrived callbacks: response sequence takes priority
+  const p1ArrivedCb = isResponseActive && response.respondingPatrolId === 'p1'
+    ? (response.phase === 'returning' ? response.onPatrolReturnArrived : response.onPatrolArrived)
+    : onAssignmentComplete;
+  const p2ArrivedCb = isResponseActive && response.respondingPatrolId === 'p2'
+    ? (response.phase === 'returning' ? response.onPatrolReturnArrived : response.onPatrolArrived)
+    : onAssignmentComplete;
 
   return (
     <pixiContainer>
@@ -174,26 +207,37 @@ export function EntityLayer({
         label="Patrol-1"
         targetAgentPos={p1TargetPos}
         onSelect={onPatrolSelect}
-        onArrived={onAssignmentComplete}
+        onArrived={p1ArrivedCb}
       />
       <PatrolSprite
         patrolId="p2"
         label="Patrol-2"
         targetAgentPos={p2TargetPos}
         onSelect={onPatrolSelect}
-        onArrived={onAssignmentComplete}
+        onArrived={p2ArrivedCb}
       />
 
       {/* Superintendent */}
       <SuperintendentSprite />
 
-      {/* Network */}
-      <NetworkSprite x={controlRoom.networkPos.x} y={controlRoom.networkPos.y} />
+      {/* Network — driven by response sequence when active */}
+      <NetworkSprite
+        x={controlRoom.networkPos.x}
+        y={controlRoom.networkPos.y}
+        targetPos={isResponseActive ? response.networkTargetPos : null}
+        onArrived={isResponseActive
+          ? (response.phase === 'returning' ? response.onNetworkReturnArrived : response.onNetworkArrived)
+          : undefined}
+      />
 
-      {/* Investigators (non-interactive) */}
+      {/* Investigators — f1 driven by response sequence, f2 always roams */}
       <InvestigatorSprite
         investigatorId="f1"
         label="Investigator-1"
+        targetPos={isResponseActive ? response.investigatorTargetPos : null}
+        onArrived={isResponseActive
+          ? (response.phase === 'returning' ? response.onInvestigatorReturnArrived : response.onInvestigatorArrived)
+          : undefined}
       />
       <InvestigatorSprite
         investigatorId="f2"

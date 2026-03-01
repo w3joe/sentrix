@@ -33,6 +33,8 @@ export function useInvestigatorMovement(
   investigatorId: string,
   targetAgentId: string | null,
   onArrived?: () => void,
+  /** Direct world-space position override — takes precedence over targetAgentId */
+  targetPos?: { x: number; y: number } | null,
 ) {
   const homePos =
     controlRoom.investigatorPositions.find((p) => p.id === investigatorId) ??
@@ -41,10 +43,20 @@ export function useInvestigatorMovement(
   const [position, setPosition] = useState({ x: homePos.x, y: homePos.y });
   const posRef = useRef(position);
   const arrivedRef = useRef(false);
-  
+
   // Roaming state
   const roamTargetRef = useRef<{ x: number; y: number } | null>(null);
   const pauseUntilRef = useRef<number>(0);
+
+  // Keep callback ref in sync to avoid stale closure in animation loop
+  const onArrivedRef = useRef(onArrived);
+  useEffect(() => { onArrivedRef.current = onArrived; }, [onArrived]);
+
+  const targetPosRef = useRef(targetPos ?? null);
+  useEffect(() => {
+    targetPosRef.current = targetPos ?? null;
+    arrivedRef.current = false;
+  }, [targetPos]);
 
   useEffect(() => {
     arrivedRef.current = false;
@@ -53,14 +65,36 @@ export function useInvestigatorMovement(
     const tick = () => {
       const now = Date.now();
       const cur = posRef.current;
+      const overridePos = targetPosRef.current;
+
+      if (overridePos) {
+        // Direct position override (used by response sequence for scene + return movement)
+        const dx = overridePos.x - cur.x;
+        const dy = overridePos.y - cur.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 2 * S) {
+          const speed = MOVEMENT.investigatorSpeed;
+          const newPos = { x: cur.x + dx * speed, y: cur.y + dy * speed };
+          posRef.current = newPos;
+          setPosition(newPos);
+        } else if (!arrivedRef.current) {
+          arrivedRef.current = true;
+          onArrivedRef.current?.();
+        }
+
+        roamTargetRef.current = null;
+        rafId = requestAnimationFrame(tick);
+        return;
+      }
 
       if (targetAgentId) {
         // Has a target - move toward the target agent
         const deskPos = getDeskPosition(targetAgentId);
-        const targetPos = deskPos ? { x: deskPos.x, y: deskPos.y - 40 * S } : { x: homePos.x, y: homePos.y };
+        const resolvedTarget = deskPos ? { x: deskPos.x, y: deskPos.y - 40 * S } : { x: homePos.x, y: homePos.y };
 
-        const dx = targetPos.x - cur.x;
-        const dy = targetPos.y - cur.y;
+        const dx = resolvedTarget.x - cur.x;
+        const dy = resolvedTarget.y - cur.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist > 2 * S) {
@@ -73,14 +107,14 @@ export function useInvestigatorMovement(
           setPosition(newPos);
         } else if (!arrivedRef.current) {
           arrivedRef.current = true;
-          onArrived?.();
+          onArrivedRef.current?.();
         }
-        
+
         // Clear roam state when assigned
         roamTargetRef.current = null;
       } else {
         // No target - roam aimlessly in control room
-        
+
         // If pausing, wait
         if (now < pauseUntilRef.current) {
           rafId = requestAnimationFrame(tick);
@@ -117,13 +151,13 @@ export function useInvestigatorMovement(
 
       rafId = requestAnimationFrame(tick);
     };
-    
+
     // Start with a brief random pause before first movement (offset between investigators)
     pauseUntilRef.current = Date.now() + Math.random() * 2000;
     rafId = requestAnimationFrame(tick);
 
     return () => cancelAnimationFrame(rafId);
-  }, [targetAgentId, homePos.x, homePos.y, onArrived]);
+  }, [targetAgentId, homePos.x, homePos.y]);
 
   return position;
 }

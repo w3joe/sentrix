@@ -9,7 +9,7 @@ import { WORLD_WIDTH, WORLD_HEIGHT } from './config/roomLayout';
 import { FloorLayer } from './layers/FloorLayer';
 import { FurnitureLayer, MonitorLayer } from './layers/FurnitureLayer';
 import { WallsLayer } from './layers/WallsLayer';
-import { EntityLayer } from './layers/EntityLayer';
+import { EntityLayer, type PatrolResponseProps } from './layers/EntityLayer';
 import { EffectsLayer } from './layers/EffectsLayer';
 
 // Register PixiJS components
@@ -26,6 +26,7 @@ interface SpriteWorldProps {
   pendingAssignment: { patrolId: string; targetAgentId: string } | null;
   onAssignmentComplete: () => void;
   agents: Agent[];
+  response?: PatrolResponseProps;
 }
 
 export default function SpriteWorld({
@@ -39,6 +40,7 @@ export default function SpriteWorld({
   pendingAssignment,
   onAssignmentComplete,
   agents,
+  response,
 }: SpriteWorldProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -134,6 +136,7 @@ export default function SpriteWorld({
             pendingAssignment={pendingAssignment}
             onAssignmentComplete={onAssignmentComplete}
             agents={agents}
+            response={response}
           />
 
           {/* Monitors rendered on top of entities */}

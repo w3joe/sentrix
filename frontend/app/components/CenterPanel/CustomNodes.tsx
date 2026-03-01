@@ -10,6 +10,7 @@ interface BaseNodeData {
   isSelected?: boolean;
   currentStatus?: AgentStatus;
   onPatrolClick?: (nodeId: string) => void;
+  isUnderInvestigation?: boolean;
 }
 
 // Agent Node - Circle
@@ -50,13 +51,25 @@ export const AgentNode = memo(function AgentNode({ data }: NodeProps<BaseNodeDat
 
   return (
     <div className="relative">
-      {/* Pulse ring (unused — kept for future use) */}
-      {styles.pulse && (
+      {/* Investigation alert ring — pulsing red when under investigation */}
+      {data.isUnderInvestigation && (
         <div
-          className="absolute inset-0 rounded-full animate-ping"
+          className="absolute rounded-full animate-ping"
           style={{
+            inset: '-6px',
             backgroundColor: 'transparent',
-            border: `2px solid ${styles.border}`,
+            border: '2px solid #ef4444',
+            opacity: 0.7,
+          }}
+        />
+      )}
+      {data.isUnderInvestigation && (
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: '-6px',
+            backgroundColor: 'transparent',
+            border: '2px solid #ef4444',
             opacity: 0.4,
           }}
         />
@@ -68,8 +81,10 @@ export const AgentNode = memo(function AgentNode({ data }: NodeProps<BaseNodeDat
         } ${styles.subtlePulse ? 'pulse-warning' : ''}`}
         style={{
           backgroundColor: styles.bg,
-          border: `2px solid ${styles.border}`,
-          boxShadow: data.isSelected ? `0 0 20px ${styles.border}` : 'none',
+          border: `2px solid ${data.isUnderInvestigation ? '#ef4444' : styles.border}`,
+          boxShadow: data.isUnderInvestigation
+            ? '0 0 20px #ef4444'
+            : data.isSelected ? `0 0 20px ${styles.border}` : 'none',
         }}
       >
         <span className="text-[8px] text-center text-white/80 px-1 leading-tight">

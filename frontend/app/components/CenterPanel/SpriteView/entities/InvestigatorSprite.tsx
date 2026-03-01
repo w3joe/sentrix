@@ -11,13 +11,18 @@ const S = 3;
 interface InvestigatorSpriteProps {
   investigatorId: string;
   label: string;
+  /** Direct world-space target — used by response sequence */
+  targetPos?: { x: number; y: number } | null;
+  onArrived?: () => void;
 }
 
 export function InvestigatorSprite({
   investigatorId,
   label,
+  targetPos,
+  onArrived,
 }: InvestigatorSpriteProps) {
-  const position = useInvestigatorMovement(investigatorId, null);
+  const position = useInvestigatorMovement(investigatorId, null, onArrived, targetPos);
   const direction = useMovementDirection(position.x, position.y);
 
   const drawLabel = useCallback(
