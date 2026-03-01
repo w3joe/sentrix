@@ -1,27 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Assets, Texture, Rectangle } from 'pixi.js';
+import type { Texture } from 'pixi.js';
 import type { SpriteDirection } from '../config/spriteConfig';
 import { SPRITE_FRAMES } from '../config/spriteConfig';
-
-// Module-level cache: sheetPath -> Texture[] (4 frames)
-const frameCache = new Map<string, Texture[]>();
-const loadingPromises = new Map<string, Promise<void>>();
-
-function sliceFrames(baseTexture: Texture): Texture[] {
-  const source = baseTexture.source;
-  const frameWidth = Math.floor(source.width / 4);
-  const frameHeight = source.height;
-
-  return [0, 1, 2, 3].map(
-    (i) =>
-      new Texture({
-        source,
-        frame: new Rectangle(i * frameWidth, 0, frameWidth, frameHeight),
-      }),
-  );
-}
+import { frameCache, loadSpriteSheet } from './spriteLoader';
 
 export function useSpriteTexture(
   sheetPath: string,
@@ -35,15 +18,9 @@ export function useSpriteTexture(
       return;
     }
 
-    if (!loadingPromises.has(sheetPath)) {
-      const promise = Assets.load(sheetPath).then((texture: Texture) => {
-        frameCache.set(sheetPath, sliceFrames(texture));
-        loadingPromises.delete(sheetPath);
-      });
-      loadingPromises.set(sheetPath, promise);
-    }
-
-    loadingPromises.get(sheetPath)!.then(() => setIsLoaded(true));
+    loadSpriteSheet(sheetPath)
+      .then(() => setIsLoaded(true))
+      .catch(() => {});
   }, [sheetPath]);
 
   const texture = useMemo(() => {

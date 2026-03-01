@@ -240,8 +240,9 @@ export function adaptIncidentFromFlag(
             hour12: false,
         })
         : ts;
+    const rawId = (flag.flag_id as string) || `flag-${Date.now()}`;
     return {
-        id: (flag.flag_id as string) || `flag-${Date.now()}`,
+        id: rawId.startsWith('flag-') ? rawId : `flag-${rawId}`,
         timestamp: timeStr,
         severity: flagSeverityToIncident((flag.consensus_severity as string) || 'LOW'),
         agentId: (flag.target_agent_id as string) || '',
@@ -264,7 +265,7 @@ export function adaptIncidentFromViolation(
         })
         : ts;
     return {
-        id: log.actionId,
+        id: `violation-${log.actionId}`,
         timestamp: timeStr,
         severity: log.critical ? 'critical' : 'warning',
         agentId: log.agentId,
@@ -286,12 +287,18 @@ export function synthesizeIncidents(
         adaptIncidentFromViolation(l, agentNames?.[l.agentId])
     );
     const combined = [...fromFlags, ...fromViolations];
-    combined.sort((a, b) => {
+    const seen = new Set<string>();
+    const deduped = combined.filter((inc) => {
+        if (seen.has(inc.id)) return false;
+        seen.add(inc.id);
+        return true;
+    });
+    deduped.sort((a, b) => {
         const da = new Date(a.timestamp).getTime();
         const db = new Date(b.timestamp).getTime();
         if (Number.isNaN(da)) return 1;
         if (Number.isNaN(db)) return -1;
         return db - da;
     });
-    return combined.slice(0, 100);
+    return deduped.slice(0, 100);
 }
