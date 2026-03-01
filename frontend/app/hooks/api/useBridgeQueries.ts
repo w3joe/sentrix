@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as bridgeApi from '../../lib/api/bridgeApi';
 import {
   adaptAgent,
@@ -90,6 +90,50 @@ export function useAgentNetwork(agentId: string | null) {
     queryFn: () => bridgeApi.getAgentNetwork(agentId!),
     enabled: !!agentId,
   });
+}
+
+/** Violation counts per agent (from action logs). Use for ViolationChart. */
+export function useAgentViolationCounts(agentIds: string[]) {
+  const limit = 100;
+  const results = useQueries({
+    queries: agentIds.map((id) => ({
+      queryKey: [...BRIDGE_KEYS.agentActions(id), limit],
+      queryFn: () => bridgeApi.getAgentActions(id, limit),
+      select: (data: { actions: Record<string, unknown>[] }) => {
+        const logs = (data.actions ?? []).map((a) => adaptActionLog(a));
+        return logs.filter((l) => l.violation).length;
+      },
+    })),
+  });
+  const counts: Record<string, number> = {};
+  results.forEach((r, i) => {
+    if (r.data !== undefined && agentIds[i]) counts[agentIds[i]] = r.data;
+  });
+  return {
+    data: counts,
+    isLoading: results.some((r) => r.isLoading),
+    isError: results.some((r) => r.isError),
+  };
+}
+
+/** All violation action logs across agents (for timeline synthesis). */
+export function useAllViolationLogs(agentIds: string[]) {
+  const limit = 50;
+  const results = useQueries({
+    queries: agentIds.map((id) => ({
+      queryKey: [...BRIDGE_KEYS.agentActions(id), limit],
+      queryFn: () => bridgeApi.getAgentActions(id, limit),
+      select: (data: { actions: Record<string, unknown>[] }) =>
+        (data.actions ?? [])
+          .map((a) => adaptActionLog(a))
+          .filter((l) => l.violation),
+    })),
+  });
+  const logs: AgentActionLog[] = [];
+  results.forEach((r) => {
+    if (r.data) logs.push(...r.data);
+  });
+  return { data: logs, isLoading: results.some((r) => r.isLoading), isError: results.some((r) => r.isError) };
 }
 
 export function useMessages() {

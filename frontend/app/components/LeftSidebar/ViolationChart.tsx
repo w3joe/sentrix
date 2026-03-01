@@ -1,13 +1,10 @@
 'use client';
 
+import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { agents, violationCounts } from '../../data/mockData';
-
-const chartData = agents.map((agent, index) => ({
-  name: agent.name.split('-')[0], // Short name for x-axis
-  fullName: agent.name,
-  violations: violationCounts[index],
-}));
+import { agents as mockAgents, violationCounts as mockViolationCounts } from '../../data/mockData';
+import { useAgentViolationCounts } from '../../hooks/api/useBridgeQueries';
+import type { Cluster } from '../../types';
 
 const getBarColor = (violations: number) => {
   if (violations >= 3) return '#ff3355';
@@ -15,7 +12,35 @@ const getBarColor = (violations: number) => {
   return '#00d4ff';
 };
 
-export function ViolationChart() {
+interface ViolationChartProps {
+  clusters?: Cluster[];
+  useMocks?: boolean;
+}
+
+export function ViolationChart({ clusters = [], useMocks = false }: ViolationChartProps) {
+  const agentIds = useMemo(
+    () => clusters.flatMap((c) => c.agents.map((a) => a.id)),
+    [clusters]
+  );
+  const { data: violationCountsMap = {} } = useAgentViolationCounts(useMocks ? [] : agentIds);
+
+  const chartData = useMemo(() => {
+    if (useMocks) {
+      return mockAgents.map((agent, index) => ({
+        name: agent.name.split('-')[0],
+        fullName: agent.name,
+        violations: mockViolationCounts[index],
+      }));
+    }
+    return clusters.flatMap((c) =>
+      c.agents.map((agent) => ({
+        name: agent.name.split('-')[0],
+        fullName: agent.name,
+        violations: violationCountsMap[agent.id] ?? 0,
+      }))
+    );
+  }, [useMocks, clusters, violationCountsMap]);
+
   return (
     <div className="p-3 border-t border-[#1f2937]">
       <div className="text-[10px] uppercase tracking-wider text-[#6b7280] mb-2">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import type { Agent, AgentStatus, TimelineEvent, PatrolSelection } from '../../types';
 import { investigatorReport, damageAssessment, agents as mockAgents, agentActivities } from '../../data/mockData';
-import { useAgentActions } from '../../hooks/api/useBridgeQueries';
+import { useAgentActions, useAgentCommunications, useAgentNetwork } from '../../hooks/api/useBridgeQueries';
 
 interface ContextPanelProps {
   selectedAgentId: string | null;
@@ -64,6 +64,8 @@ export function ContextPanel({
   // Use agents from database (agentsProp) when available, otherwise fall back to mock agents
   const agents = useMocks ? mockAgents : (agentsProp ?? []);
   const { data: agentActions = [] } = useAgentActions(selectedAgentId);
+  const { data: communications = [] } = useAgentCommunications(selectedAgentId);
+  const { data: networkData } = useAgentNetwork(selectedAgentId);
 
   useEffect(() => {
     setIsClient(true);
@@ -314,6 +316,51 @@ export function ContextPanel({
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* A2A Communications */}
+            {!useMocks && communications.length > 0 && (
+              <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
+                <h3 className="text-xs uppercase tracking-wider text-[#14b8a6] font-semibold mb-2">
+                  A2A Communications
+                </h3>
+                <div className="space-y-1.5 font-mono max-h-32 overflow-y-auto">
+                  {communications.slice(0, 8).map((msg) => (
+                    <div key={msg.messageId} className="text-[10px]">
+                      <span className="text-[#14b8a6]">{msg.senderId} → {msg.recipientId}</span>
+                      <span className="text-[#4b5563] ml-1">{msg.timestamp}</span>
+                      <div className="text-[#6b7280] truncate mt-0.5">{msg.body}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Network Summary */}
+            {!useMocks && networkData && (
+              <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
+                <h3 className="text-xs uppercase tracking-wider text-[#9b59b6] font-semibold mb-2">
+                  Network
+                </h3>
+                {networkData.narration && (
+                  <p className="text-[10px] text-[#a0aec0] mb-2">{networkData.narration}</p>
+                )}
+                {networkData.interaction_partners && networkData.interaction_partners.length > 0 && (
+                  <div className="text-[10px]">
+                    <span className="text-[#6b7280]">Partners: </span>
+                    <span className="text-[#9b59b6] font-mono">{networkData.interaction_partners.join(', ')}</span>
+                  </div>
+                )}
+                {networkData.recent_communications && networkData.recent_communications.length > 0 && (
+                  <div className="mt-2 space-y-1 max-h-24 overflow-y-auto">
+                    {networkData.recent_communications.slice(0, 5).map((c: { from: string; to: string; timestamp: string; body_preview: string }, i: number) => (
+                      <div key={i} className="text-[9px] text-[#6b7280]">
+                        {c.from} → {c.to}: {c.body_preview}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

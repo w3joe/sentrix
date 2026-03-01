@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { TopBar } from './components/TopBar';
 import { AgentRegistry } from './components/LeftSidebar/AgentRegistry';
 import { InvestigationRegistry } from './components/LeftSidebar/InvestigationRegistry';
@@ -11,6 +11,7 @@ import { ContextPanel } from './components/RightSidebar/ContextPanel';
 import { CaseFileModal } from './components/CaseFileModal';
 import { PatrolAlertBanner } from './components/PatrolAlertBanner';
 import { Timeline } from './components/Timeline/Timeline';
+import { BottomStrip } from './components/BottomStrip/BottomStrip';
 import { useAgentState } from './hooks/useAgentState';
 import { useTimelineState } from './hooks/useTimelineState';
 import { useCaseFiles } from './hooks/api/useBridgeQueries';
@@ -73,6 +74,9 @@ export default function Dashboard() {
 
   const startInvestigationMutation = useStartInvestigation();
 
+  const agentIds = useMemo(() => agents.map((a) => a.id), [agents]);
+  const agentNames = useMemo(() => Object.fromEntries(agents.map((a) => [a.id, a.name])), [agents]);
+
   const {
     timeRange,
     setTimeRange,
@@ -87,7 +91,11 @@ export default function Dashboard() {
     eventDensity,
     scrubberPosition,
     positionToTime,
-  } = useTimelineState();
+  } = useTimelineState({
+    useMocks: USE_MOCKS,
+    agentIds,
+    agentNames,
+  });
 
   // Use historical agent states when not live, otherwise use current state
   const getEffectiveAgentStatus = (agentId: string) => {
@@ -148,7 +156,14 @@ export default function Dashboard() {
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-[#0a0e1a]">
       {/* Top Bar - 48px */}
-      <TopBar viewMode={viewMode} onViewModeChange={setViewMode} sidebarMode={sidebarMode} onSidebarModeChange={handleSidebarModeChange} />
+      <TopBar
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        sidebarMode={sidebarMode}
+        onSidebarModeChange={handleSidebarModeChange}
+        agentCount={agents.length}
+        useMocks={USE_MOCKS}
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
@@ -163,6 +178,7 @@ export default function Dashboard() {
                 getAgentStatus={getEffectiveAgentStatus}
                 isLoading={!USE_MOCKS && agentsLoading}
                 isError={!USE_MOCKS && !!agentsError}
+                useMocks={USE_MOCKS}
               />
             )}
             {sidebarMode === 'investigations' && (
@@ -204,6 +220,7 @@ export default function Dashboard() {
               onPatrolSelect={handlePatrolSelect}
               showHeatmap={sidebarMode === 'analytics'}
               response={responseState}
+              useMocks={USE_MOCKS}
             />
           ) : (
             <SpriteView
@@ -251,11 +268,18 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Collapsible Bottom Strip: Incidents & Thought Stream */}
+      <BottomStrip useMocks={USE_MOCKS} agentIds={agentIds} agentNames={agentNames} />
+
       {/* Case File Modal */}
       {selectedCaseFile && (
         <CaseFileModal
           caseFile={selectedCaseFile}
           onClose={() => setSelectedCaseId(null)}
+          onClear={clearAgent}
+          onRestrict={restrictAgent}
+          onSuspend={suspendAgent}
+          useLiveDetail={!USE_MOCKS}
         />
       )}
 

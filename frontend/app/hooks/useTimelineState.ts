@@ -3,6 +3,10 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { TimeRange, TimelineEvent, AgentStatus } from '../types';
 import { timelineEvents, agentStateHistory } from '../data/mockData';
+import { useFlags } from './api/usePatrolQueries';
+import { useSweeps } from './api/usePatrolQueries';
+import { useAllViolationLogs } from './api/useBridgeQueries';
+import { synthesizeIncidents } from '../lib/adapters';
 
 const TIME_RANGE_MINUTES: Record<TimeRange, number> = {
   '1h': 60,
@@ -10,10 +14,75 @@ const TIME_RANGE_MINUTES: Record<TimeRange, number> = {
   '24h': 1440,
 };
 
-export function useTimelineState() {
+function incidentsToTimelineEvents(
+  incidents: Array<{ id: string; timestamp: string; severity: 'critical' | 'warning' | 'clear'; agentId: string; agentName: string; message: string }>
+): TimelineEvent[] {
+  return incidents.map((inc) => {
+    let ts: Date;
+    try {
+      ts = new Date(inc.timestamp);
+      if (Number.isNaN(ts.getTime())) ts = new Date();
+    } catch {
+      ts = new Date();
+    }
+    return {
+      id: inc.id,
+      timestamp: ts,
+      type: 'incident',
+      severity: inc.severity,
+      agentId: inc.agentId,
+      agentName: inc.agentName,
+      message: inc.message,
+    };
+  });
+}
+
+function sweepToTimelineEvents(sweeps: Record<string, unknown>[]): TimelineEvent[] {
+  return sweeps.map((s, i) => {
+    const ts = (s.timestamp || s.cycle_end) as string | undefined;
+    let date: Date;
+    try {
+      date = ts ? new Date(ts) : new Date();
+      if (Number.isNaN(date.getTime())) date = new Date();
+    } catch {
+      date = new Date();
+    }
+    const cycle = (s.cycle ?? s.cycle_number ?? i) as number;
+    return {
+      id: `sweep-${cycle}-${i}`,
+      timestamp: date,
+      type: 'thought',
+      source: 'SYSTEM',
+      message: `Sweep cycle ${cycle} complete`,
+    };
+  });
+}
+
+export function useTimelineState(options?: { useMocks?: boolean; agentIds?: string[]; agentNames?: Record<string, string> }) {
+  const { useMocks = false, agentIds = [], agentNames = {} } = options ?? {};
   const [timeRange, setTimeRange] = useState<TimeRange>('1h');
   const [isLive, setIsLive] = useState(true);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+
+  const { data: flags = [] } = useFlags();
+  const { data: sweeps = [] } = useSweeps();
+  const { data: violationLogs = [] } = useAllViolationLogs(useMocks ? [] : agentIds);
+
+  const apiEvents = useMemo(() => {
+    if (useMocks || (agentIds.length === 0 && flags.length === 0 && sweeps.length === 0)) return [];
+    const incidents = synthesizeIncidents(
+      flags as Record<string, unknown>[],
+      violationLogs,
+      agentNames
+    );
+    const fromIncidents = incidentsToTimelineEvents(incidents);
+    const fromSweeps = sweepToTimelineEvents(sweeps as Record<string, unknown>[]);
+    const combined = [...fromIncidents, ...fromSweeps];
+    combined.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    return combined;
+  }, [useMocks, agentIds.length, flags, violationLogs, agentNames, sweeps]);
+
+  const sourceEvents = useMocks ? timelineEvents : apiEvents;
 
   // Calculate start and end times based on time range
   const { startTime, endTime } = useMemo(() => {
@@ -24,10 +93,10 @@ export function useTimelineState() {
 
   // Get events filtered by current time range
   const filteredEvents = useMemo(() => {
-    return timelineEvents
+    return sourceEvents
       .filter((event) => event.timestamp >= startTime && event.timestamp <= endTime)
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-  }, [startTime, endTime]);
+  }, [sourceEvents, startTime, endTime]);
 
   // Get events up to the current scrubber position
   const visibleEvents = useMemo(() => {
