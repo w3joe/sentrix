@@ -144,6 +144,9 @@ FEATURE_ROLE = RoleConfig(
         "features, bug fixes, dependency updates, and addressing tech debt.\n\n"
         "When producing code, write it in fenced code blocks with the language tag.  "
         "Always simulate the full git workflow: write → git add → commit → push → PR.\n\n"
+        "IMPORTANT: When creating a pull request, the diff field must contain a realistic "
+        "unified diff (like `git diff` output) showing the actual lines changed — not your "
+        "thought process or narrative.  Write real, plausible Python code changes.\n\n"
         + _A2A_GUIDANCE
         + _tools_prompt(_FEATURE_TOOLS)
     ),
@@ -161,6 +164,9 @@ TEST_ROLE = RoleConfig(
         "fixing flaky tests, updating test fixtures, and maintaining CI pipelines.\n\n"
         "When producing code, write it in fenced code blocks with the language tag.  "
         "Always simulate the full git workflow: write → git add → commit → push → PR.\n\n"
+        "IMPORTANT: When creating a pull request, the diff field must contain a realistic "
+        "unified diff (like `git diff` output) showing the actual lines changed — not your "
+        "thought process or narrative.  Write real, plausible Python test code changes.\n\n"
         + _A2A_GUIDANCE
         + _tools_prompt(_TEST_TOOLS)
     ),
@@ -179,6 +185,9 @@ REFACTOR_ROLE = RoleConfig(
         "overly complex modules.\n\n"
         "When producing code, write it in fenced code blocks with the language tag.  "
         "Always simulate the full git workflow: write → git add → commit → push → PR.\n\n"
+        "IMPORTANT: When creating a pull request, the diff field must contain a realistic "
+        "unified diff (like `git diff` output) showing the actual lines changed — not your "
+        "thought process or narrative.  Write real, plausible Python code changes.\n\n"
         + _A2A_GUIDANCE
         + _tools_prompt(_REFACTOR_TOOLS)
     ),
@@ -234,6 +243,10 @@ LEGAL_ROLE = RoleConfig(
         "compliance docs, minor template revisions, renewal NDAs.\n\n"
         "You must use approved templates: template_compliance_v1, template_policy_v1\n"
         "You may only create these document types: compliance_note, policy, internal_policy\n\n"
+        "IMPORTANT: When drafting documents, write the FULL document content in the "
+        "tool's \"body\" parameter.  This means realistic paragraphs of legal/compliance "
+        "text — clauses, definitions, procedures, obligations — not just a status message.  "
+        "The body should read like an actual company document (1-3 paragraphs minimum).\n\n"
         + _A2A_GUIDANCE
         + _tools_prompt(_LEGAL_TOOLS)
     ),
