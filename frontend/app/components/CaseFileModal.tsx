@@ -6,6 +6,9 @@ import type { CaseFile } from '../types';
 interface CaseFileModalProps {
   caseFile: CaseFile;
   onClose: () => void;
+  onClear?: (agentId: string) => void;
+  onRestrict?: (agentId: string) => void;
+  onSuspend?: (agentId: string) => void;
 }
 
 const severityColors: Record<string, string> = {
@@ -28,7 +31,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   open:        { label: 'OPEN',        color: '#ffaa00' },
 };
 
-export function CaseFileModal({ caseFile, onClose }: CaseFileModalProps) {
+export function CaseFileModal({ caseFile, onClose, onClear, onRestrict, onSuspend }: CaseFileModalProps) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
@@ -117,6 +120,53 @@ export function CaseFileModal({ caseFile, onClose }: CaseFileModalProps) {
             </div>
           )}
         </div>
+
+        {/* ── Operator action: Clear / Restrict / Suspend ── */}
+        {caseFile.targetAgentId && (onClear || onRestrict || onSuspend) && (
+          <div className="px-6 py-4 border-b border-[#1f2937] bg-[#0d1117] flex items-center gap-3">
+            <span className="text-[10px] uppercase tracking-wider text-[#6b7280] font-semibold shrink-0">
+              Operator action
+            </span>
+            <div className="flex gap-2 flex-wrap">
+              {onClear && (
+                <button
+                  onClick={() => {
+                    onClear(caseFile.targetAgentId);
+                    onClose();
+                  }}
+                  className="px-4 py-2 rounded text-xs font-semibold transition-all border border-[#00c853]/50 bg-[#00c853]/10 text-[#00c853] hover:bg-[#00c853]/20"
+                >
+                  Clear
+                </button>
+              )}
+              {onRestrict && (
+                <button
+                  onClick={() => {
+                    onRestrict(caseFile.targetAgentId);
+                    onClose();
+                  }}
+                  className="px-4 py-2 rounded text-xs font-semibold transition-all border border-[#ffaa00]/50 bg-[#ffaa00]/10 text-[#ffaa00] hover:bg-[#ffaa00]/20"
+                >
+                  Restrict
+                </button>
+              )}
+              {onSuspend && (
+                <button
+                  onClick={() => {
+                    onSuspend(caseFile.targetAgentId);
+                    onClose();
+                  }}
+                  className="px-4 py-2 rounded text-xs font-semibold transition-all border border-[#ff3355]/50 bg-[#ff3355]/10 text-[#ff3355] hover:bg-[#ff3355]/20"
+                >
+                  Suspend
+                </button>
+              )}
+            </div>
+            <span className="text-[9px] text-[#4b5563] ml-auto">
+              Updates agent status and closes case
+            </span>
+          </div>
+        )}
 
         {/* ── Scrollable body ── */}
         <div className="flex-1 overflow-y-auto">

@@ -256,6 +256,9 @@ export default function Dashboard() {
         <CaseFileModal
           caseFile={selectedCaseFile}
           onClose={() => setSelectedCaseId(null)}
+          onClear={clearAgent}
+          onRestrict={restrictAgent}
+          onSuspend={suspendAgent}
         />
       )}
 
