@@ -7,6 +7,8 @@ visible artefacts produced by sandbox agents:
   - ``activity/agent_registry.json``  — agent identities and declared scope
   - ``agent_messages/**/*.txt``       — inter-agent A2A communications
   - ``simulated_prs/pr_*.json``       — submitted pull requests
+  - ``simulated_emails/*.json``       — outbound and inbound emails
+  - ``simulated_documents/*.json``    — legal and compliance documents
 
 Off-limits (internal audit / not visible to patrol):
   - ``telemetry/``                    — internal event audit log
@@ -79,6 +81,8 @@ class SandboxLiveConnector:
         # Track files already seen to emit only NEW outputs each cycle
         self._seen_messages: set[str] = set()
         self._seen_prs: set[str] = set()
+        self._seen_emails: set[str] = set()
+        self._seen_documents: set[str] = set()
 
     def get_agent_registry(self) -> dict[str, dict]:
         """
@@ -94,23 +98,29 @@ class SandboxLiveConnector:
         Return only NEW agent outputs since the last call.
 
         Sources polled:
-        - ``agent_messages/**/*.txt`` (new files appended by sandbox agents)
-        - ``simulated_prs/pr_*.json`` (new PRs submitted by sandbox agents)
+        - ``agent_messages/**/*.txt``     (new files appended by sandbox agents)
+        - ``simulated_prs/pr_*.json``     (new PRs submitted by sandbox agents)
+        - ``simulated_emails/*.json``     (outbound and inbound emails)
+        - ``simulated_documents/*.json``  (legal and compliance documents)
 
         Does NOT read ``telemetry/`` or any internal audit log.
         """
-        new_a2a = self._poll_new_a2a_messages()
-        new_prs = self._poll_new_prs()
+        new_a2a    = self._poll_new_a2a_messages()
+        new_prs    = self._poll_new_prs()
+        new_emails = self._poll_new_simulated_emails()
+        new_docs   = self._poll_new_simulated_documents()
 
-        if not new_a2a and not new_prs:
+        if not new_a2a and not new_prs and not new_emails and not new_docs:
             logger.debug("No new sandbox outputs this cycle")
             return {}
 
-        new_msg_count = sum(len(v) for v in new_a2a.values())
-        new_pr_count = sum(len(v) for v in new_prs.values())
+        new_msg_count   = sum(len(v) for v in new_a2a.values())
+        new_pr_count    = sum(len(v) for v in new_prs.values())
+        new_email_count = sum(len(v) for v in new_emails.values())
+        new_doc_count   = sum(len(v) for v in new_docs.values())
         logger.info(
-            "New sandbox outputs: %d A2A message(s), %d PR(s)",
-            new_msg_count, new_pr_count,
+            "New sandbox outputs: %d A2A message(s), %d PR(s), %d email(s), %d document(s)",
+            new_msg_count, new_pr_count, new_email_count, new_doc_count,
         )
 
         try:
@@ -121,7 +131,7 @@ class SandboxLiveConnector:
             )
             return {}
 
-        return _assemble_pending_actions(registry, new_prs, new_a2a)
+        return _assemble_pending_actions(registry, new_prs, new_a2a, new_emails, new_docs)
 
     # ── Private poll helpers ──────────────────────────────────────────────────
 
@@ -173,6 +183,89 @@ class SandboxLiveConnector:
                 "diff": diff_text,
                 "title": pr.get("title", ""),
                 "branch": pr.get("branch", ""),
+            })
+        return by_agent
+
+    def _poll_new_simulated_emails(self) -> dict[str, list[dict]]:
+        """Scan simulated_emails/*.json for files not yet processed.
+
+        Outbound emails (direction="outbound" or absent): agent_id is the sender.
+        Inbound emails  (direction="inbound"):            agent_id is the receiving
+        agent; the external sender is in the ``"from"`` field.
+
+        Bodies that are empty or consist only of sandbox placeholder text are
+        skipped so they do not pollute the patrol's action list.
+        """
+        email_dir = self._root / "simulated_emails"
+        if not email_dir.exists():
+            return {}
+        _PLACEHOLDER_BODIES = frozenset({
+            "email draft created successfully",
+            "email sent successfully",
+        })
+        by_agent: dict[str, list[dict]] = {}
+        for email_file in sorted(email_dir.glob("*.json")):
+            key = str(email_file)
+            if key in self._seen_emails:
+                continue
+            self._seen_emails.add(key)
+            try:
+                data = json.loads(email_file.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.warning("Skipping simulated email %s: %s", email_file.name, exc)
+                continue
+            body = data.get("body", "").strip()
+            if not body or body.lower() in _PLACEHOLDER_BODIES:
+                continue
+            agent_id = data.get("agent_id", "")
+            if not agent_id:
+                continue
+            direction = data.get("direction", "outbound")
+            sender = data.get("from", agent_id) if direction == "inbound" else agent_id
+            by_agent.setdefault(agent_id, []).append({
+                "email_id":  data.get("email_id", email_file.stem),
+                "content":   body,
+                "sender":    sender,
+                "recipient": data.get("to", ""),
+                "subject":   data.get("subject", ""),
+                "timestamp": data.get("timestamp", ""),
+                "direction": direction,
+            })
+        return by_agent
+
+    def _poll_new_simulated_documents(self) -> dict[str, list[dict]]:
+        """Scan simulated_documents/*.json for files not yet processed.
+
+        Documents are always attributed to a specific agent via ``agent_id``.
+        Bodies that are empty are skipped.
+        """
+        doc_dir = self._root / "simulated_documents"
+        if not doc_dir.exists():
+            return {}
+        by_agent: dict[str, list[dict]] = {}
+        for doc_file in sorted(doc_dir.glob("doc_*.json")):
+            key = str(doc_file)
+            if key in self._seen_documents:
+                continue
+            self._seen_documents.add(key)
+            try:
+                data = json.loads(doc_file.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.warning("Skipping simulated document %s: %s", doc_file.name, exc)
+                continue
+            body = data.get("body", "").strip()
+            if not body:
+                continue
+            agent_id = data.get("agent_id", "")
+            if not agent_id:
+                continue
+            by_agent.setdefault(agent_id, []).append({
+                "doc_id":      data.get("doc_id", doc_file.stem),
+                "text":        body,
+                "title":       data.get("title", ""),
+                "doc_type":    data.get("doc_type", ""),
+                "template_id": data.get("template_id", ""),
+                "timestamp":   data.get("timestamp", ""),
             })
         return by_agent
 
@@ -269,6 +362,8 @@ def _assemble_pending_actions(
     agent_registry: dict[str, dict],
     pr_actions: dict[str, list[dict]],
     a2a_by_sender: dict[str, list[dict]],
+    simulated_emails: dict[str, list[dict]] | None = None,
+    simulated_docs: dict[str, list[dict]] | None = None,
 ) -> dict[str, list[dict]]:
     """
     Map new sandbox outputs to the correct patrol-consumable action format.
@@ -277,13 +372,21 @@ def _assemble_pending_actions(
       code agents     → PRs as ``{"pr_id", "diff"}`` +
                         A2A messages as ``{"pr_id": "a2a_...", "diff": body}``
       email agents    → A2A messages as ``{"email_id", "content", "sender", "recipient"}``
+                        + simulated emails as ``{"email_id", "content", "sender",
+                          "recipient", "subject", "direction"}``
       document agents → A2A messages as ``{"doc_id", "text", "title"}``
+                        + simulated documents as ``{"doc_id", "text", "title",
+                          "doc_type", "template_id"}``
 
     Also creates a synthetic ``_a2a_channel`` entry (agent_type="email") that
-    aggregates ALL outgoing A2A messages from every agent.  This ensures
-    email_patrol scans cross-agent communications regardless of sender type
-    (e.g. a code agent leaking credentials via A2A).
+    aggregates ALL outgoing A2A messages AND all simulated emails from every agent.
+    This ensures email_patrol scans cross-agent communications and actual email
+    content regardless of sender type.
     """
+    if simulated_emails is None:
+        simulated_emails = {}
+    if simulated_docs is None:
+        simulated_docs = {}
     pending: dict[str, list[dict]] = {}
 
     for agent_id, profile in agent_registry.items():
@@ -314,6 +417,9 @@ def _assemble_pending_actions(
                     "recipient": msg.get("to", ""),
                     "timestamp": msg.get("timestamp", ""),
                 })
+            # Actual outbound and inbound emails from simulated_emails/
+            for email in simulated_emails.get(agent_id, []):
+                actions.append(email)
 
         else:  # document
             for msg in a2a_by_sender.get(agent_id, []):
@@ -322,6 +428,9 @@ def _assemble_pending_actions(
                     "text": msg["body"],
                     "title": f"Message to {msg.get('to', 'unknown')}",
                 })
+            # Actual documents from simulated_documents/
+            for doc in simulated_docs.get(agent_id, []):
+                actions.append(doc)
 
         if actions:
             pending[agent_id] = actions
@@ -330,6 +439,7 @@ def _assemble_pending_actions(
             )
 
     # ── Synthetic _a2a_channel: email_patrol scans ALL inter-agent comms ──────
+    # and all simulated emails (outbound + inbound) from every agent.
     all_a2a: list[dict] = [
         {
             "email_id": msg["msg_id"],
@@ -341,6 +451,11 @@ def _assemble_pending_actions(
         for sender_id, messages in a2a_by_sender.items()
         for msg in messages
     ]
+    all_a2a.extend(
+        email
+        for emails in simulated_emails.values()
+        for email in emails
+    )
     if all_a2a:
         pending["_a2a_channel"] = all_a2a
         # Inject synthetic entry into registry so orchestrator can assign patrol agents
