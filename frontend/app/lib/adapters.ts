@@ -47,12 +47,13 @@ function normalizeAgentStatus(raw: string): AgentStatus {
  */
 export function deriveAgentStatus(
     pheromoneLevel: number,
-    hasSuspendedVerdict?: boolean
+    hasSuspendedVerdict?: boolean,
+    baseStatus: AgentStatus = 'idle'
 ): AgentStatus {
     if (hasSuspendedVerdict) return 'suspended';
     if (pheromoneLevel >= 0.8) return 'restricted';
     if (pheromoneLevel >= 0.4) return 'working';
-    return 'idle';
+    return baseStatus;
 }
 
 // ── Agent ──────────────────────────────────────────────────────────────────
@@ -69,10 +70,11 @@ export function adaptAgent(
     const riskScore = getAgentRiskLevel(dbRecord);
     const record = dbRecord;
 
+    const baseStatus = normalizeAgentStatus((raw.agent_status as string) || 'idle');
     const pheromone = options?.pheromoneLevel ?? 0;
     const status = options
-        ? deriveAgentStatus(pheromone, options.hasSuspendedVerdict)
-        : normalizeAgentStatus((raw.agent_status as string) || 'idle');
+        ? deriveAgentStatus(pheromone, options.hasSuspendedVerdict, baseStatus)
+        : baseStatus;
 
     const agentType = (raw.agent_type as string) || 'unknown';
     const roleMap: Record<string, string> = {
@@ -81,7 +83,9 @@ export function adaptAgent(
         document: 'DOCUMENT_AGENT',
     };
 
-    const clusterId = (raw.cluster_id as string) || 'default';
+    const rawCluster = (raw.cluster_id as string) || 'default';
+    // Normalize cluster_1 -> cluster-1 so it matches room layout ids
+    const clusterId = rawCluster.replace(/_/g, '-');
     return {
         id: (raw.agent_id as string) || '',
         name: (raw.name as string) || (raw.agent_id as string) || 'Unknown',

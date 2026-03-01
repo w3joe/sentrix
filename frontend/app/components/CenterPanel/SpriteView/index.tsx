@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import type { AgentStatus, InvestigatorSelection } from '../../../types';
+import type { AgentStatus, PatrolSelection, Agent } from '../../../types';
 
 const SpriteWorld = dynamic(() => import('./SpriteWorld'), {
   ssr: false,
@@ -18,10 +18,11 @@ export interface SpriteViewProps {
   getAgentStatus: (agentId: string) => AgentStatus;
   historicalAgentStates?: Record<string, AgentStatus>;
   isLive?: boolean;
-  investigatorSelection: InvestigatorSelection | null;
-  onInvestigatorSelect: (selection: InvestigatorSelection | null) => void;
-  pendingAssignment: { investigatorId: string; targetAgentId: string } | null;
+  patrolSelection: PatrolSelection | null;
+  onPatrolSelect: (selection: PatrolSelection | null) => void;
+  pendingAssignment: { patrolId: string; targetAgentId: string } | null;
   onAssignmentComplete: () => void;
+  agents: Agent[];
 }
 
 export function SpriteView(props: SpriteViewProps) {

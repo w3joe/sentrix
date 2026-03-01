@@ -1,8 +1,7 @@
 'use client';
 
 import { useMemo, useCallback } from 'react';
-import type { AgentStatus, InvestigatorSelection } from '../../../../types';
-import { agents as allAgents } from '../../../../data/mockData';
+import type { AgentStatus, PatrolSelection, Agent } from '../../../../types';
 import { rooms, getDeskPosition, controlRoom, getQuarantineCellPosition, getEntertainmentSeatPosition } from '../config/roomLayout';
 import { AgentSprite } from '../entities/AgentSprite';
 import { PatrolSprite } from '../entities/PatrolSprite';
@@ -16,11 +15,20 @@ interface EntityLayerProps {
   getAgentStatus: (agentId: string) => AgentStatus;
   historicalAgentStates?: Record<string, AgentStatus>;
   isLive?: boolean;
-  investigatorSelection: InvestigatorSelection | null;
-  onInvestigatorSelect: (selection: InvestigatorSelection | null) => void;
-  pendingAssignment: { investigatorId: string; targetAgentId: string } | null;
+  patrolSelection: PatrolSelection | null;
+  onPatrolSelect: (selection: PatrolSelection | null) => void;
+  pendingAssignment: { patrolId: string; targetAgentId: string } | null;
   onAssignmentComplete: () => void;
+  agents: Agent[];
 }
+
+/** Role order for consistent desk assignment when using live API (agents don't match mock IDs) */
+const ROLE_ORDER: Record<string, number> = {
+  EMAIL_AGENT: 0,
+  CODING_AGENT: 1,
+  DOCUMENT_AGENT: 2,
+  DATA_QUERY_AGENT: 3,
+};
 
 export function EntityLayer({
   selectedAgentId,
@@ -28,10 +36,11 @@ export function EntityLayer({
   getAgentStatus,
   historicalAgentStates,
   isLive,
-  investigatorSelection,
-  onInvestigatorSelect,
+  patrolSelection,
+  onPatrolSelect,
   pendingAssignment,
   onAssignmentComplete,
+  agents,
 }: EntityLayerProps) {
   const getEffectiveStatus = useCallback(
     (agentId: string): AgentStatus => {
@@ -43,6 +52,23 @@ export function EntityLayer({
     [isLive, historicalAgentStates, getAgentStatus],
   );
 
+  // Agent-to-desk assignment: supports both mock IDs (exact match) and live API (by cluster + slot)
+  const agentToDesk = useMemo(() => {
+    const map = new Map<string, { x: number; y: number }>();
+    for (const room of rooms) {
+      const clusterAgents = agents
+        .filter((a) => (a as Agent & { clusterId?: string }).clusterId === room.id)
+        .sort((a, b) => (ROLE_ORDER[a.role] ?? 99) - (ROLE_ORDER[b.role] ?? 99));
+      for (let i = 0; i < room.desks.length; i++) {
+        const desk = room.desks[i];
+        const agent =
+          agents.find((a) => a.id === desk.agentId) ?? clusterAgents[i];
+        if (agent) map.set(agent.id, { x: desk.x, y: desk.y });
+      }
+    }
+    return map;
+  }, [agents]);
+
   // Build agent sprites from room layout, routing suspended agents to quarantine
   const agentSprites = useMemo(() => {
     const sprites: React.JSX.Element[] = [];
@@ -50,8 +76,13 @@ export function EntityLayer({
     let entertainmentSlot = 0;
 
     for (const room of rooms) {
-      for (const desk of room.desks) {
-        const agent = allAgents.find((a) => a.id === desk.agentId);
+      const clusterAgents = agents
+        .filter((a) => (a as Agent & { clusterId?: string }).clusterId === room.id)
+        .sort((a, b) => (ROLE_ORDER[a.role] ?? 99) - (ROLE_ORDER[b.role] ?? 99));
+      for (let i = 0; i < room.desks.length; i++) {
+        const desk = room.desks[i];
+        const agent =
+          agents.find((a) => a.id === desk.agentId) ?? clusterAgents[i];
         if (!agent) continue;
 
         const status = getEffectiveStatus(agent.id);
@@ -88,22 +119,70 @@ export function EntityLayer({
       }
     }
     return sprites;
-  }, [selectedAgentId, onSelectAgent, getEffectiveStatus]);
+  }, [selectedAgentId, onSelectAgent, getEffectiveStatus, agents]);
 
-  // Determine investigator targets
-  const f1Target = pendingAssignment?.investigatorId === 'f1' ? pendingAssignment.targetAgentId : null;
-  const f2Target = pendingAssignment?.investigatorId === 'f2' ? pendingAssignment.targetAgentId : null;
-  const f1TargetPos = f1Target ? getDeskPosition(f1Target) : null;
-  const f2TargetPos = f2Target ? getDeskPosition(f2Target) : null;
+  const getAgentPosition = useCallback(
+    (agentId: string): { x: number; y: number } | null => {
+      const agent = agents.find((a) => a.id === agentId);
+      if (!agent) return null;
+
+      const status = getEffectiveStatus(agentId);
+
+      // Build ordered list of displayed agents (same logic as agentSprites)
+      const displayedAgents: Agent[] = [];
+      for (const room of rooms) {
+        const clusterAgents = agents
+          .filter((a) => (a as Agent & { clusterId?: string }).clusterId === room.id)
+          .sort((a, b) => (ROLE_ORDER[a.role] ?? 99) - (ROLE_ORDER[b.role] ?? 99));
+        for (let i = 0; i < room.desks.length; i++) {
+          const desk = room.desks[i];
+          const a = agents.find((ag) => ag.id === desk.agentId) ?? clusterAgents[i];
+          if (a) displayedAgents.push(a);
+        }
+      }
+
+      if (status === 'suspended') {
+        const suspended = displayedAgents.filter((a) => getEffectiveStatus(a.id) === 'suspended');
+        const idx = suspended.findIndex((a) => a.id === agentId);
+        if (idx >= 0) return getQuarantineCellPosition(idx);
+      } else if (status === 'idle') {
+        const idle = displayedAgents.filter((a) => getEffectiveStatus(a.id) === 'idle');
+        const idx = idle.findIndex((a) => a.id === agentId);
+        if (idx >= 0) return getEntertainmentSeatPosition(idx);
+      }
+
+      // Default: at desk (static layout or dynamic assignment)
+      return getDeskPosition(agentId) ?? agentToDesk.get(agentId) ?? null;
+    },
+    [getEffectiveStatus, agents, agentToDesk],
+  );
+
+  // Determine patrol targets - use actual agent position (not desk)
+  const p1Target = pendingAssignment?.patrolId === 'p1' ? pendingAssignment.targetAgentId : null;
+  const p2Target = pendingAssignment?.patrolId === 'p2' ? pendingAssignment.targetAgentId : null;
+  const p1TargetPos = p1Target ? getAgentPosition(p1Target) : null;
+  const p2TargetPos = p2Target ? getAgentPosition(p2Target) : null;
 
   return (
     <pixiContainer>
       {/* Agent sprites */}
       {agentSprites}
 
-      {/* Patrol sprites */}
-      <PatrolSprite patrolId="p1" label="Patrol-1" />
-      <PatrolSprite patrolId="p2" label="Patrol-2" />
+      {/* Patrol sprites (clickable to select agent for investigation) */}
+      <PatrolSprite
+        patrolId="p1"
+        label="Patrol-1"
+        targetAgentPos={p1TargetPos}
+        onSelect={onPatrolSelect}
+        onArrived={onAssignmentComplete}
+      />
+      <PatrolSprite
+        patrolId="p2"
+        label="Patrol-2"
+        targetAgentPos={p2TargetPos}
+        onSelect={onPatrolSelect}
+        onArrived={onAssignmentComplete}
+      />
 
       {/* Superintendent */}
       <SuperintendentSprite />
@@ -111,22 +190,14 @@ export function EntityLayer({
       {/* Network */}
       <NetworkSprite x={controlRoom.networkPos.x} y={controlRoom.networkPos.y} />
 
-      {/* Investigators */}
+      {/* Investigators (non-interactive) */}
       <InvestigatorSprite
         investigatorId="f1"
         label="Investigator-1"
-        targetAgentId={f1Target}
-        targetAgentPos={f1TargetPos}
-        onSelect={onInvestigatorSelect}
-        onArrived={onAssignmentComplete}
       />
       <InvestigatorSprite
         investigatorId="f2"
         label="Investigator-2"
-        targetAgentId={f2Target}
-        targetAgentPos={f2TargetPos}
-        onSelect={onInvestigatorSelect}
-        onArrived={onAssignmentComplete}
       />
     </pixiContainer>
   );

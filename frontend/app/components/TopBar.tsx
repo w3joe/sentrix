@@ -15,7 +15,7 @@ export function TopBar({ viewMode, onViewModeChange, sidebarMode, onSidebarModeC
     <header className="h-12 bg-[#111827] border-b border-[#1f2937] flex items-center justify-between px-6">
       {/* Left: Wordmark and Navigation */}
       <div className="flex items-center gap-8">
-        <span className="text-xl font-bold text-white tracking-wide">Sentinel</span>
+        <span className="text-xl font-bold text-white tracking-wide">Sentrix</span>
 
         {/* Navigation */}
         <nav className="hidden lg:flex items-center gap-6 ml-4">
@@ -77,24 +77,6 @@ export function TopBar({ viewMode, onViewModeChange, sidebarMode, onSidebarModeC
 
       {/* Right: Counters, Toggle, and Profile */}
       <div className="flex items-center gap-6">
-        <div className="flex items-center gap-6 text-sm">
-          <div className="flex flex-col items-center">
-            <span className="text-[#6b7280] text-xs uppercase tracking-wider">Active Agents</span>
-            <span className="text-[#00d4ff] font-mono font-semibold">6</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-[#6b7280] text-xs uppercase tracking-wider">Incidents (24h)</span>
-            <span className="text-[#ffaa00] font-mono font-semibold">3</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-[#6b7280] text-xs uppercase tracking-wider">Threats Intercepted</span>
-            <span className="text-[#ff3355] font-mono font-semibold">12</span>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="w-px h-6 bg-[#1f2937]" />
-
         {/* View Toggle - Sliding Toggle */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-[#6b7280]">View:</span>

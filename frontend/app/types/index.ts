@@ -11,6 +11,7 @@ export interface Agent {
   status: AgentStatus;
   record: AgentRecord;
   riskScore: RiskLevel;
+  clusterId?: string;
 }
 
 export interface Cluster {
@@ -89,6 +90,10 @@ export interface InvestigatorReport {
   crimeClassification: CrimeClassification;
   relevantLogIds: string[];
   caseFacts: string;
+  timestamp?: string;
+  modusOperandi?: string;
+  confidence?: number;
+  evidenceSummary?: string;
 }
 
 export interface FlaggedMessage {
@@ -198,9 +203,9 @@ export interface TimelineState {
   endTime: Date;
 }
 
-export interface InvestigatorSelection {
-  investigatorId: string;
-  investigatorLabel: string;
+export interface PatrolSelection {
+  patrolId: string;
+  patrolLabel: string;
 }
 
 // ── Backend API types (Patrol Swarm, Bridge DB) ─────────────────────────────
