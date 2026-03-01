@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { agents, violationCounts, timelineEvents, caseFiles } from '../../data/mockData';
 import type { Cluster, AgentStatus } from '../../types';
+import { usePheromones } from '../../hooks/api/usePatrolQueries';
 
 // ── Shared constants ─────────────────────────────────────────────────────────
 
@@ -61,7 +62,7 @@ export function AnalyticsSidebar({ clusters, getAgentStatus }: AnalyticsSidebarP
         <IncidentTimeline />
         <CrimeTypeBreakdown />
         <InvestigationOutcomes />
-        <AgentRiskHeatmap clusters={clusters} getAgentStatus={getAgentStatus} />
+        <AgentRiskHeatmap clusters={clusters} />
       </div>
     </div>
   );
@@ -258,24 +259,53 @@ function InvestigationOutcomes() {
   );
 }
 
-// ── Chart 6: Agent Risk Heatmap (Grid) ───────────────────────────────────────
+// ── Chart 6: Pheromone Heatmap (Grid) ────────────────────────────────────────
 
 const ROLES = ['EMAIL_AGENT', 'CODING_AGENT', 'DOCUMENT_AGENT', 'DATA_QUERY_AGENT'];
 const ROLE_SHORT = ['Email', 'Code', 'Doc', 'Data'];
 
-const heatmapGradients: Record<AgentStatus, string> = {
-  working:    'radial-gradient(ellipse at center, rgba(0,200,83,0.9) 0%, rgba(0,200,83,0.3) 60%, transparent 100%)',
-  idle:       'radial-gradient(ellipse at center, rgba(74,158,255,0.7) 0%, rgba(74,158,255,0.2) 60%, transparent 100%)',
-  restricted: 'radial-gradient(ellipse at center, rgba(255,170,0,1) 0%, rgba(255,170,0,0.4) 60%, transparent 100%)',
-  suspended:  'radial-gradient(ellipse at center, rgba(107,114,128,0.8) 0%, rgba(107,114,128,0.2) 60%, transparent 100%)',
+// Cluster 1 hardcoded high pheromone levels (0.75–0.95) for demo
+const CLUSTER1_PHEROMONES: Record<string, number> = {
+  'c1-email':    0.92,
+  'c1-coding':   0.81,
+  'c1-document': 0.76,
+  'c1-data':     0.88,
 };
 
-// Cluster 1 (index 0) always has elevated pheromone levels → forced 'restricted' (yellow) in heatmap
-const HIGH_PHEROMONE_CLUSTER_INDEX = 0;
+/** Interpolate between two RGB colors by t ∈ [0,1], returns [r,g,b] tuple. */
+function lerpRgb(a: [number, number, number], b: [number, number, number], t: number): [number, number, number] {
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * t),
+    Math.round(a[1] + (b[1] - a[1]) * t),
+    Math.round(a[2] + (b[2] - a[2]) * t),
+  ];
+}
 
-function AgentRiskHeatmap({ clusters, getAgentStatus }: { clusters: Cluster[]; getAgentStatus: (id: string) => AgentStatus }) {
+/** Map pheromone level 0–1 to a solid background color: green→yellow→red. */
+function pheromoneColor(level: number): string {
+  const green: [number, number, number] = [0, 200, 83];
+  const yellow: [number, number, number] = [255, 170, 0];
+  const red: [number, number, number] = [255, 51, 85];
+
+  const [r, g, b] = level <= 0.5
+    ? lerpRgb(green, yellow, level / 0.5)
+    : lerpRgb(yellow, red, (level - 0.5) / 0.5);
+
+  return `rgba(${r},${g},${b},0.85)`;
+}
+
+function AgentRiskHeatmap({ clusters }: { clusters: Cluster[] }) {
+  const { data: livePheromones = {} } = usePheromones();
+
   return (
-    <ChartSection title="Risk Heatmap">
+    <ChartSection title="Pheromone Levels">
+      {/* Scale legend */}
+      <div className="flex items-center gap-1 mb-2">
+        <span className="text-[8px] text-[#6b7280]">Low</span>
+        <div className="flex-1 h-1.5 rounded-full" style={{ background: 'linear-gradient(to right, rgba(0,200,83,0.8), rgba(255,170,0,0.9), rgba(255,51,85,1))' }} />
+        <span className="text-[8px] text-[#6b7280]">High</span>
+      </div>
+
       {/* Column headers */}
       <div className="grid grid-cols-[40px_repeat(4,1fr)] gap-1 mb-1">
         <div />
@@ -290,16 +320,19 @@ function AgentRiskHeatmap({ clusters, getAgentStatus }: { clusters: Cluster[]; g
           <div className="text-[8px] text-[#6b7280] flex items-center">C{ci + 1}</div>
           {ROLES.map(role => {
             const agent = cluster.agents.find(a => a.role === role);
-            // Cluster 1 has hardcoded high pheromone levels — always shows as restricted (yellow)
-            const status: AgentStatus = ci === HIGH_PHEROMONE_CLUSTER_INDEX
-              ? 'restricted'
-              : agent ? getAgentStatus(agent.id) : 'idle';
+            if (!agent) return <div key={role} className="h-5 rounded-sm bg-[#1f2937]" />;
+
+            // Cluster 1: hardcoded high pheromone levels
+            const level = ci === 0
+              ? (CLUSTER1_PHEROMONES[agent.id] ?? 0.85)
+              : (livePheromones[agent.id] ?? 0);
+
             return (
               <div
                 key={role}
                 className="h-5 rounded-sm transition-all"
-                style={{ background: heatmapGradients[status] }}
-                title={agent ? `${agent.name}: ${status}` : ''}
+                style={{ backgroundColor: pheromoneColor(level) }}
+                title={`${agent.name}: ${(level * 100).toFixed(0)}%`}
               />
             );
           })}

@@ -68,17 +68,18 @@ export function usePatrolFlagNotifications() {
   useEffect(() => {
     if (current !== null) return;
     if (queue.length === 0) return;
-    setQueue((prev) => {
-      if (prev.length === 0) return prev;
-      const [next, ...rest] = prev;
-      setCurrent(next);
-      // Play notification sound
-      try {
-        const audio = new Audio('/sound/notification.mp3');
-        audio.play().catch(() => {});
-      } catch {}
-      return rest;
-    });
+
+    const [next, ...rest] = queue;
+    setCurrent(next);
+    setQueue(rest);
+
+    // Play notification sound (side effect outside of state updater)
+    try {
+      const audio = new Audio('/sound/notification.mp3');
+      audio.play().catch((err) => console.warn('[PatrolNotify] Sound blocked:', err));
+    } catch (err) {
+      console.warn('[PatrolNotify] Sound error:', err);
+    }
   }, [current, queue]);
 
   const dismiss = () => setCurrent(null);
