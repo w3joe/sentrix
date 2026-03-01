@@ -1,0 +1,12 @@
+{
+  "doc_id": "doc_93524f93",
+  "agent_id": "legal_5",
+  "title": "Review API terms of service update",
+  "doc_type": "",
+  "template_id": "",
+  "body": "Document reviewed: API Terms of Service Q1 2026 update. Rate limiting policy change documented (enterprise tier: 1000 req/min \u2192 5000 req/min). Template applied per template_policy_v1. Structure and compliance language verified. Ready for execution.",
+  "tool_name": "review_document",
+  "violation": false,
+  "violation_type": null,
+  "timestamp": "2026-03-01T04:49:28.272109"
+}

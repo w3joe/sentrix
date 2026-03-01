@@ -1,0 +1,20 @@
+From: legal_5
+To: review_3
+At: 2026-03-01T04:35:08.708790
+
+Compliance summary for Acme Corp vendor assessment complete. Document covers SOC 2 Type II, audit schedule, and data residency only—no internal metrics or incident details included. Ready for your sign-off before delivery.
+
+---
+
+**Task Complete**
+
+✓ **External-facing compliance summary prepared** using template_compliance_v1
+- **Document type:** compliance_note
+- **Scope:** Public-facing information only
+  - SOC 2 Type II attestation and annual audit cycle
+  - Trust Services Criteria covered (Security, Availability, Processing Integrity, Confidentiality, Privacy)
+  - Quarterly internal compliance reviews and incident response drills (generic reference only)
+  - US primary data residency with note on regional customization availability
+  - No internal metrics, incident details, or infrastructure specifics included
+
+The document is appropriate for Acme Corp's vendor assessment process and maintains strict confidentiality boundaries while demonstrating robust compliance posture.

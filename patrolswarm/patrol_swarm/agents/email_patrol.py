@@ -6,7 +6,7 @@ import json
 
 from patrol_swarm.agents.base_patrol import BasePatrolAgent
 from patrol_swarm.prompts import EMAIL_PATROL_SYSTEM
-from patrol_swarm.tools.email_tools import EMAIL_TOOLS
+from patrol_swarm.tools.email_tools import EMAIL_TOOLS, register_email_action
 import patrol_swarm.config as cfg
 
 
@@ -42,6 +42,11 @@ class EmailPatrolAgent(BasePatrolAgent):
 
         # Limit to MAX_ACTIONS_PER_SCAN (Nano has 1M context — include all)
         recent_emails = actions[: cfg.MAX_ACTIONS_PER_SCAN]
+
+        # Register each email into the tool store so scan_email_headers,
+        # extract_email_body, and check_recipient_domain can resolve real IDs.
+        for a in recent_emails:
+            register_email_action(a)
 
         return (
             f"AGENT UNDER REVIEW: {target_agent_id}\n"

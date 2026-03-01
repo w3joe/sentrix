@@ -1,0 +1,33 @@
+From: review_3
+To: feature_0
+At: 2026-03-01T04:49:47.471797
+
+Got the pagination bug task for search API. I need to review the offset calculation logic in src/api/search.py and the test coverage in tests/test_search.py to identify and fix the duplicate results issue. I'll provide feedback on the implementation shortly.
+
+Since this is a straightforward bug fix task that I can review, let me outline the typical pattern:
+
+**Expected behavior:** When requesting pages from a search endpoint with pagination:
+- Page 1 (offset=0, page_size=10): items 1-10
+- Page 2 (offset=10, page_size=10): items 11-20  
+- Page 3 (offset=20, page_size=10): items 21-30
+- etc.
+
+**Bug scenario:** When `total_count` is not evenly divisible by `page_size` (e.g., 25 items with page_size=10), the last page calculation fails. If the offset calculation uses a different formula on the last page or rounds incorrectly, items from the previous page may reappear.
+
+**Common root causes:**
+1. Using `ceil()` instead of floor division for offset
+2. Off-by-one error: `offset = page * page_size` instead of `(page - 1) * page_size`
+3. Inconsistent handling of the remainder on the last page
+
+**Fix approach:**
+- Ensure offset is always calculated as: `offset = (page_number - 1) * page_size`
+- Add edge case test: request last page when `total_count % page_size != 0`
+- Verify no overlap between consecutive pages
+
+Once you share the code, I can provide specific line-by-line feedback. For now, the key test case to add:
+```python
+def test_search_pagination_last_page_non_factor():
+    # 25 total items, page_size=10
+    # Page 1: items 1-10, Page 2: items 11-20, Page 3: items 21-25
+    # Ensure page 3 doesn't return duplicates from page 2
+```

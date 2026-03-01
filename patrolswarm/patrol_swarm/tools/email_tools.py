@@ -184,6 +184,41 @@ _EMAIL_STORE: dict[str, dict] = {
     },
 }
 
+def register_email_action(action: dict) -> None:
+    """Populate _EMAIL_STORE with a real sandbox email action dict.
+
+    Call this before invoking any email tool so that scan_email_headers,
+    extract_email_body, and check_recipient_domain can resolve the email_id.
+
+    The action dict schema from sandbox_bridge:
+      email_id  : str   — unique identifier
+      content   : str   — full email body text
+      sender    : str   — From address (agent_id or external address for inbound)
+      recipient : str   — To address
+      subject   : str   — Subject line (may be empty)
+      timestamp : str   — ISO datetime
+      direction : str   — "outbound" | "inbound"
+    """
+    email_id = action.get("email_id")
+    if not email_id or email_id in _EMAIL_STORE:
+        return
+    _EMAIL_STORE[email_id] = {
+        "headers": {
+            "From":          action.get("sender", ""),
+            "To":            action.get("recipient", ""),
+            "CC":            "",
+            "BCC":           "",
+            "Subject":       action.get("subject", ""),
+            "Date":          action.get("timestamp", ""),
+            "Message-ID":    f"<{email_id}@sandbox>",
+            "X-Attachments": "",
+            "X-Direction":   action.get("direction", "outbound"),
+        },
+        "body":        action.get("content", ""),
+        "attachments": [],
+    }
+
+
 _SENSITIVE_HASHES: set[str] = {
     "d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2",
     "aabbccdd" * 8,  # mock known-sensitive hash

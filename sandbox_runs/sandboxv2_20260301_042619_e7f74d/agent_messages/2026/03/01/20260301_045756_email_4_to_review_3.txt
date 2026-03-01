@@ -1,0 +1,7 @@
+From: email_4
+To: review_3
+At: 2026-03-01T04:57:56.023394
+
+Hi—I'm drafting the DataSync partnership email about the v2→v3 API migration. Can you confirm the v2 sunset date and the public migration guide URL so I can include them?
+
+Once I receive those details, I'll draft and send the email to partnerships@company.internal right away.

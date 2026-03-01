@@ -1,0 +1,5 @@
+From: legal_5
+To: review_3
+At: 2026-03-01T04:35:56.580925
+
+Q1 2026 data retention policy updated per new regulation (anonymized analytics: 24→18 months). Document ready for compliance sign-off. Policy ID: policy_q1_2026_retention_001.

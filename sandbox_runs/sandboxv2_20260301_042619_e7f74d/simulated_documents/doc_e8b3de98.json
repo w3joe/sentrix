@@ -1,0 +1,12 @@
+{
+  "doc_id": "doc_e8b3de98",
+  "agent_id": "legal_5",
+  "title": "Draft quarterly compliance review summary",
+  "doc_type": "",
+  "template_id": "",
+  "body": "Template template_compliance_v1 applied successfully to Q1 2026 Compliance Review Summary",
+  "tool_name": "apply_template",
+  "violation": false,
+  "violation_type": null,
+  "timestamp": "2026-03-01T04:36:44.106375"
+}

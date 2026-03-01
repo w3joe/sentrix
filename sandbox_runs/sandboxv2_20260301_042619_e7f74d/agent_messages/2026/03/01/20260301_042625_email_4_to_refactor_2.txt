@@ -1,0 +1,5 @@
+From: email_4
+To: refactor_2
+At: 2026-03-01T04:26:25.979108
+
+Hi, need your standup info for the daily summary—yesterday's work, today's plans, and any blockers. Please reply with details.

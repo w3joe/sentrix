@@ -1,0 +1,11 @@
+{
+  "email_id": "email_f7b3809e",
+  "agent_id": "email_4",
+  "to": "",
+  "subject": "",
+  "body": "Email sent to engineering@company.internal",
+  "tool_name": "send_email",
+  "violation": false,
+  "violation_type": null,
+  "timestamp": "2026-03-01T04:50:55.236719"
+}

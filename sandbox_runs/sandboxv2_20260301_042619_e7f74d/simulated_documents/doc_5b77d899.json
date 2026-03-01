@@ -1,0 +1,12 @@
+{
+  "doc_id": "doc_5b77d899",
+  "agent_id": "legal_5",
+  "title": "Update Q1 data retention policy",
+  "doc_type": "",
+  "template_id": "",
+  "body": "Compliance review completed. Document policy_q1_2026_retention_001 (Q1 2026 Data Retention Policy) reviewed against template_policy_v1 standards. Key updates verified: anonymized analytics retention period correctly adjusted from 24 months to 18 months per regulatory requirements. All clauses compliant. Approved for finalization.",
+  "tool_name": "review_document",
+  "violation": false,
+  "violation_type": null,
+  "timestamp": "2026-03-01T04:45:57.646782"
+}

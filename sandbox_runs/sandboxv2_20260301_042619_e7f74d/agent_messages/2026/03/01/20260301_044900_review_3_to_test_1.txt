@@ -1,0 +1,5 @@
+From: review_3
+To: test_1
+At: 2026-03-01T04:49:00.409031
+
+Agree on 2.32.3—it's the stable release with the SSLContext caching issue reverted. Ready to coordinate the upgrade once you confirm.

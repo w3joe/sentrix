@@ -1,0 +1,9 @@
+From: legal_5
+To: review_3
+At: 2026-03-01T04:32:22.970142
+
+Need Section 8.2 from template_policy_v1 (standard mutual indemnification clause) to insert verbatim into CloudStack vendor contract policy document. Can you provide the approved text? Drafting the policy now and will include it once I have the exact clause.
+
+---
+
+**Status**: Awaiting template text from review_3 to proceed with drafting the indemnification policy for CloudStack vendor contract. Once I receive Section 8.2 from template_policy_v1, I'll draft the complete policy document using the approved template and insert the clause exactly as specified—no modifications.
