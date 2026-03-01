@@ -7,6 +7,8 @@ import {
   FLOOR_SPRITES,
 } from '../config/spriteConfig';
 
+const CACHE_NAME = 'sentrix-sprites-v1';
+
 // Shared module-level caches — populated by preload or on-demand
 export const frameCache = new Map<string, Texture[]>();
 export const textureCache = new Map<string, Texture>();
@@ -27,6 +29,30 @@ function sliceFrames(baseTexture: Texture): Texture[] {
   );
 }
 
+function toAbsoluteUrl(path: string): string {
+  if (typeof window === 'undefined') return path;
+  return path.startsWith('http') ? path : `${window.location.origin}${path}`;
+}
+
+/** Load image via Cache API first (persists across refreshes), fallback to network */
+async function fetchWithCache(path: string): Promise<Blob> {
+  const url = toAbsoluteUrl(path);
+  if (typeof caches === 'undefined') {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Fetch failed: ${path}`);
+    return res.blob();
+  }
+
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(url);
+  if (cached) return cached.blob();
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Fetch failed: ${path}`);
+  await cache.put(url, res.clone());
+  return res.blob();
+}
+
 async function loadWithRetry(
   path: string,
   retries = 1,
@@ -35,8 +61,20 @@ async function loadWithRetry(
   const timeoutPromise = new Promise<Texture>((_, reject) =>
     setTimeout(() => reject(new Error(`Timeout loading ${path}`)), timeoutMs)
   );
-  const loadWithTimeout = () =>
-    Promise.race([Assets.load(path), timeoutPromise]);
+  const loadTask = async () => {
+    const blob = await fetchWithCache(path);
+    const objectUrl = URL.createObjectURL(blob);
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error(`Failed to decode image: ${path}`));
+      el.src = objectUrl;
+    });
+    const texture = Texture.from(img);
+    URL.revokeObjectURL(objectUrl);
+    return texture;
+  };
+  const loadWithTimeout = () => Promise.race([loadTask(), timeoutPromise]);
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await loadWithTimeout();
