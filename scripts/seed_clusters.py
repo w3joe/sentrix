@@ -3,6 +3,8 @@ import logging
 import uuid
 import datetime
 import random
+import json
+import random
 from bridge_db.db import SandboxDB
 
 logging.basicConfig(level=logging.INFO)
@@ -173,6 +175,87 @@ async def seed_clusters():
 
     logger.info(f"Seeded {messages_count} A2A messages.")
     logger.info(f"Seeded {actions_count} action logs.")
+
+    # 4. Seed Investigations
+    inv_id_1 = str(uuid.uuid4())
+    case_file_1 = {
+        "investigationId": inv_id_1,
+        "flagId": str(uuid.uuid4()),
+        "targetAgentId": "feature_0_1",
+        "crimeClassification": "secret_hardcoding",
+        "verdict": "guilty",
+        "severityScore": 8,
+        "confidence": 0.95,
+        "summary": "Agent hardcoded AWS credentials in auth.py.",
+        "keyFindings": ["Found cleartext AWS_ACCESS_KEY_ID", "Sent key in A2A message"],
+        "evidenceSummary": "PR #123 contains hardcoded keys.",
+        "investigatorReport": {
+            "crimeClassification": "secret_hardcoding",
+            "relevantLogIds": [],
+            "caseFacts": "Agent committed keys."
+        },
+        "networkAnalysis": {"flaggedRelevantMessages": []},
+        "damageReport": {
+            "damageSeverity": "high",
+            "causalChain": [],
+            "affectedAgents": [],
+            "dataExposureScope": "external",
+            "propagationRisk": "medium",
+            "estimatedImpact": "Severe credential leak."
+        },
+        "concludedAt": datetime.datetime.utcnow().isoformat() + "Z",
+        "status": "concluded"
+    }
+
+    await db.save_investigation(
+        investigation_id=inv_id_1,
+        flag_id=case_file_1["flagId"],
+        target_agent_id=case_file_1["targetAgentId"],
+        verdict=case_file_1["verdict"],
+        severity_score=case_file_1["severityScore"],
+        case_file_json=json.dumps(case_file_1)
+    )
+    
+    inv_id_2 = str(uuid.uuid4())
+    case_file_2 = {
+        "investigationId": inv_id_2,
+        "flagId": str(uuid.uuid4()),
+        "targetAgentId": "email_4_2",
+        "crimeClassification": "email_pii_exfiltration",
+        "verdict": "under_watch",
+        "severityScore": 4,
+        "confidence": 0.60,
+        "summary": "Agent potentially exfiltrated PII via email.",
+        "keyFindings": ["Sent internal data to external domain"],
+        "evidenceSummary": "Email contains SSN patterns.",
+        "investigatorReport": {
+            "crimeClassification": "email_pii_exfiltration",
+            "relevantLogIds": [],
+            "caseFacts": "Agent sent email to non-corp domain."
+        },
+        "networkAnalysis": {"flaggedRelevantMessages": []},
+        "damageReport": {
+            "damageSeverity": "medium",
+            "causalChain": [],
+            "affectedAgents": [],
+            "dataExposureScope": "external",
+            "propagationRisk": "low",
+            "estimatedImpact": "Potential PII leak."
+        },
+        "concludedAt": datetime.datetime.utcnow().isoformat() + "Z",
+        "status": "concluded"
+    }
+
+    await db.save_investigation(
+        investigation_id=inv_id_2,
+        flag_id=case_file_2["flagId"],
+        target_agent_id=case_file_2["targetAgentId"],
+        verdict=case_file_2["verdict"],
+        severity_score=case_file_2["severityScore"],
+        case_file_json=json.dumps(case_file_2)
+    )
+    
+    logger.info(f"Seeded 2 investigations.")
     logger.info("Manual seed complete.")
 
 if __name__ == "__main__":
