@@ -3,7 +3,7 @@
 import { useRef, useCallback, useState } from 'react';
 import { Application, extend } from '@pixi/react';
 import { Container, Graphics, Text, Sprite, TilingSprite } from 'pixi.js';
-import type { AgentStatus, PatrolSelection } from '../../../types';
+import type { AgentStatus, PatrolSelection, Agent } from '../../../types';
 import { WORLD_COLORS } from './config/spriteConfig';
 import { WORLD_WIDTH, WORLD_HEIGHT } from './config/roomLayout';
 import { FloorLayer } from './layers/FloorLayer';
@@ -25,6 +25,7 @@ interface SpriteWorldProps {
   onPatrolSelect: (selection: PatrolSelection | null) => void;
   pendingAssignment: { patrolId: string; targetAgentId: string } | null;
   onAssignmentComplete: () => void;
+  agents: Agent[];
 }
 
 export default function SpriteWorld({
@@ -37,6 +38,7 @@ export default function SpriteWorld({
   onPatrolSelect,
   pendingAssignment,
   onAssignmentComplete,
+  agents,
 }: SpriteWorldProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -131,6 +133,7 @@ export default function SpriteWorld({
             onPatrolSelect={onPatrolSelect}
             pendingAssignment={pendingAssignment}
             onAssignmentComplete={onAssignmentComplete}
+            agents={agents}
           />
 
           {/* Monitors rendered on top of entities */}

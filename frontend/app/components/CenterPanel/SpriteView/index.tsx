@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import type { AgentStatus, PatrolSelection } from '../../../types';
+import type { AgentStatus, PatrolSelection, Agent } from '../../../types';
 
 const SpriteWorld = dynamic(() => import('./SpriteWorld'), {
   ssr: false,
@@ -22,6 +22,7 @@ export interface SpriteViewProps {
   onPatrolSelect: (selection: PatrolSelection | null) => void;
   pendingAssignment: { patrolId: string; targetAgentId: string } | null;
   onAssignmentComplete: () => void;
+  agents: Agent[];
 }
 
 export function SpriteView(props: SpriteViewProps) {

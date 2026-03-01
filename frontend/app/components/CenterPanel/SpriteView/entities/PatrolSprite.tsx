@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { SYSTEM_COLORS, SPRITE_SHEETS, SPRITE_DISPLAY_SIZES } from '../config/spriteConfig';
 import { CharacterSprite } from './BaseCharacter';
 import { usePatrolTargetMovement } from '../hooks/usePatrolTargetMovement';
@@ -12,7 +12,6 @@ const S = 3;
 interface PatrolSpriteProps {
   patrolId: string;
   label: string;
-  targetAgentId: string | null;
   targetAgentPos: { x: number; y: number } | null;
   onSelect: (selection: PatrolSelection | null) => void;
   onArrived: () => void;
@@ -21,13 +20,17 @@ interface PatrolSpriteProps {
 export function PatrolSprite({
   patrolId,
   label,
-  targetAgentId,
   targetAgentPos,
   onSelect,
   onArrived,
 }: PatrolSpriteProps) {
-  const position = usePatrolTargetMovement(patrolId, targetAgentId, onArrived);
+  const [isMounted, setIsMounted] = useState(false);
+  const position = usePatrolTargetMovement(patrolId, targetAgentPos, onArrived);
   const direction = useMovementDirection(position.x, position.y);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const drawLabel = useCallback(
     (g: any) => {
@@ -42,13 +45,15 @@ export function PatrolSprite({
   const drawScanEffect = useCallback(
     (g: any) => {
       g.clear();
-      const angle = (Date.now() / 1000) % (Math.PI * 2);
-      g.setStrokeStyle({ width: 1 * S, color: SYSTEM_COLORS.patrol.border, alpha: 0.3 });
-      g.moveTo(0, 0);
-      g.lineTo(Math.cos(angle) * 25 * S, Math.sin(angle) * 25 * S);
-      g.stroke();
+      if (isMounted) {
+        const angle = (Date.now() / 1000) % (Math.PI * 2);
+        g.setStrokeStyle({ width: 1 * S, color: SYSTEM_COLORS.patrol.border, alpha: 0.3 });
+        g.moveTo(0, 0);
+        g.lineTo(Math.cos(angle) * 25 * S, Math.sin(angle) * 25 * S);
+        g.stroke();
+      }
     },
-    [],
+    [isMounted],
   );
 
   const drawConnectionLine = useCallback(
@@ -79,7 +84,7 @@ export function PatrolSprite({
 
   return (
     <pixiContainer x={position.x} y={position.y}>
-      {!targetAgentId && <pixiGraphics draw={drawScanEffect} />}
+      {!targetAgentPos && <pixiGraphics draw={drawScanEffect} />}
       <pixiGraphics draw={drawConnectionLine} />
       <pixiContainer
         eventMode="static"

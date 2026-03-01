@@ -39,12 +39,17 @@ interface NetworkSpriteProps {
 }
 
 export function NetworkSprite({ x: homeX, y: homeY }: NetworkSpriteProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [position, setPosition] = useState({ x: homeX, y: homeY });
   const posRef = useRef({ x: homeX, y: homeY });
   const roamTargetRef = useRef<{ x: number; y: number } | null>(null);
   const pauseUntilRef = useRef<number>(0);
 
   const direction = useMovementDirection(position.x, position.y);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Roaming movement effect
   useEffect(() => {
@@ -99,14 +104,14 @@ export function NetworkSprite({ x: homeX, y: homeY }: NetworkSpriteProps) {
 
   const drawPulse = useCallback((g: any) => {
     g.clear();
-    const pulse = Math.sin(Date.now() / 1000) * 0.12 + 0.18;
+    const pulse = isMounted ? Math.sin(Date.now() / 1000) * 0.12 + 0.18 : 0.18;
     g.setStrokeStyle({ width: 1 * S, color: SYSTEM_COLORS.network.border, alpha: pulse });
     g.circle(0, 0, 28 * S);
     g.stroke();
     g.setStrokeStyle({ width: 1 * S, color: SYSTEM_COLORS.network.border, alpha: pulse * 0.5 });
     g.circle(0, 0, 34 * S);
     g.stroke();
-  }, []);
+  }, [isMounted]);
 
   const drawLabel = useCallback((g: any) => {
     g.clear();

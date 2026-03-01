@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { SYSTEM_COLORS, SPRITE_SHEETS, SPRITE_FRAMES, SPRITE_DISPLAY_SIZES } from '../config/spriteConfig';
 import { CharacterSprite } from './BaseCharacter';
 import { controlRoom } from '../config/roomLayout';
@@ -9,17 +9,22 @@ const S = 3;
 
 export function SuperintendentSprite() {
   const { superintendentPos } = controlRoom;
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const drawPulse = useCallback((g: any) => {
     g.clear();
-    const pulse = Math.sin(Date.now() / 800) * 0.15 + 0.2;
+    const pulse = isMounted ? Math.sin(Date.now() / 800) * 0.15 + 0.2 : 0.2;
     g.setStrokeStyle({ width: 1 * S, color: SYSTEM_COLORS.superintendent.border, alpha: pulse });
     g.circle(0, 0, 32 * S);
     g.stroke();
     g.setStrokeStyle({ width: 1 * S, color: SYSTEM_COLORS.superintendent.border, alpha: pulse * 0.5 });
     g.circle(0, 0, 38 * S);
     g.stroke();
-  }, []);
+  }, [isMounted]);
 
   const drawLabel = useCallback((g: any) => {
     g.clear();

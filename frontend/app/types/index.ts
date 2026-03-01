@@ -90,6 +90,10 @@ export interface InvestigatorReport {
   crimeClassification: CrimeClassification;
   relevantLogIds: string[];
   caseFacts: string;
+  timestamp?: string;
+  modusOperandi?: string;
+  confidence?: number;
+  evidenceSummary?: string;
 }
 
 export interface FlaggedMessage {

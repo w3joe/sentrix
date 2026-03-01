@@ -32,6 +32,8 @@ const sourceColors: Record<string, string> = {
   'PATROL-1': '#00d4ff',
   'PATROL-2': '#00d4ff',
   'INVESTIGATOR': '#9b59b6',
+  'SUPERINTENDENT': '#a855f7',
+  'NETWORK': '#14b8a6',
   'FLOATER-2': '#ffaa00',
 };
 
@@ -62,6 +64,7 @@ export function ContextPanel({
   const [isClient, setIsClient] = useState(false);
   const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
 
+  // Use agents from database (agentsProp) when available, otherwise fall back to mock agents
   const agents = useMocks ? mockAgents : (agentsProp ?? []);
   const { data: investigationDetail } = useInvestigationDetail(selectedCaseId);
   const { data: agentActions = [] } = useAgentActions(selectedAgentId);
@@ -250,10 +253,7 @@ export function ContextPanel({
 
                         {/* Assign Button */}
                         <button
-                          onClick={() => {
-                            console.log('[ContextPanel] Assign clicked:', agent.id);
-                            onAgentAssign?.(agent.id);
-                          }}
+                          onClick={() => onAgentAssign?.(agent.id)}
                           className="w-full py-1.5 rounded text-xs font-semibold transition-all mt-2"
                           style={{
                             backgroundColor: colors.text,

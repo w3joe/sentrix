@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { patrolWaypoints, getDeskPosition } from '../config/roomLayout';
+import { patrolWaypoints, findPath } from '../config/roomLayout';
 import { MOVEMENT } from '../config/spriteConfig';
 
 const S = 3;
 
 // Slow constant speed in pixels per frame (~60fps) — scaled with world ×3
 const PATROL_SPEED = 0.8 * 3;
+// Faster speed when moving to target agent
+const TARGET_SPEED = 2.5 * S;
 
 export function usePatrolTargetMovement(
   patrolId: string,
-  targetAgentId: string | null,
+  targetAgentPos: { x: number; y: number } | null,
   onArrived?: () => void,
 ) {
   // p1 starts at waypoint 0, p2 starts halfway through the route
@@ -20,19 +22,29 @@ export function usePatrolTargetMovement(
   const waypointIdxRef = useRef(startIdx);
   const arrivedRef = useRef(false);
   
+  // Path following state for target movement
+  const pathRef = useRef<{ x: number; y: number }[]>([]);
+  const pathIdxRef = useRef(0);
+  
   // Use refs for values that the animation loop needs to see updated immediately
-  const targetAgentIdRef = useRef<string | null>(targetAgentId);
+  const targetPosRef = useRef<{ x: number; y: number } | null>(targetAgentPos);
   const onArrivedRef = useRef(onArrived);
 
-  // Keep refs in sync with props
+  // Keep refs in sync with props and compute path when target changes
   useEffect(() => {
-    console.log('[usePatrolTargetMovement] targetAgentId changed:', { patrolId, targetAgentId });
-    targetAgentIdRef.current = targetAgentId;
-    // Reset arrived flag when target changes
-    if (targetAgentId) {
+    if (targetAgentPos) {
+      const currentPos = posRef.current;
+      // Compute path from current position to target agent position
+      const path = findPath(currentPos.x, currentPos.y, targetAgentPos.x, targetAgentPos.y);
+      pathRef.current = path;
+      pathIdxRef.current = 0; // Start at beginning of path
       arrivedRef.current = false;
+    } else {
+      pathRef.current = [];
+      pathIdxRef.current = 0;
     }
-  }, [targetAgentId, patrolId]);
+    targetPosRef.current = targetAgentPos;
+  }, [targetAgentPos]);
 
   useEffect(() => {
     onArrivedRef.current = onArrived;
@@ -43,29 +55,39 @@ export function usePatrolTargetMovement(
 
     const tick = () => {
       const cur = posRef.current;
-      const currentTarget = targetAgentIdRef.current;
+      const currentTargetPos = targetPosRef.current;
+      const path = pathRef.current;
 
-      if (currentTarget) {
-        // Moving to target agent
-        const deskPos = getDeskPosition(currentTarget);
-        const targetPos = deskPos ? { x: deskPos.x, y: deskPos.y - 40 * S } : cur;
-
-        const dx = targetPos.x - cur.x;
-        const dy = targetPos.y - cur.y;
+      if (currentTargetPos && path.length > 0) {
+        // Moving along path to target agent
+        const currentPathIdx = pathIdxRef.current;
+        
+        // Get next waypoint in path
+        const nextWaypoint = path[Math.min(currentPathIdx, path.length - 1)];
+        
+        const dx = nextWaypoint.x - cur.x;
+        const dy = nextWaypoint.y - cur.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist > 2 * S) {
-          // Use investigator speed when moving to target for a faster walk
-          const speed = MOVEMENT.investigatorSpeed;
+          // Move towards current path waypoint
+          const nx = dx / dist;
+          const ny = dy / dist;
           const newPos = {
-            x: cur.x + dx * speed,
-            y: cur.y + dy * speed,
+            x: cur.x + nx * TARGET_SPEED,
+            y: cur.y + ny * TARGET_SPEED,
           };
           posRef.current = newPos;
           setPosition(newPos);
-        } else if (!arrivedRef.current) {
-          arrivedRef.current = true;
-          onArrivedRef.current?.();
+        } else {
+          // Reached current waypoint, advance to next
+          if (currentPathIdx < path.length - 1) {
+            pathIdxRef.current = currentPathIdx + 1;
+          } else if (!arrivedRef.current) {
+            // Reached final destination
+            arrivedRef.current = true;
+            onArrivedRef.current?.();
+          }
         }
       } else {
         // Normal patrol waypoint movement

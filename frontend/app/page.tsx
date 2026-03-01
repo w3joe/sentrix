@@ -86,7 +86,6 @@ export default function Dashboard() {
 
   // Handle agent assignment from sidebar
   const handleAgentAssign = useCallback((targetAgentId: string) => {
-    console.log('[page] handleAgentAssign called:', { patrolSelection, targetAgentId });
     if (patrolSelection) {
       setPendingAssignment({
         patrolId: patrolSelection.patrolId,
@@ -169,6 +168,7 @@ export default function Dashboard() {
               onPatrolSelect={handlePatrolSelect}
               pendingAssignment={pendingAssignment}
               onAssignmentComplete={handleAssignmentComplete}
+              agents={agents}
             />
           )}
         </div>
