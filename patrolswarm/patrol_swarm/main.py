@@ -34,6 +34,8 @@ import os
 import sys
 from pathlib import Path
 
+import patrol_swarm.config as cfg
+
 # Configure logging before any patrol_swarm imports
 logging.basicConfig(
     level=logging.INFO,
@@ -178,6 +180,30 @@ async def run_single(args: argparse.Namespace) -> None:
         for flag in flags:
             print("\n🚨 PATROL FLAG:")
             print(flag.model_dump_json(indent=2))
+
+        # POST each flag to the investigation API (same as continuous mode)
+        import httpx
+        for flag in flags:
+            try:
+                async with httpx.AsyncClient() as client:
+                    resp = await client.post(
+                        f"http://localhost:{cfg.INVESTIGATION_API_PORT}"
+                        "/api/investigation/investigate",
+                        json=flag.to_superintendent_payload(),
+                        timeout=5.0,
+                    )
+                    inv_id = resp.json().get("investigation_id")
+                    logger.info(
+                        "Investigation opened for %s → %s",
+                        flag.target_agent_id,
+                        inv_id,
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "Could not reach investigation API for %s: %s",
+                    flag.target_agent_id,
+                    exc,
+                )
     else:
         print("\n✅ No violations detected this cycle.")
 
