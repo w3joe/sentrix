@@ -119,16 +119,22 @@ class BasePatrolAgent(ABC):
     tools: list[BaseTool]
 
     def __init__(self) -> None:
-        # Endpoint resolved from PATROL_DEPLOYMENT env var (brev | local).
-        # cfg.ACTIVE_PATROL_ENDPOINT / ACTIVE_API_KEY / ACTIVE_PATROL_MODEL
-        # are set at import time by config.py — no code change needed to switch.
-        self._llm = ChatOpenAI(
-            base_url=cfg.ACTIVE_PATROL_ENDPOINT,
-            api_key=cfg.ACTIVE_API_KEY,
-            model=cfg.ACTIVE_PATROL_MODEL,
-            temperature=cfg.NANO_TEMPERATURE,
-            max_tokens=cfg.NANO_MAX_TOKENS,
-        )
+        if cfg.DEPLOYMENT == "claude":
+            from langchain_anthropic import ChatAnthropic
+            self._llm = ChatAnthropic(
+                api_key=cfg.ACTIVE_API_KEY,
+                model=cfg.ACTIVE_PATROL_MODEL,
+                temperature=cfg.NANO_TEMPERATURE,
+                max_tokens=cfg.NANO_MAX_TOKENS,
+            )
+        else:
+            self._llm = ChatOpenAI(
+                base_url=cfg.ACTIVE_PATROL_ENDPOINT,
+                api_key=cfg.ACTIVE_API_KEY,
+                model=cfg.ACTIVE_PATROL_MODEL,
+                temperature=cfg.NANO_TEMPERATURE,
+                max_tokens=cfg.NANO_MAX_TOKENS,
+            )
         # Bind domain tools. tool_choice="none" for local models that don't
         # support function-calling — agents fall back to raw JSON parsing.
         self._llm_with_tools = self._llm.bind_tools(
@@ -377,7 +383,26 @@ class BasePatrolAgent(ABC):
     @staticmethod
     def _extract_json_content(response: Any) -> dict:
         """Extract JSON dict from LLM response content."""
+        # Claude (ChatAnthropic) with bind_tools returns structured tool_calls —
+        # use them directly instead of re-parsing the raw content string.
+        if hasattr(response, "tool_calls") and response.tool_calls:
+            return response.tool_calls[0].get("args", {})
+
         content = response.content if hasattr(response, "content") else str(response)
+
+        # Claude returns content as a list of blocks when tool use is involved.
+        # Flatten to plain text so the rest of the method works unchanged.
+        if isinstance(content, list):
+            text_parts = []
+            for block in content:
+                if isinstance(block, dict):
+                    if block.get("type") == "tool_use":
+                        return block.get("input", {})
+                    elif block.get("type") == "text":
+                        text_parts.append(block.get("text", ""))
+                elif hasattr(block, "text"):
+                    text_parts.append(block.text)
+            content = " ".join(text_parts)
 
         # Strip <think>…</think> reasoning blocks (Nemotron/Qwen3 local models).
         # Two passes: first remove complete blocks, then strip any unclosed <think>

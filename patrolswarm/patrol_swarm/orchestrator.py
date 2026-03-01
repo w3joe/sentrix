@@ -48,14 +48,22 @@ class SwarmOrchestrator:
     """
 
     def __init__(self) -> None:
-        # Endpoint resolved from PATROL_DEPLOYMENT env var (brev | local).
-        self._llm = ChatOpenAI(
-            base_url=cfg.ACTIVE_ORCHESTRATOR_ENDPOINT,
-            api_key=cfg.ACTIVE_API_KEY,
-            model=cfg.ACTIVE_ORCHESTRATOR_MODEL,
-            temperature=cfg.SUPER_TEMPERATURE,
-            max_tokens=cfg.SUPER_MAX_TOKENS,
-        )
+        if cfg.DEPLOYMENT == "claude":
+            from langchain_anthropic import ChatAnthropic
+            self._llm = ChatAnthropic(
+                api_key=cfg.ACTIVE_API_KEY,
+                model=cfg.ACTIVE_ORCHESTRATOR_MODEL,
+                temperature=cfg.SUPER_TEMPERATURE,
+                max_tokens=cfg.SUPER_MAX_TOKENS,
+            )
+        else:
+            self._llm = ChatOpenAI(
+                base_url=cfg.ACTIVE_ORCHESTRATOR_ENDPOINT,
+                api_key=cfg.ACTIVE_API_KEY,
+                model=cfg.ACTIVE_ORCHESTRATOR_MODEL,
+                temperature=cfg.SUPER_TEMPERATURE,
+                max_tokens=cfg.SUPER_MAX_TOKENS,
+            )
 
     # ─── Phase 1: Assignment ──────────────────────────────────────────────────
 
@@ -254,6 +262,13 @@ class SwarmOrchestrator:
                 ]
             )
             content = response.content if hasattr(response, "content") else str(response)
+
+            # Claude returns content as a list of text blocks — flatten to string.
+            if isinstance(content, list):
+                content = " ".join(
+                    block.get("text", "") if isinstance(block, dict) else getattr(block, "text", "")
+                    for block in content
+                )
 
             # Strip <think>…</think> reasoning blocks emitted by Nemotron/Qwen3 models
             content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
