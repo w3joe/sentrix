@@ -1,7 +1,9 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useFlags } from '../../hooks/api/usePatrolQueries';
-import { adaptIncidentFromFlag } from '../../lib/adapters';
+import { useAllViolationLogs } from '../../hooks/api/useBridgeQueries';
+import { synthesizeIncidents } from '../../lib/adapters';
 import { incidents as mockIncidents } from '../../data/mockData';
 
 const severityColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -10,11 +12,23 @@ const severityColors: Record<string, { bg: string; text: string; label: string }
   clear: { bg: 'bg-[#00c853]/10', text: 'text-[#00c853]', label: 'CLEAR' },
 };
 
-export function IncidentFeed({ useMocks = false }: { useMocks?: boolean }) {
+interface IncidentFeedProps {
+  useMocks?: boolean;
+  agentIds?: string[];
+  agentNames?: Record<string, string>;
+}
+
+export function IncidentFeed({ useMocks = false, agentIds = [], agentNames = {} }: IncidentFeedProps) {
   const { data: flags = [], isLoading } = useFlags();
-  const incidents = useMocks
-    ? mockIncidents
-    : (flags as Record<string, unknown>[]).map((f) => adaptIncidentFromFlag(f));
+  const { data: violationLogs = [] } = useAllViolationLogs(useMocks ? [] : agentIds);
+  const incidents = useMemo(() => {
+    if (useMocks) return mockIncidents;
+    return synthesizeIncidents(
+      flags as Record<string, unknown>[],
+      violationLogs,
+      agentNames
+    );
+  }, [useMocks, flags, violationLogs, agentNames]);
 
   return (
     <div className="h-full flex flex-col">

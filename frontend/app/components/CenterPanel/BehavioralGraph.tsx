@@ -16,8 +16,9 @@ import 'reactflow/dist/style.css';
 
 import type { AgentStatus, PatrolSelection } from '../../types';
 import type { PatrolResponseState } from '../../hooks/usePatrolResponseSequence';
-import { violationCounts, agents } from '../../data/mockData';
+import { violationCounts as mockViolationCounts, agents as mockAgents } from '../../data/mockData';
 import { nodeTypes } from './CustomNodes';
+import { useAgentViolationCounts } from '../../hooks/api/useBridgeQueries';
 import { edgeTypes } from './CustomEdges';
 import { useAgentsRaw } from '../../hooks/api/useBridgeQueries';
 
@@ -41,6 +42,7 @@ interface BehavioralGraphProps {
   onPatrolSelect: (selection: PatrolSelection | null) => void;
   showHeatmap?: boolean;
   response?: PatrolResponseState;
+  useMocks?: boolean;
 }
 
 // Store initial edge lengths for constraint-based dragging
@@ -212,6 +214,7 @@ export function BehavioralGraph({
   onPatrolSelect,
   showHeatmap = false,
   response,
+  useMocks = false,
 }: BehavioralGraphProps) {
   // Ensure client-side only rendering for animations to prevent hydration mismatch
   const [isClient, setIsClient] = useState(false);
@@ -222,6 +225,19 @@ export function BehavioralGraph({
 
   // ── Fetch live agent data from Bridge DB ─────────────────────────────────
   const { data: agentsResponse } = useAgentsRaw();
+  const agentIds = useMemo(
+    () => (agentsResponse?.agents ? Object.keys(agentsResponse.agents) : []),
+    [agentsResponse]
+  );
+  const { data: violationCountsMap = {} } = useAgentViolationCounts(useMocks ? [] : agentIds);
+  const violationMap = useMemo(() => {
+    if (useMocks) {
+      const m = new Map<string, number>();
+      mockAgents.forEach((a, i) => m.set(a.id, mockViolationCounts[i]));
+      return m;
+    }
+    return new Map(Object.entries(violationCountsMap));
+  }, [useMocks, violationCountsMap]);
 
   // Build base nodes/edges from DB data (or fallback). Store in a ref so
   // positions are not recalculated on every render — only when the agent set changes.
@@ -997,7 +1013,7 @@ export function BehavioralGraph({
               color="#1f2937"
             />
             {showHeatmap && (
-              <HeatmapOverlay nodes={nodes} getEffectiveStatus={getEffectiveStatus} clusterDefs={currentClusterDefs} />
+              <HeatmapOverlay nodes={nodes} getEffectiveStatus={getEffectiveStatus} clusterDefs={currentClusterDefs} violationMap={violationMap} />
             )}
           </ReactFlow>
         ) : (
@@ -1019,10 +1035,6 @@ const HEATMAP_STATUS_COLORS: Record<AgentStatus, string> = {
   restricted: '#ffaa00',
   suspended:  '#6b7280',
 };
-
-// Build a lookup: agentId → violation count (mock data for now)
-const violationMap = new Map<string, number>();
-agents.forEach((a, i) => violationMap.set(a.id, violationCounts[i]));
 
 type Vec2 = { x: number; y: number };
 
@@ -1092,10 +1104,12 @@ function HeatmapOverlay({
   nodes,
   getEffectiveStatus,
   clusterDefs,
+  violationMap,
 }: {
   nodes: Node[];
   getEffectiveStatus: (agentId: string) => AgentStatus;
   clusterDefs: Array<{ prefix: string; label: string; ids: string[] }>;
+  violationMap: Map<string, number>;
 }) {
   const { x, y, zoom } = useViewport();
 
@@ -1153,7 +1167,7 @@ function HeatmapOverlay({
 
       return { key: id, cx: pos.x, cy: pos.y, radius, color, opacity };
     }).filter(Boolean);
-  }, [posMap, getEffectiveStatus]);
+  }, [posMap, getEffectiveStatus, violationMap]);
 
   return (
     <svg

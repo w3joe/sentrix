@@ -1,15 +1,28 @@
 'use client';
 
 import type { ViewMode, SidebarMode } from '../page';
+import { useSwarmStatus, useTriggerSweep } from '../hooks/api/usePatrolQueries';
+import { useBridgeHealth } from '../hooks/api/useBridgeQueries';
+import { useInvestigationHealth } from '../hooks/api/useInvestigationQueries';
 
 interface TopBarProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   sidebarMode: SidebarMode;
   onSidebarModeChange: (mode: NonNullable<SidebarMode>) => void;
+  agentCount?: number;
+  useMocks?: boolean;
 }
 
-export function TopBar({ viewMode, onViewModeChange, sidebarMode, onSidebarModeChange }: TopBarProps) {
+export function TopBar({ viewMode, onViewModeChange, sidebarMode, onSidebarModeChange, agentCount = 0, useMocks = false }: TopBarProps) {
+  const { data: swarmStatus } = useSwarmStatus();
+  const triggerSweep = useTriggerSweep();
+  const { data: bridgeHealth, isError: bridgeError } = useBridgeHealth();
+  const { data: invHealth, isError: invError } = useInvestigationHealth();
+
+  const monitoredCount = swarmStatus?.monitored_agents ? Object.keys(swarmStatus.monitored_agents).length : 0;
+  const cycle = swarmStatus?.current_cycle ?? 0;
+  const agentsDisplay = agentCount > 0 ? agentCount : monitoredCount;
 
   return (
     <header className="h-12 bg-[#111827] border-b border-[#1f2937] flex items-center justify-between px-6">
@@ -77,6 +90,49 @@ export function TopBar({ viewMode, onViewModeChange, sidebarMode, onSidebarModeC
 
       {/* Right: Counters, Toggle, and Profile */}
       <div className="flex items-center gap-6">
+        {/* Service health indicators (hidden when using mocks) */}
+        {!useMocks && (
+          <div className="flex items-center gap-3" title="Service status">
+            <span
+              className="flex items-center gap-1.5"
+              title={bridgeError ? 'Bridge DB offline' : `Bridge DB OK (${bridgeHealth?.agents_in_registry ?? '?'} agents)`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full flex-shrink-0 ${bridgeError ? 'bg-[#ff3355]' : 'bg-[#00c853]'}`}
+              />
+              <span className="text-[10px] text-[#6b7280]">Bridge</span>
+            </span>
+            <span
+              className="flex items-center gap-1.5"
+              title={invError ? 'Investigation API offline' : 'Investigation API OK'}
+            >
+              <span
+                className={`w-2 h-2 rounded-full flex-shrink-0 ${invError ? 'bg-[#ff3355]' : 'bg-[#00c853]'}`}
+              />
+              <span className="text-[10px] text-[#6b7280]">Investigation</span>
+            </span>
+          </div>
+        )}
+
+        {/* Live Counters (hidden when using mocks) */}
+        {!useMocks && (
+          <div className="flex items-center gap-4">
+            <span className="text-[10px] text-[#6b7280] font-mono">
+              Agents: <span className="text-[#00d4ff]">{agentsDisplay}</span>
+            </span>
+            <span className="text-[10px] text-[#6b7280] font-mono">
+              Cycle: <span className="text-[#00d4ff]">{cycle}</span>
+            </span>
+            <button
+              onClick={() => triggerSweep.mutate()}
+              disabled={triggerSweep.isPending}
+              className="px-2 py-1 rounded text-[10px] font-medium bg-[#00d4ff]/20 text-[#00d4ff] hover:bg-[#00d4ff]/30 disabled:opacity-50"
+            >
+              {triggerSweep.isPending ? 'Sweeping…' : 'Trigger Sweep'}
+            </button>
+          </div>
+        )}
+
         {/* View Toggle - Sliding Toggle */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-[#6b7280]">View:</span>

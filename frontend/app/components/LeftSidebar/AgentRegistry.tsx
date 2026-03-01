@@ -11,6 +11,7 @@ interface AgentRegistryProps {
   getAgentStatus: (agentId: string) => AgentStatus;
   isLoading?: boolean;
   isError?: boolean;
+  useMocks?: boolean;
 }
 
 const statusColors: Record<AgentStatus, string> = {
@@ -34,7 +35,7 @@ function getClusterStatus(agents: Agent[], getAgentStatus: (agentId: string) => 
   return 'idle';
 }
 
-export function AgentRegistry({ clusters, selectedAgentId, onSelectAgent, getAgentStatus, isLoading, isError }: AgentRegistryProps) {
+export function AgentRegistry({ clusters, selectedAgentId, onSelectAgent, getAgentStatus, isLoading, isError, useMocks = false }: AgentRegistryProps) {
   const [expandedClusters, setExpandedClusters] = useState<Set<string>>(() => new Set(clusters.map(c => c.id)));
 
   const toggleCluster = (clusterId: string) => {
@@ -170,7 +171,7 @@ export function AgentRegistry({ clusters, selectedAgentId, onSelectAgent, getAge
       </div>
 
       {/* Violation Chart */}
-      <ViolationChart />
+      <ViolationChart clusters={clusters} useMocks={useMocks} />
     </div>
   );
 }
