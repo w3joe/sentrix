@@ -36,14 +36,27 @@ function getRandomPauseDuration(): number {
 interface NetworkSpriteProps {
   x: number;
   y: number;
+  /** Direct world-space target — used by response sequence */
+  targetPos?: { x: number; y: number } | null;
+  onArrived?: () => void;
 }
 
-export function NetworkSprite({ x: homeX, y: homeY }: NetworkSpriteProps) {
+export function NetworkSprite({ x: homeX, y: homeY, targetPos, onArrived }: NetworkSpriteProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [position, setPosition] = useState({ x: homeX, y: homeY });
   const posRef = useRef({ x: homeX, y: homeY });
   const roamTargetRef = useRef<{ x: number; y: number } | null>(null);
   const pauseUntilRef = useRef<number>(0);
+  const arrivedRef = useRef(false);
+
+  // Keep callback and targetPos in refs so animation loop always reads latest
+  const onArrivedRef = useRef(onArrived);
+  useEffect(() => { onArrivedRef.current = onArrived; }, [onArrived]);
+  const targetPosRef = useRef(targetPos ?? null);
+  useEffect(() => {
+    targetPosRef.current = targetPos ?? null;
+    arrivedRef.current = false;
+  }, [targetPos]);
 
   const direction = useMovementDirection(position.x, position.y);
 
@@ -58,6 +71,29 @@ export function NetworkSprite({ x: homeX, y: homeY }: NetworkSpriteProps) {
     const tick = () => {
       const now = Date.now();
       const cur = posRef.current;
+      const override = targetPosRef.current;
+
+      if (override) {
+        // Direct position override (response sequence)
+        const dx = override.x - cur.x;
+        const dy = override.y - cur.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > ROAM_SPEED) {
+          const nx = dx / dist;
+          const ny = dy / dist;
+          // Travel at 3× roam speed when on a mission
+          posRef.current = { x: cur.x + nx * ROAM_SPEED * 3, y: cur.y + ny * ROAM_SPEED * 3 };
+          setPosition({ ...posRef.current });
+        } else if (!arrivedRef.current) {
+          arrivedRef.current = true;
+          onArrivedRef.current?.();
+        }
+
+        roamTargetRef.current = null;
+        rafId = requestAnimationFrame(tick);
+        return;
+      }
 
       // If pausing, wait
       if (now < pauseUntilRef.current) {

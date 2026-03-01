@@ -3,12 +3,10 @@
 import { useState, useEffect } from 'react';
 import type { Agent, AgentStatus, TimelineEvent, PatrolSelection } from '../../types';
 import { investigatorReport, damageAssessment, agents as mockAgents, agentActivities } from '../../data/mockData';
-import { useInvestigationDetail } from '../../hooks/api/useInvestigationQueries';
 import { useAgentActions } from '../../hooks/api/useBridgeQueries';
 
 interface ContextPanelProps {
   selectedAgentId: string | null;
-  selectedCaseId?: string | null;
   agents?: Agent[];
   onClear: (agentId: string) => void;
   onRestrict: (agentId: string) => void;
@@ -48,7 +46,6 @@ function formatTimestamp(date: Date): string {
 
 export function ContextPanel({
   selectedAgentId,
-  selectedCaseId = null,
   agents: agentsProp,
   onClear,
   onRestrict,
@@ -66,7 +63,6 @@ export function ContextPanel({
 
   // Use agents from database (agentsProp) when available, otherwise fall back to mock agents
   const agents = useMocks ? mockAgents : (agentsProp ?? []);
-  const { data: investigationDetail } = useInvestigationDetail(selectedCaseId);
   const { data: agentActions = [] } = useAgentActions(selectedAgentId);
 
   useEffect(() => {
@@ -81,7 +77,6 @@ export function ContextPanel({
   const selectedAgent = agents.find((a) => a.id === selectedAgentId);
   const currentStatus = selectedAgentId ? getAgentStatus(selectedAgentId) : null;
   const activity = useMocks && selectedAgentId ? agentActivities[selectedAgentId] : null;
-  const caseFile = selectedCaseId ? investigationDetail?.caseFile : null;
 
   // Sort events by timestamp descending for display
   const sortedEvents = [...visibleEvents].sort(
@@ -123,11 +118,9 @@ export function ContextPanel({
         <h2 className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">
           {patrolSelection
             ? 'Select Agent to Investigate'
-            : selectedCaseId
-              ? `Case: ${selectedCaseId}`
-              : selectedAgent
-                ? selectedAgent.name
-                : 'Event Log'}
+            : selectedAgent
+              ? selectedAgent.name
+              : 'Event Log'}
         </h2>
         {patrolSelection && (
           <span className="text-[10px] text-[#00d4ff]">{patrolSelection.patrolLabel}</span>
@@ -268,231 +261,6 @@ export function ContextPanel({
                 );
               })}
             </div>
-          </div>
-        ) : selectedCaseId && caseFile ? (
-          <>
-            {/* Case File from Investigation API - Enhanced Detail View */}
-            <div className="space-y-4">
-              {/* Executive Summary */}
-              <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs uppercase tracking-wider text-[#e0e6ed] font-semibold">
-                    Case Summary
-                  </h3>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${
-                      caseFile.status === 'concluded'
-                        ? 'text-[#6b7280] border-[#6b7280]/30 bg-[#6b7280]/10'
-                        : caseFile.status === 'in_progress'
-                          ? 'text-[#00d4ff] border-[#00d4ff]/30 bg-[#00d4ff]/10'
-                          : 'text-[#ffaa00] border-[#ffaa00]/30 bg-[#ffaa00]/10'
-                    }`}
-                  >
-                    {caseFile.status.replace('_', ' ').toUpperCase()}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <div className="text-xs">
-                    <span className="text-[#6b7280]">Target: </span>
-                    <span className="text-[#00d4ff] font-mono">{caseFile.targetAgentId}</span>
-                  </div>
-                  <div className="text-xs">
-                    <span className="text-[#6b7280]">Classification: </span>
-                    <span className="text-[#ff6b35] font-mono">
-                      {caseFile.crimeClassification.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#a0aec0] leading-relaxed">{caseFile.summary}</p>
-                </div>
-              </div>
-
-              {/* Key Findings */}
-              {caseFile.keyFindings && caseFile.keyFindings.length > 0 && (
-                <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
-                  <h3 className="text-xs uppercase tracking-wider text-[#00d4ff] mb-2 font-semibold">
-                    Key Findings
-                  </h3>
-                  <ul className="space-y-1.5">
-                    {caseFile.keyFindings.map((finding, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-[11px] text-[#a0aec0]">
-                        <span className="text-[#00d4ff] mt-0.5">•</span>
-                        <span>{finding}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Investigator Report */}
-              <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
-                <h3 className="text-xs uppercase tracking-wider text-[#9b59b6] mb-2 font-semibold">
-                  Investigator Report
-                </h3>
-                <div className="space-y-2 text-[11px] text-[#a0aec0]">
-                  <p className="leading-relaxed">
-                    {caseFile.investigatorReport?.caseFacts ?? '—'}
-                  </p>
-                  {caseFile.investigatorReport?.relevantLogIds && caseFile.investigatorReport.relevantLogIds.length > 0 && (
-                    <div className="pt-1 border-t border-[#1f2937]">
-                      <span className="text-[10px] text-[#6b7280]">Related Logs: </span>
-                      <span className="text-[10px] font-mono text-[#9b59b6]">
-                        {caseFile.investigatorReport.relevantLogIds.join(', ')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Network Analysis */}
-              {caseFile.networkAnalysis?.flaggedRelevantMessages && caseFile.networkAnalysis.flaggedRelevantMessages.length > 0 && (
-                <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
-                  <h3 className="text-xs uppercase tracking-wider text-[#14b8a6] mb-2 font-semibold">
-                    Flagged Communications ({caseFile.networkAnalysis.flaggedRelevantMessages.length})
-                  </h3>
-                  <div className="space-y-2 max-h-36 overflow-y-auto">
-                    {caseFile.networkAnalysis.flaggedRelevantMessages.map((msg) => (
-                      <div
-                        key={msg.messageId}
-                        className="bg-[#111827] rounded p-2 border border-[#1f2937]"
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] font-mono text-[#14b8a6]">
-                            {msg.senderId} → {msg.recipientId}
-                          </span>
-                          <span className="text-[9px] text-[#6b7280]">
-                            {new Date(msg.timestamp).toLocaleTimeString()}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-[#a0aec0] truncate">{msg.bodySnippet}</p>
-                        {msg.rationale && (
-                          <p className="text-[9px] text-[#6b7280] mt-1 italic">{msg.rationale}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Damage Report */}
-              <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
-                <h3 className="text-xs uppercase tracking-wider text-[#ffaa00] mb-2 font-semibold">
-                  Damage Assessment
-                </h3>
-                <div className="space-y-2 text-[11px]">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#6b7280]">Severity:</span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded font-semibold ${
-                        caseFile.damageReport?.damageSeverity === 'critical'
-                          ? 'text-[#ff3355] bg-[#ff3355]/10'
-                          : caseFile.damageReport?.damageSeverity === 'high'
-                            ? 'text-[#ff6b35] bg-[#ff6b35]/10'
-                            : caseFile.damageReport?.damageSeverity === 'medium'
-                              ? 'text-[#ffaa00] bg-[#ffaa00]/10'
-                              : 'text-[#00c853] bg-[#00c853]/10'
-                      }`}
-                    >
-                      {caseFile.damageReport?.damageSeverity?.toUpperCase() ?? 'NONE'}
-                    </span>
-                    <span className="text-[#6b7280]">|</span>
-                    <span className="text-[#6b7280]">Propagation:</span>
-                    <span className="text-[#a0aec0]">{caseFile.damageReport?.propagationRisk ?? '—'}</span>
-                  </div>
-                  <p className="text-[#a0aec0] leading-relaxed">
-                    {caseFile.damageReport?.estimatedImpact ?? '—'}
-                  </p>
-                  {caseFile.damageReport?.dataExposureScope && (
-                    <div className="pt-1">
-                      <span className="text-[#6b7280]">Exposure Scope: </span>
-                      <span className="text-[#ffaa00] font-mono text-[10px]">
-                        {caseFile.damageReport.dataExposureScope}
-                      </span>
-                    </div>
-                  )}
-                  {caseFile.damageReport?.affectedAgents && caseFile.damageReport.affectedAgents.length > 0 && (
-                    <div>
-                      <span className="text-[#6b7280]">Affected Agents: </span>
-                      <span className="text-[#a0aec0] font-mono text-[10px]">
-                        {caseFile.damageReport.affectedAgents.join(', ')}
-                      </span>
-                    </div>
-                  )}
-                  {/* Causal Chain */}
-                  {caseFile.damageReport?.causalChain && caseFile.damageReport.causalChain.length > 0 && (
-                    <div className="pt-2 border-t border-[#1f2937]">
-                      <span className="text-[10px] text-[#6b7280] uppercase tracking-wider">Causal Chain</span>
-                      <div className="mt-1 space-y-1">
-                        {caseFile.damageReport.causalChain.map((link, idx) => (
-                          <div key={idx} className="flex items-center gap-1 text-[10px]">
-                            <span className="text-[#ffaa00]">{link.cause}</span>
-                            <span className="text-[#6b7280]">→</span>
-                            <span className="text-[#ff6b35]">{link.effect}</span>
-                            {link.evidence && (
-                              <span className="text-[#6b7280] ml-1">({link.evidence})</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Verdict */}
-              <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
-                <h3 className="text-xs uppercase tracking-wider text-[#e0e6ed] mb-2 font-semibold">
-                  Verdict
-                </h3>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`text-sm font-bold px-2 py-1 rounded ${
-                      caseFile.verdict === 'guilty'
-                        ? 'text-[#ff3355] bg-[#ff3355]/10 border border-[#ff3355]/30'
-                        : caseFile.verdict === 'not_guilty'
-                          ? 'text-[#00c853] bg-[#00c853]/10 border border-[#00c853]/30'
-                          : 'text-[#ffaa00] bg-[#ffaa00]/10 border border-[#ffaa00]/30'
-                    }`}
-                  >
-                    {caseFile.verdict === 'guilty'
-                      ? 'GUILTY'
-                      : caseFile.verdict === 'not_guilty'
-                        ? 'NOT GUILTY'
-                        : 'UNDER WATCH'}
-                  </span>
-                  <div className="flex-1 text-right">
-                    <div className="text-[11px]">
-                      <span className="text-[#6b7280]">Severity Score: </span>
-                      <span className="text-[#00d4ff] font-bold text-sm">{caseFile.severityScore}/10</span>
-                    </div>
-                    <div className="text-[10px]">
-                      <span className="text-[#6b7280]">Confidence: </span>
-                      <span className="text-[#a0aec0]">{(caseFile.confidence * 100).toFixed(0)}%</span>
-                    </div>
-                  </div>
-                </div>
-                {caseFile.concludedAt && (
-                  <div className="mt-2 pt-2 border-t border-[#1f2937] text-[10px] text-[#6b7280]">
-                    Concluded: {new Date(caseFile.concludedAt).toLocaleString()}
-                  </div>
-                )}
-              </div>
-
-              {/* Evidence Summary */}
-              {caseFile.evidenceSummary && (
-                <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
-                  <h3 className="text-xs uppercase tracking-wider text-[#6b7280] mb-2 font-semibold">
-                    Evidence Summary
-                  </h3>
-                  <p className="text-[11px] text-[#a0aec0] leading-relaxed">
-                    {caseFile.evidenceSummary}
-                  </p>
-                </div>
-              )}
-            </div>
-          </>
-        ) : selectedCaseId && !caseFile ? (
-          <div className="text-xs text-[#6b7280] py-8 text-center">
-            Loading investigation...
           </div>
         ) : selectedAgent && selectedAgentId ? (
           <>

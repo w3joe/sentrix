@@ -15,6 +15,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import type { AgentStatus, PatrolSelection } from '../../types';
+import type { PatrolResponseState } from '../../hooks/usePatrolResponseSequence';
 import { violationCounts, agents } from '../../data/mockData';
 import { nodeTypes } from './CustomNodes';
 import { edgeTypes } from './CustomEdges';
@@ -42,6 +43,7 @@ interface BehavioralGraphProps {
   pendingAssignment: { patrolId: string; targetAgentId: string } | null;
   onAssignmentComplete: () => void;
   showHeatmap?: boolean;
+  response?: PatrolResponseState;
 }
 
 // Store initial edge lengths for constraint-based dragging
@@ -214,6 +216,7 @@ export function BehavioralGraph({
   pendingAssignment,
   onAssignmentComplete,
   showHeatmap = false,
+  response,
 }: BehavioralGraphProps) {
   // Ensure client-side only rendering for animations to prevent hydration mismatch
   const [isClient, setIsClient] = useState(false);
@@ -692,6 +695,20 @@ export function BehavioralGraph({
   const patrolDragging = useRef({ p1: false, p2: false });
   const isMounted = useRef(false);
 
+  // System entity home positions (match systemNodes initial positions)
+  const NET_HOME = { x: 300, y: 420 };
+  const F1_HOME  = { x: 270, y: 400 };
+
+  // Track net/f1 positions for lerp-based response movement
+  const netPos    = useRef(NET_HOME);
+  const netTarget = useRef(NET_HOME);
+  const f1Pos     = useRef(F1_HOME);
+  const f1Target  = useRef(F1_HOME);
+
+  // Keep a ref to the latest response state so the lerp loop can read it without stale closure
+  const responseRef = useRef(response);
+  responseRef.current = response;
+
   // Random walk: pick new targets every 2s, glide towards them at ~30fps
   useEffect(() => {
     // Don't start animation until client-side hydration is complete
@@ -728,11 +745,43 @@ export function BehavioralGraph({
       patrolPos.current.p1 = newP1;
       patrolPos.current.p2 = newP2;
 
+      // Update net/f1 targets from response state
+      const rs = responseRef.current;
+      const isResponseActive = rs && rs.phase !== 'idle' && rs.phase !== 'patrol_moving';
+      if (isResponseActive && rs) {
+        if (rs.phase === 'summoning' || rs.phase === 'at_scene') {
+          // Move toward flagged agent
+          if (rs.networkTargetPos) netTarget.current = rs.networkTargetPos;
+          if (rs.investigatorTargetPos) f1Target.current = rs.investigatorTargetPos;
+        } else if (rs.phase === 'returning' || rs.phase === 'reporting') {
+          netTarget.current = NET_HOME;
+          f1Target.current = F1_HOME;
+        }
+      } else {
+        // Return home when idle
+        netTarget.current = NET_HOME;
+        f1Target.current = F1_HOME;
+      }
+
+      const tFast = 0.06;
+      const newNet = {
+        x: lerp(netPos.current.x, netTarget.current.x, tFast),
+        y: lerp(netPos.current.y, netTarget.current.y, tFast),
+      };
+      const newF1 = {
+        x: lerp(f1Pos.current.x, f1Target.current.x, tFast),
+        y: lerp(f1Pos.current.y, f1Target.current.y, tFast),
+      };
+      netPos.current = newNet;
+      f1Pos.current = newF1;
+
       setNodes((nds) => {
-        // First update patrol positions for roaming and gliding to targets
+        // First update patrol + net/f1 positions
         let updatedNodes = nds.map((n) => {
           if (n.id === 'p1') return { ...n, position: newP1 };
           if (n.id === 'p2') return { ...n, position: newP2 };
+          if (n.id === 'net') return { ...n, position: newNet };
+          if (n.id === 'f1') return { ...n, position: newF1 };
           return n;
         });
 
@@ -821,6 +870,72 @@ export function BehavioralGraph({
   useEffect(() => {
     setEdges(edgesWithStatus);
   }, [edgesWithStatus, setEdges]);
+
+  // ── Response sequence: inject/remove edges and flag the agent node ──────────
+  useEffect(() => {
+    const phase = response?.phase ?? 'idle';
+    const flaggedId = response?.flaggedAgentId ?? null;
+    const patrolId = response?.patrolId ?? null;
+
+    // Edges to add per phase
+    const responseEdgeIds = ['resp-patrol-agent', 'resp-f1-agent', 'resp-net-agent'];
+
+    if (phase === 'idle' || phase === 'patrol_moving') {
+      // Remove all response edges; clear isUnderInvestigation
+      setEdges((eds) => eds.filter((e) => !responseEdgeIds.includes(e.id)));
+      setNodes((nds) => nds.map((n) =>
+        n.type === 'agent' ? { ...n, data: { ...n.data, isUnderInvestigation: false } } : n
+      ));
+      return;
+    }
+
+    if (!flaggedId) return;
+
+    // Mark flagged agent as under investigation
+    const isAtScene = phase === 'at_scene' || phase === 'summoning' || phase === 'returning';
+    setNodes((nds) => nds.map((n) =>
+      n.id === flaggedId
+        ? { ...n, data: { ...n.data, isUnderInvestigation: isAtScene } }
+        : n.type === 'agent'
+          ? { ...n, data: { ...n.data, isUnderInvestigation: false } }
+          : n
+    ));
+
+    // Build response edges
+    const newEdges: Edge[] = [];
+
+    if (patrolId && (phase === 'summoning' || phase === 'at_scene' || phase === 'returning')) {
+      newEdges.push({
+        id: 'resp-patrol-agent',
+        source: patrolId,
+        target: flaggedId,
+        type: 'glowing',
+        data: { color: '#00d4ff' },
+      });
+    }
+
+    if (phase === 'summoning' || phase === 'at_scene' || phase === 'returning') {
+      newEdges.push({
+        id: 'resp-f1-agent',
+        source: 'f1',
+        target: flaggedId,
+        type: 'dashed',
+        data: { color: '#9b59b6', animated: true },
+      });
+      newEdges.push({
+        id: 'resp-net-agent',
+        source: 'net',
+        target: flaggedId,
+        type: 'dashed',
+        data: { color: '#7c3aed', animated: true },
+      });
+    }
+
+    setEdges((eds) => {
+      const filtered = eds.filter((e) => !responseEdgeIds.includes(e.id));
+      return [...filtered, ...newEdges];
+    });
+  }, [response?.phase, response?.flaggedAgentId, response?.patrolId, setEdges, setNodes]);
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {

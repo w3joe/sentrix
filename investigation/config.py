@@ -35,7 +35,12 @@ LOCAL_TOOL_CHOICE: str = os.environ.get("LOCAL_TOOL_CHOICE", "auto")
 
 # ─── Active endpoint resolution ───────────────────────────────────────────────
 # Investigation agents always use the Super (49B) endpoint regardless of deployment.
-if DEPLOYMENT == "local":
+if DEPLOYMENT == "claude":
+    ACTIVE_ENDPOINT: str = ""            # not used by ChatAnthropic
+    ACTIVE_API_KEY: str = os.environ.get("ANTHROPIC_API_KEY", "no-key-set")
+    ACTIVE_MODEL: str = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+    ACTIVE_TOOL_CHOICE: str = "auto"
+elif DEPLOYMENT == "local":
     ACTIVE_ENDPOINT: str = LOCAL_ENDPOINT
     ACTIVE_API_KEY: str = LOCAL_API_KEY
     ACTIVE_MODEL: str = LOCAL_INVESTIGATION_MODEL

@@ -8,10 +8,14 @@ import { AnalyticsSidebar } from './components/LeftSidebar/AnalyticsSidebar';
 import { BehavioralGraph } from './components/CenterPanel/BehavioralGraph';
 import { SpriteView } from './components/CenterPanel/SpriteView';
 import { ContextPanel } from './components/RightSidebar/ContextPanel';
+import { CaseFileModal } from './components/CaseFileModal';
+import { PatrolAlertBanner } from './components/PatrolAlertBanner';
 import { Timeline } from './components/Timeline/Timeline';
 import { useAgentState } from './hooks/useAgentState';
 import { useTimelineState } from './hooks/useTimelineState';
 import { useCaseFiles } from './hooks/api/useBridgeQueries';
+import { usePatrolFlagNotifications } from './hooks/usePatrolFlagNotifications';
+import { usePatrolResponseSequence } from './hooks/usePatrolResponseSequence';
 import { caseFiles as mockCaseFiles } from './data/mockData';
 import type { PatrolSelection } from './types';
 
@@ -32,6 +36,22 @@ export default function Dashboard() {
   const [patrolSelection, setPatrolSelection] = useState<PatrolSelection | null>(null);
   const { data: caseFiles = [], isLoading: casesLoading } = useCaseFiles();
   const [pendingAssignment, setPendingAssignment] = useState<{ patrolId: string; targetAgentId: string } | null>(null);
+
+  const { notification, dismiss, testNotify } = usePatrolFlagNotifications();
+  const {
+    responseState,
+    onPatrolArrived,
+    onInvestigatorArrived,
+    onNetworkArrived,
+    onPatrolReturnArrived,
+    onInvestigatorReturnArrived,
+    onNetworkReturnArrived,
+  } = usePatrolResponseSequence(notification, dismiss);
+
+  // Dev helper — call window.__testPatrolAlert() in the browser console
+  if (typeof window !== 'undefined') {
+    (window as any).__testPatrolAlert = testNotify;
+  }
 
   const {
     selectedAgentId,
@@ -79,10 +99,12 @@ export default function Dashboard() {
     })),
   }));
 
+  const allCaseFiles = USE_MOCKS ? mockCaseFiles : caseFiles;
+  const selectedCaseFile = allCaseFiles.find(c => c.investigationId === selectedCaseId) ?? null;
+
   const handleSelectCase = useCallback((caseId: string) => {
     setSelectedCaseId(prev => prev === caseId ? null : caseId);
-    selectAgent(null);
-  }, [selectAgent]);
+  }, []);
 
   // Handle patrol selection from sprite view
   const handlePatrolSelect = useCallback((selection: PatrolSelection | null) => {
@@ -149,6 +171,15 @@ export default function Dashboard() {
 
         {/* Center Panel - 75% */}
         <div className="flex-1 relative">
+          {/* Patrol alert banner */}
+          {notification && (
+            <PatrolAlertBanner
+              notification={notification}
+              onDismiss={dismiss}
+              onAgentClick={selectAgent}
+            />
+          )}
+
           {viewMode === 'graph' ? (
             <BehavioralGraph
               selectedAgentId={selectedAgentId}
@@ -161,6 +192,7 @@ export default function Dashboard() {
               pendingAssignment={pendingAssignment}
               onAssignmentComplete={handleAssignmentComplete}
               showHeatmap={sidebarMode === 'analytics'}
+              response={responseState}
             />
           ) : (
             <SpriteView
@@ -174,6 +206,19 @@ export default function Dashboard() {
               pendingAssignment={pendingAssignment}
               onAssignmentComplete={handleAssignmentComplete}
               agents={agents}
+              response={{
+                respondingPatrolId: responseState.patrolId,
+                patrolTargetPos: responseState.patrolTargetPos,
+                onPatrolArrived,
+                onPatrolReturnArrived,
+                investigatorTargetPos: responseState.investigatorTargetPos,
+                onInvestigatorArrived,
+                onInvestigatorReturnArrived,
+                networkTargetPos: responseState.networkTargetPos,
+                onNetworkArrived,
+                onNetworkReturnArrived,
+                phase: responseState.phase,
+              }}
             />
           )}
         </div>
@@ -182,7 +227,6 @@ export default function Dashboard() {
         <div className="w-[15%] min-w-[240px]">
           <ContextPanel
             selectedAgentId={selectedAgentId}
-            selectedCaseId={selectedCaseId}
             agents={agents}
             onClear={clearAgent}
             onRestrict={restrictAgent}
@@ -197,6 +241,14 @@ export default function Dashboard() {
           />
         </div>
       </div>
+
+      {/* Case File Modal */}
+      {selectedCaseFile && (
+        <CaseFileModal
+          caseFile={selectedCaseFile}
+          onClose={() => setSelectedCaseId(null)}
+        />
+      )}
 
       {/* Timeline Bar - 60px */}
       <Timeline

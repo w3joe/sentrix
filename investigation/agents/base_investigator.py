@@ -35,13 +35,22 @@ class BaseInvestigator:
     """
 
     def __init__(self) -> None:
-        self._llm = ChatOpenAI(
-            base_url=cfg.ACTIVE_ENDPOINT,
-            api_key=cfg.ACTIVE_API_KEY,
-            model=cfg.ACTIVE_MODEL,
-            temperature=cfg.INVESTIGATION_TEMPERATURE,
-            max_tokens=cfg.INVESTIGATION_MAX_TOKENS,
-        )
+        if cfg.DEPLOYMENT == "claude":
+            from langchain_anthropic import ChatAnthropic
+            self._llm = ChatAnthropic(
+                api_key=cfg.ACTIVE_API_KEY,
+                model=cfg.ACTIVE_MODEL,
+                temperature=cfg.INVESTIGATION_TEMPERATURE,
+                max_tokens=cfg.INVESTIGATION_MAX_TOKENS,
+            )
+        else:
+            self._llm = ChatOpenAI(
+                base_url=cfg.ACTIVE_ENDPOINT,
+                api_key=cfg.ACTIVE_API_KEY,
+                model=cfg.ACTIVE_MODEL,
+                temperature=cfg.INVESTIGATION_TEMPERATURE,
+                max_tokens=cfg.INVESTIGATION_MAX_TOKENS,
+            )
 
     async def _call_llm(self, system_prompt: str, human_text: str) -> dict:
         """

@@ -115,68 +115,79 @@ export function adaptAgentsList(
 
 // ── Investigation Stages ───────────────────────────────────────────────────
 
+// Backend schema uses snake_case (investigation/models.py).
+// Seed data uses camelCase — both are handled via fallbacks.
+
 export function adaptInvestigatorReport(raw: any): InvestigatorReport {
     return {
-        crimeClassification: raw.crime_classification || 'unknown',
-        relevantLogIds: raw.relevant_log_ids || [],
-        caseFacts: raw.case_facts || '',
+        // snake_case (backend) | camelCase (seed fallback)
+        crimeClassification: raw.crime_classification ?? raw.crimeClassification ?? 'unknown',
+        relevantLogIds:      raw.relevant_log_ids    ?? raw.relevantLogIds    ?? [],
+        caseFacts:           raw.case_facts          ?? raw.caseFacts         ?? '',
     };
 }
 
 export function adaptFlaggedMessage(raw: any): FlaggedMessage {
     return {
-        messageId: raw.message_id,
-        senderId: raw.sender_id,
-        recipientId: raw.recipient_id,
-        timestamp: raw.timestamp,
-        bodySnippet: raw.body_snippet,
-        rationale: raw.rationale,
+        messageId:   raw.message_id   ?? raw.messageId,
+        senderId:    raw.sender_id    ?? raw.senderId,
+        recipientId: raw.recipient_id ?? raw.recipientId,
+        timestamp:   raw.timestamp,
+        bodySnippet: raw.body_snippet ?? raw.bodySnippet ?? '',
+        rationale:   raw.rationale   ?? '',
     };
 }
 
 export function adaptNetworkAnalysis(raw: any): NetworkAnalysis {
     return {
-        flaggedRelevantMessages: (raw.flagged_relevant_messages || []).map(adaptFlaggedMessage),
+        flaggedRelevantMessages: (raw.flagged_relevant_messages ?? raw.flaggedRelevantMessages ?? []).map(adaptFlaggedMessage),
     };
 }
 
 export function adaptCausalLink(raw: any): CausalLink {
     return {
-        cause: raw.cause,
-        effect: raw.effect,
-        affectedAgentId: raw.affected_agent_id,
-        evidence: raw.evidence,
+        cause:           raw.cause,
+        effect:          raw.effect,
+        affectedAgentId: raw.affected_agent_id ?? raw.affectedAgentId,
+        evidence:        raw.evidence ?? '',
     };
 }
 
 export function adaptDamageReport(raw: any): DamageReport {
     return {
-        damageSeverity: raw.damage_severity || 'none',
-        causalChain: (raw.causal_chain || []).map(adaptCausalLink),
-        affectedAgents: raw.affected_agents || [],
-        dataExposureScope: raw.data_exposure_scope || '',
-        propagationRisk: raw.propagation_risk || 'none',
-        estimatedImpact: raw.estimated_impact || '',
+        damageSeverity:    raw.damage_severity    ?? raw.damageSeverity    ?? 'none',
+        causalChain:       (raw.causal_chain      ?? raw.causalChain       ?? []).map(adaptCausalLink),
+        affectedAgents:    raw.affected_agents    ?? raw.affectedAgents    ?? [],
+        dataExposureScope: raw.data_exposure_scope ?? raw.dataExposureScope ?? '',
+        propagationRisk:   raw.propagation_risk   ?? raw.propagationRisk   ?? '',
+        estimatedImpact:   raw.estimated_impact   ?? raw.estimatedImpact   ?? '',
     };
 }
 
 export function adaptCaseFile(raw: any): CaseFile {
     return {
-        investigationId: raw.investigation_id,
-        flagId: raw.flag_id,
-        targetAgentId: raw.target_agent_id,
-        crimeClassification: raw.crime_classification || 'unknown',
-        verdict: raw.verdict || 'under_watch',
-        severityScore: raw.severity_score || 0,
-        confidence: raw.confidence || 0,
-        summary: raw.summary || '',
-        keyFindings: raw.key_findings || [],
-        evidenceSummary: raw.evidence_summary || '',
-        investigatorReport: raw.investigator_report ? adaptInvestigatorReport(raw.investigator_report) : {} as any,
-        networkAnalysis: raw.network_analysis ? adaptNetworkAnalysis(raw.network_analysis) : {} as any,
-        damageReport: raw.damage_report ? adaptDamageReport(raw.damage_report) : {} as any,
-        concludedAt: raw.concluded_at || null,
-        status: raw.status || 'open',
+        investigationId:   raw.investigation_id   ?? raw.investigationId,
+        flagId:            raw.flag_id            ?? raw.flagId,
+        targetAgentId:     raw.target_agent_id    ?? raw.targetAgentId,
+        crimeClassification: raw.crime_classification ?? raw.crimeClassification ?? 'unknown',
+        verdict:           raw.verdict            ?? 'under_watch',
+        severityScore:     raw.severity_score     ?? raw.severityScore     ?? 0,
+        confidence:        raw.confidence         ?? 0,
+        summary:           raw.summary            ?? '',
+        keyFindings:       raw.key_findings       ?? raw.keyFindings       ?? [],
+        evidenceSummary:   raw.evidence_summary   ?? raw.evidenceSummary   ?? '',
+        investigatorReport: (raw.investigator_report ?? raw.investigatorReport)
+            ? adaptInvestigatorReport(raw.investigator_report ?? raw.investigatorReport)
+            : { crimeClassification: 'unknown', relevantLogIds: [], caseFacts: '' },
+        networkAnalysis: (raw.network_analysis ?? raw.networkAnalysis)
+            ? adaptNetworkAnalysis(raw.network_analysis ?? raw.networkAnalysis)
+            : { flaggedRelevantMessages: [] },
+        damageReport: (raw.damage_report ?? raw.damageReport)
+            ? adaptDamageReport(raw.damage_report ?? raw.damageReport)
+            : { damageSeverity: 'none', causalChain: [], affectedAgents: [], dataExposureScope: '', propagationRisk: '', estimatedImpact: '' },
+        concludedAt: raw.concluded_at ?? raw.concludedAt ?? null,
+        // status lives on the DB row, not in CaseFile model — injected by useCaseFiles
+        status: raw.status ?? 'open',
     };
 }
 
