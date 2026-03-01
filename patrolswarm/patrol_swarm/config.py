@@ -113,7 +113,7 @@ API_PORT: int = int(os.environ.get("API_PORT", "8001"))
 # Investigation workflow API port — sweep.py POSTs PatrolFlags here
 INVESTIGATION_API_PORT: int = int(os.environ.get("INVESTIGATION_API_PORT", "8002"))
 # Set SANDBOX_RUN to a sandbox run directory path, or "latest" to auto-detect.
-# Leave empty (default) to use demo data.
+# Required — the API and CLI will exit with an error if left empty.
 SANDBOX_RUN: str = os.environ.get("SANDBOX_RUN", "")
 
 # ─── Scheduling ───────────────────────────────────────────────────────────────

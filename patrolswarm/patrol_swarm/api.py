@@ -6,13 +6,10 @@ over a REST API so a localhost frontend can read live data and trigger sweeps.
 
 Run from the patrolswarm/ directory:
 
-    # Demo data (no sandbox required):
-    uvicorn patrol_swarm.api:app --host 0.0.0.0 --port 8001 --reload
-
-    # Live sandbox data (auto-detect most recent run):
+    # Auto-detect most recent sandbox run:
     SANDBOX_RUN=latest uvicorn patrol_swarm.api:app --port 8001 --reload
 
-    # Live sandbox data (explicit path):
+    # Explicit sandbox run path:
     SANDBOX_RUN=../sandbox_runs/sandbox_20260226_215749_16f339 uvicorn patrol_swarm.api:app --port 8001
 
 Endpoints:
@@ -41,7 +38,6 @@ from sse_starlette.sse import EventSourceResponse
 
 import patrol_swarm.config as cfg
 from patrol_swarm.graph import _PATROL_REGISTRY
-from patrol_swarm.main import DEMO_AGENT_REGISTRY, DEMO_PENDING_ACTIONS
 from patrol_swarm.persistence import get_checkpointer
 from patrol_swarm.sweep import SwarmScheduler
 
@@ -50,7 +46,7 @@ logger = logging.getLogger(__name__)
 # ─── Shared in-process state ──────────────────────────────────────────────────
 
 _scheduler: SwarmScheduler | None = None
-_data_source: str = "demo"  # "demo" | sandbox run directory name
+_data_source: str = ""
 
 # Rolling history — populated by _on_cycle_complete after each sweep
 _flag_history: deque[dict] = deque(maxlen=500)
@@ -154,17 +150,19 @@ async def lifespan(app: FastAPI):
     global _scheduler, _data_source
     logger.info("Patrol Swarm API starting on %s:%d", cfg.API_HOST, cfg.API_PORT)
 
-    # Resolve data source
-    if cfg.SANDBOX_RUN:
-        try:
-            agent_registry, pending_actions_fn, _data_source = _resolve_sandbox(cfg.SANDBOX_RUN)
-        except RuntimeError as exc:
-            logger.error("Failed to attach sandbox connector: %s", exc)
-            sys.exit(1)
-    else:
-        agent_registry = DEMO_AGENT_REGISTRY
-        pending_actions_fn = lambda: DEMO_PENDING_ACTIONS
-        _data_source = "demo"
+    # Resolve data source — SANDBOX_RUN is required
+    if not cfg.SANDBOX_RUN:
+        logger.error(
+            "SANDBOX_RUN env var is not set. "
+            "Set it to a sandbox run directory path or 'latest'."
+        )
+        sys.exit(1)
+
+    try:
+        agent_registry, pending_actions_fn, _data_source = _resolve_sandbox(cfg.SANDBOX_RUN)
+    except RuntimeError as exc:
+        logger.error("Failed to attach sandbox connector: %s", exc)
+        sys.exit(1)
 
     logger.info("Data source: %s | Monitored agents: %d", _data_source, len(agent_registry))
 

@@ -2,22 +2,20 @@
 CLI entrypoint for the Patrol Swarm.
 
 Usage:
-    # Single evaluation run (one sweep cycle, demo data):
-    python -m patrol_swarm.main --mode single
-
-    # Single evaluation run against a real sandbox run:
+    # Single sweep cycle against a specific sandbox run:
     python -m patrol_swarm.main --mode single --sandbox-run ../sandbox_runs/sandbox_20260226_215749_16f339
 
-    # Single evaluation run against the most recent sandbox run (auto-detected):
-    python -m patrol_swarm.main --mode single --sandbox-run latest
+    # Single sweep cycle using the SANDBOX_RUN env var (or auto-detect latest):
+    SANDBOX_RUN=latest python -m patrol_swarm.main --mode single
 
-    # Continuous scheduler with real sandbox run:
+    # Continuous scheduler with sandbox run:
     python -m patrol_swarm.main --mode continuous --sandbox-run ../sandbox_runs/sandbox_*
 
     # Evaluate a single document file:
     python -m patrol_swarm.main --mode eval --domain email --file /path/to/email.txt
 
 Environment variables required:
+    SANDBOX_RUN          — Path to a sandbox run directory, or "latest" to auto-detect
     BREV_NANO_ENDPOINT   — Brev NIM endpoint for Nemotron 3 Nano
     BREV_SUPER_ENDPOINT  — Brev NIM endpoint for Nemotron 3 Super
     BREV_API_KEY         — Brev API key
@@ -43,64 +41,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%dT%H:%M:%S",
 )
 logger = logging.getLogger("patrol_swarm.main")
-
-# ─── Mock registry and actions for demo / development ─────────────────────────
-
-# agent_type must match a domain registered in graph._PATROL_AGENTS.
-# Valid values: "email" | "code" | "document"
-# The orchestrator uses agent_type to assign ONLY the matching domain's patrol agents.
-DEMO_AGENT_REGISTRY = {
-    "agent_mailer_001": {
-        "agent_type": "email",
-        "declared_scope": "internal HR email communication",
-        "permitted_domains": ["corp.internal"],
-        "permitted_file_paths": [],
-        "permitted_document_types": [],
-        "approved_templates": [],
-    },
-    "agent_coder_alpha": {
-        "agent_type": "code",
-        "declared_scope": "backend Python development",
-        "permitted_file_paths": ["src/", "tests/", "docs/"],
-        "permitted_domains": [],
-        "permitted_document_types": [],
-        "approved_templates": [],
-    },
-    "agent_doc_writer": {
-        "agent_type": "document",
-        "declared_scope": "contract drafting from approved templates",
-        "permitted_document_types": ["employment_contract", "nda"],
-        "approved_templates": ["template_employment_v2", "template_nda_v1"],
-        "permitted_domains": [],
-        "permitted_file_paths": [],
-    },
-}
-
-DEMO_PENDING_ACTIONS = {
-    "agent_mailer_001": [
-        {
-            "email_id": "email_001",
-            "content": "Hi team, please find the quarterly report attached.",
-            "sender": "agent_mailer_001",
-            "recipient": "team@corp.internal",
-        },
-    ],
-    "agent_coder_alpha": [
-        {
-            "pr_id": "pr_001",
-            "diff": "# Demo PR\n\nNo changes — demo mode.",
-            "title": "Demo pull request",
-        },
-    ],
-    "agent_doc_writer": [
-        {
-            "doc_id": "doc_001",
-            "text": "This is an employment contract drafted from template_employment_v2.",
-            "title": "Demo Employment Contract",
-        },
-    ],
-}
-
 
 # ─── Sandbox run loader ───────────────────────────────────────────────────────
 
@@ -154,17 +94,19 @@ async def run_single(args: argparse.Namespace) -> None:
     """Execute one sweep cycle and print results."""
     from patrol_swarm.sweep import run_sweep_cycle
 
-    if args.sandbox_run:
-        agent_registry, pending_actions = _resolve_sandbox_run(args.sandbox_run)
-        logger.info(
-            "Running single sweep cycle against sandbox run (agents=%d, active=%d)…",
-            len(agent_registry),
-            sum(1 for v in pending_actions.values() if v),
+    sandbox_run = args.sandbox_run or cfg.SANDBOX_RUN
+    if not sandbox_run:
+        logger.error(
+            "No data source specified. Pass --sandbox-run PATH or set SANDBOX_RUN env var."
         )
-    else:
-        agent_registry = DEMO_AGENT_REGISTRY
-        pending_actions = DEMO_PENDING_ACTIONS
-        logger.info("Running single sweep cycle (demo data)…")
+        sys.exit(1)
+
+    agent_registry, pending_actions = _resolve_sandbox_run(sandbox_run)
+    logger.info(
+        "Running single sweep cycle against sandbox run (agents=%d, active=%d)…",
+        len(agent_registry),
+        sum(1 for v in pending_actions.values() if v),
+    )
 
     flags, final_state = await run_sweep_cycle(
         agent_registry=agent_registry,
@@ -223,47 +165,49 @@ async def run_continuous(args: argparse.Namespace) -> None:
 
     logger.info("Starting continuous patrol swarm (Ctrl+C to stop)…")
 
-    if args.sandbox_run:
-        from patrol_swarm.sandbox_bridge import SandboxLiveConnector, latest_sandbox_run
+    from patrol_swarm.sandbox_bridge import SandboxLiveConnector, latest_sandbox_run
 
-        if args.sandbox_run.lower() == "latest":
-            package_dir = Path(__file__).resolve().parent.parent
-            candidates = [
-                package_dir / "sandbox_runs",
-                package_dir.parent / "sandbox_runs",
-                package_dir.parent / "sandbox",
-            ]
-            run_path = None
-            for base in candidates:
-                run_path = latest_sandbox_run(base)
-                if run_path:
-                    logger.info("Auto-detected latest sandbox run: %s", run_path)
-                    break
-            if run_path is None:
-                logger.error(
-                    "No sandbox runs found. Run the sandbox first, or pass an explicit path."
-                )
-                sys.exit(1)
-        else:
-            run_path = Path(args.sandbox_run)
-
-        connector = SandboxLiveConnector(run_path)
-        try:
-            agent_registry = connector.get_agent_registry()
-        except FileNotFoundError as exc:
-            logger.error("Sandbox run load error: %s", exc)
-            sys.exit(1)
-
-        logger.info(
-            "Live connector attached to %s (%d agents)",
-            run_path.name,
-            len(agent_registry),
+    sandbox_run = args.sandbox_run or cfg.SANDBOX_RUN
+    if not sandbox_run:
+        logger.error(
+            "No data source specified. Pass --sandbox-run PATH or set SANDBOX_RUN env var."
         )
-        _pending_actions_fn = connector.get_pending_actions
+        sys.exit(1)
+
+    if sandbox_run.lower() == "latest":
+        package_dir = Path(__file__).resolve().parent.parent
+        candidates = [
+            package_dir / "sandbox_runs",
+            package_dir.parent / "sandbox_runs",
+            package_dir.parent / "sandbox",
+        ]
+        run_path = None
+        for base in candidates:
+            run_path = latest_sandbox_run(base)
+            if run_path:
+                logger.info("Auto-detected latest sandbox run: %s", run_path)
+                break
+        if run_path is None:
+            logger.error(
+                "No sandbox runs found. Run the sandbox first, or pass an explicit path."
+            )
+            sys.exit(1)
     else:
-        agent_registry = DEMO_AGENT_REGISTRY
-        pending_actions = DEMO_PENDING_ACTIONS
-        _pending_actions_fn = lambda: DEMO_PENDING_ACTIONS
+        run_path = Path(sandbox_run)
+
+    connector = SandboxLiveConnector(run_path)
+    try:
+        agent_registry = connector.get_agent_registry()
+    except FileNotFoundError as exc:
+        logger.error("Sandbox run load error: %s", exc)
+        sys.exit(1)
+
+    logger.info(
+        "Live connector attached to %s (%d agents)",
+        run_path.name,
+        len(agent_registry),
+    )
+    _pending_actions_fn = connector.get_pending_actions
 
     async with get_checkpointer() as checkpointer:
         # Report whether we're resuming or cold-starting
@@ -353,7 +297,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Path to a sandbox run directory (e.g. ../sandbox_runs/sandbox_20260226_*). "
             "Pass 'latest' to auto-detect the most recent run. "
-            "When omitted, demo data is used."
+            "Falls back to SANDBOX_RUN env var if not provided."
         ),
     )
     parser.add_argument(
