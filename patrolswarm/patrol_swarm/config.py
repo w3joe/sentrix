@@ -10,10 +10,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ─── Deployment selector ─────────────────────────────────────────────────────
+# Set PATROL_DEPLOYMENT=claude  to use Anthropic Claude API (default — Claude 3.5 Haiku)
 # Set PATROL_DEPLOYMENT=local   to use LM Studio (or any local OpenAI-compatible server)
-# Set PATROL_DEPLOYMENT=brev    to use Brev NIM (production — Nemotron Nano + Super)
-# Set PATROL_DEPLOYMENT=claude  to use Anthropic Claude API
-DEPLOYMENT: str = os.environ.get("PATROL_DEPLOYMENT", "brev").lower()
+# Set PATROL_DEPLOYMENT=brev    to use Brev NIM (Nemotron Nano + Super)
+DEPLOYMENT: str = os.environ.get("PATROL_DEPLOYMENT", "claude").lower()
 
 # ─── Thinking / chain-of-thought toggle ──────────────────────────────────────
 # Set PATROL_THINKING=1 to let the model emit <think>…</think> reasoning blocks.
@@ -55,8 +55,8 @@ if DEPLOYMENT == "claude":
     ACTIVE_PATROL_ENDPOINT: str = ""          # not used by ChatAnthropic
     ACTIVE_ORCHESTRATOR_ENDPOINT: str = ""    # not used by ChatAnthropic
     ACTIVE_API_KEY: str = os.environ.get("ANTHROPIC_API_KEY", "no-key-set")
-    ACTIVE_PATROL_MODEL: str = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
-    ACTIVE_ORCHESTRATOR_MODEL: str = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+    ACTIVE_PATROL_MODEL: str = os.environ.get("CLAUDE_MODEL", "claude-3-5-haiku-20241022")
+    ACTIVE_ORCHESTRATOR_MODEL: str = os.environ.get("CLAUDE_MODEL", "claude-3-5-haiku-20241022")
     ACTIVE_TOOL_CHOICE: str = "auto"
 elif DEPLOYMENT == "local":
     ACTIVE_PATROL_ENDPOINT: str = LOCAL_ENDPOINT

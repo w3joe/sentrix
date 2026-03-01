@@ -1,52 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { ThoughtMessage } from '../../types';
-
-/**
- * Subscribe to patrol swarm SSE stream and accumulate thought messages.
- */
-export function usePatrolStream(enabled: boolean): ThoughtMessage[] {
-  const [messages, setMessages] = useState<ThoughtMessage[]>([]);
-  const keyRef = useRef(0);
-  const sourceRef = useRef<EventSource | null>(null);
-
-  useEffect(() => {
-    if (!enabled) return;
-    const es = new EventSource('/api/swarm/stream');
-    sourceRef.current = es;
-
-    const handler = (event: string, dataStr: string) => {
-      try {
-        const data = JSON.parse(dataStr || '{}') as Record<string, unknown>;
-        let msg: ThoughtMessage | null = null;
-        if (event === 'flag') {
-          const summary = (data.referral_summary as string) || 'Patrol flag raised';
-          const target = (data.target_agent_id as string) || 'agent';
-          msg = { id: `p-${++keyRef.current}`, source: 'PATROL', message: `${summary} — target: ${target}` };
-        } else if (event === 'sweep_complete') {
-          const cycle = data.cycle ?? data.cycle_number ?? '?';
-          msg = { id: `p-${++keyRef.current}`, source: 'PATROL', message: `Sweep cycle ${cycle} complete` };
-        }
-        if (msg) {
-          setMessages((prev) => [...prev.slice(-99), msg!]);
-        }
-      } catch {
-        // Ping or invalid JSON — ignore
-      }
-    };
-
-    es.addEventListener('flag', (e) => handler('flag', (e as MessageEvent).data));
-    es.addEventListener('sweep_complete', (e) => handler('sweep_complete', (e as MessageEvent).data));
-
-    return () => {
-      es.close();
-      sourceRef.current = null;
-    };
-  }, [enabled]);
-
-  return messages;
-}
+import type { SweepResult } from '../../types';
+import { useSweeps } from './usePatrolQueries';
+import { useInvestigationList } from './useInvestigationQueries';
 
 /**
  * Subscribe to investigation SSE stream and accumulate thought messages.
@@ -93,10 +51,80 @@ export function useInvestigationStream(enabled: boolean): ThoughtMessage[] {
   return messages;
 }
 
-/** Combined thought messages from patrol + investigation streams. */
+function sweepsToThoughtMessages(sweeps: SweepResult[]): ThoughtMessage[] {
+  const seen = new Set<string>();
+  const deduped = sweeps.filter((s) => {
+    const id = s.sweep_id ?? `cycle-${s.cycle_number}`;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+  return deduped.map((s, i) => {
+    const n = s.agents_scanned?.length ?? 0;
+    const dur = (s.duration_ms / 1000).toFixed(1);
+    const parts = [`cycle ${s.cycle_number}`, `${n} agents scanned`];
+    if ((s.signals_posted ?? 0) > 0) parts.push(`${s.signals_posted} signals`);
+    if ((s.flags_produced ?? 0) > 0) parts.push(`${s.flags_produced} flags`);
+    parts.push(`(${dur}s)`);
+    return {
+      id: `sweep-${s.sweep_id ?? `${s.cycle_number}-${i}`}`,
+      source: 'PATROL',
+      message: `Sweep ${parts.join(', ')}`,
+    };
+  });
+}
+
+interface InvestigationRecord {
+  investigation_id: string;
+  target_agent_id?: string;
+  status?: string;
+  verdict?: string;
+  severity_score?: number;
+}
+
+function investigationsToThoughtMessages(
+  investigations: InvestigationRecord[],
+): ThoughtMessage[] {
+  const seen = new Set<string>();
+  const deduped = investigations.filter((inv) => {
+    if (seen.has(inv.investigation_id)) return false;
+    seen.add(inv.investigation_id);
+    return true;
+  });
+  return deduped.map((inv) => {
+    const target = inv.target_agent_id ?? 'agent';
+    const status = inv.status ?? 'unknown';
+    const parts = [`target: ${target}`, `status: ${status}`];
+    if (inv.verdict) parts.push(`verdict: ${inv.verdict}`);
+    if (inv.severity_score != null) parts.push(`severity: ${inv.severity_score}`);
+    return {
+      id: `inv-${inv.investigation_id}`,
+      source: 'INVESTIGATOR',
+      message: `Investigation ${parts.join(', ')}`,
+    };
+  });
+}
+
+/** Combined thought messages from sweeps REST, investigation list REST, and investigation stream. */
 export function useThoughtStream(useMocks: boolean): ThoughtMessage[] {
   const enabled = !useMocks;
-  const patrolMessages = usePatrolStream(enabled);
   const investigationMessages = useInvestigationStream(enabled);
-  return [...patrolMessages, ...investigationMessages];
+  const { data: sweeps = [] } = useSweeps();
+  const { data: invList } = useInvestigationList();
+  const sweepMessages = useMemo(
+    () => sweepsToThoughtMessages(sweeps as SweepResult[]),
+    [sweeps],
+  );
+  const investigationListMessages = useMemo(
+    () =>
+      investigationsToThoughtMessages(
+        (invList?.investigations ?? []) as InvestigationRecord[],
+      ),
+    [invList],
+  );
+  return [
+    ...sweepMessages,
+    ...investigationListMessages,
+    ...investigationMessages,
+  ];
 }

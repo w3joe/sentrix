@@ -18,6 +18,20 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
+# ─── Ensure Python deps (Patrol Swarm needs APScheduler, etc.) ─────────────────
+VENV_DIR="$SCRIPT_DIR/.venv"
+if [ -d "$VENV_DIR" ]; then
+  source "$VENV_DIR/bin/activate"
+elif python3 -c "import apscheduler" 2>/dev/null; then
+  : # apscheduler already available
+else
+  echo -e "${YELLOW}Creating venv and installing dependencies...${NC}"
+  python3 -m venv "$VENV_DIR"
+  source "$VENV_DIR/bin/activate"
+  pip install -q -r requirements.txt
+  echo -e "${GREEN}Done.${NC}"
+fi
+
 # PIDs for cleanup
 declare -a PIDS=()
 
