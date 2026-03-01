@@ -14,16 +14,19 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import type { AgentStatus, InvestigatorSelection } from '../../types';
+import type { AgentStatus, PatrolSelection } from '../../types';
+import type { PatrolResponseState } from '../../hooks/usePatrolResponseSequence';
 import { violationCounts, agents } from '../../data/mockData';
 import { nodeTypes } from './CustomNodes';
 import { edgeTypes } from './CustomEdges';
+import { useAgentsRaw } from '../../hooks/api/useBridgeQueries';
 
 // Node radius for collision detection (based on visual sizes)
 const NODE_RADII: Record<string, number> = {
   agent: 32,        // 64px / 2
   superintendent: 28, // 56px / 2
   investigator: 24,  // 48px / 2
+  network: 24,       // 48px / 2
   tripwire: 25,      // 50px / 2
   patrol: 20,        // ~40px / 2
 };
@@ -34,12 +37,13 @@ interface BehavioralGraphProps {
   getAgentStatus: (agentId: string) => AgentStatus;
   historicalAgentStates?: Record<string, AgentStatus>;
   isLive?: boolean;
-  investigatorSelection: InvestigatorSelection | null;
-  onInvestigatorSelect: (selection: InvestigatorSelection | null) => void;
-  // When set, triggers an assignment of investigator to target agent
-  pendingAssignment: { investigatorId: string; targetAgentId: string } | null;
+  patrolSelection: PatrolSelection | null;
+  onPatrolSelect: (selection: PatrolSelection | null) => void;
+  // When set, triggers an assignment of patrol to target agent
+  pendingAssignment: { patrolId: string; targetAgentId: string } | null;
   onAssignmentComplete: () => void;
   showHeatmap?: boolean;
+  response?: PatrolResponseState;
 }
 
 // Store initial edge lengths for constraint-based dragging
@@ -69,76 +73,137 @@ function generateClusterEdges(agentIds: string[], clusterPrefix: string): Edge[]
   return edges;
 }
 
-// Cluster 1 - Top Left
-const cluster1Agents: Node[] = [
-  { id: 'c1-email', type: 'agent', position: { x: 100, y: 100 }, data: { label: 'email-agent-01', status: 'working' } },
-  { id: 'c1-coding', type: 'agent', position: { x: 200, y: 180 }, data: { label: 'coding-agent-01', status: 'idle' } },
-  { id: 'c1-document', type: 'agent', position: { x: 50, y: 200 }, data: { label: 'document-agent-01', status: 'idle' } },
-  { id: 'c1-data', type: 'agent', position: { x: 150, y: 280 }, data: { label: 'data-query-agent-01', status: 'restricted' } },
-];
+// ── Grid layout helpers for dynamic cluster nodes ────────────────────────────
 
-// Cluster 2 - Top Right
-const cluster2Agents: Node[] = [
-  { id: 'c2-email', type: 'agent', position: { x: 450, y: 100 }, data: { label: 'email-agent-02', status: 'idle' } },
-  { id: 'c2-coding', type: 'agent', position: { x: 550, y: 180 }, data: { label: 'coding-agent-02', status: 'idle' } },
-  { id: 'c2-document', type: 'agent', position: { x: 400, y: 200 }, data: { label: 'document-agent-02', status: 'idle' } },
-  { id: 'c2-data', type: 'agent', position: { x: 500, y: 280 }, data: { label: 'data-query-agent-02', status: 'idle' } },
-];
+/**
+ * Arrange nodes from a single cluster in a tight circular layout.
+ * Returns ReactFlow Node objects with positions relative to (originX, originY).
+ */
+function layoutClusterNodes(
+  agentIds: string[],
+  agentLabels: Record<string, string>,
+  agentStatuses: Record<string, string>,
+  originX: number,
+  originY: number,
+): Node[] {
+  const count = agentIds.length;
+  if (count === 0) return [];
+  const minRadius = 90;
+  const radiusPerNode = 18;
+  const radius = Math.max(minRadius, (count * radiusPerNode) / Math.PI);
+  return agentIds.map((agentId, i) => {
+    const angle = (2 * Math.PI * i) / count - Math.PI / 2;
+    const x = originX + radius * Math.cos(angle);
+    const y = originY + radius * Math.sin(angle);
+    return {
+      id: agentId,
+      type: 'agent',
+      position: { x, y },
+      data: {
+        label: agentLabels[agentId] ?? agentId,
+        status: agentStatuses[agentId] ?? 'idle',
+      },
+    };
+  });
+}
 
-// Cluster 3 - Bottom Left
-const cluster3Agents: Node[] = [
-  { id: 'c3-email', type: 'agent', position: { x: 100, y: 450 }, data: { label: 'email-agent-03', status: 'idle' } },
-  { id: 'c3-coding', type: 'agent', position: { x: 200, y: 530 }, data: { label: 'coding-agent-03', status: 'idle' } },
-  { id: 'c3-document', type: 'agent', position: { x: 50, y: 550 }, data: { label: 'document-agent-03', status: 'restricted' } },
-  { id: 'c3-data', type: 'agent', position: { x: 150, y: 630 }, data: { label: 'data-query-agent-03', status: 'idle' } },
-];
+/**
+ * Build all agent nodes + intra-cluster edges from Bridge DB agents data.
+ * Clusters are arranged in a 2-column grid layout.
+ */
+function buildGraphFromDbAgents(agentsDict: Record<string, Record<string, unknown>>): {
+  agentNodes: Node[];
+  agentEdges: Edge[];
+  clusterDefs: Array<{ prefix: string; label: string; ids: string[] }>;
+} {
+  const clusterMap = new Map<string, string[]>();
+  const agentLabels: Record<string, string> = {};
+  const agentStatuses: Record<string, string> = {};
+  for (const [agentId, profile] of Object.entries(agentsDict)) {
+    const clusterId = (profile.cluster_id as string) || 'default';
+    if (!clusterMap.has(clusterId)) clusterMap.set(clusterId, []);
+    clusterMap.get(clusterId)!.push(agentId);
+    agentLabels[agentId] = (profile.name as string) || agentId;
+    agentStatuses[agentId] = (profile.agent_status as string) || 'idle';
+  }
+  const clusterIds = Array.from(clusterMap.keys()).sort();
+  const CLUSTER_SPACING_X = 380;
+  const CLUSTER_SPACING_Y = 360;
+  const COLS = 2;
+  const agentNodes: Node[] = [];
+  const agentEdges: Edge[] = [];
+  const clusterDefs: Array<{ prefix: string; label: string; ids: string[] }> = [];
+  clusterIds.forEach((clusterId, idx) => {
+    const col = idx % COLS;
+    const row = Math.floor(idx / COLS);
+    const originX = 150 + col * CLUSTER_SPACING_X;
+    const originY = 150 + row * CLUSTER_SPACING_Y;
+    const ids = clusterMap.get(clusterId)!;
+    agentNodes.push(...layoutClusterNodes(ids, agentLabels, agentStatuses, originX, originY));
+    agentEdges.push(...generateClusterEdges(ids, clusterId));
+    clusterDefs.push({ prefix: clusterId, label: clusterId, ids });
+  });
+  return { agentNodes, agentEdges, clusterDefs };
+}
 
-// Cluster 4 - Bottom Right
-const cluster4Agents: Node[] = [
-  { id: 'c4-email', type: 'agent', position: { x: 450, y: 450 }, data: { label: 'email-agent-04', status: 'idle' } },
-  { id: 'c4-coding', type: 'agent', position: { x: 550, y: 530 }, data: { label: 'coding-agent-04', status: 'idle' } },
-  { id: 'c4-document', type: 'agent', position: { x: 400, y: 550 }, data: { label: 'document-agent-04', status: 'idle' } },
-  { id: 'c4-data', type: 'agent', position: { x: 500, y: 630 }, data: { label: 'data-query-agent-04', status: 'working' } },
-];
+/**
+ * Fallback static data: used while the DB is loading / unreachable.
+ * Mirrors the original 4-cluster hardcoded layout.
+ */
+const FALLBACK_AGENTS: Record<string, Record<string, unknown>> = {
+  'c1-email':    { cluster_id: 'cluster-1', agent_type: 'email',    agent_status: 'working' },
+  'c1-coding':   { cluster_id: 'cluster-1', agent_type: 'code',     agent_status: 'idle' },
+  'c1-document': { cluster_id: 'cluster-1', agent_type: 'document', agent_status: 'idle' },
+  'c1-data':     { cluster_id: 'cluster-1', agent_type: 'code',     agent_status: 'restricted' },
+  'c2-email':    { cluster_id: 'cluster-2', agent_type: 'email',    agent_status: 'idle' },
+  'c2-coding':   { cluster_id: 'cluster-2', agent_type: 'code',     agent_status: 'idle' },
+  'c2-document': { cluster_id: 'cluster-2', agent_type: 'document', agent_status: 'idle' },
+  'c2-data':     { cluster_id: 'cluster-2', agent_type: 'code',     agent_status: 'idle' },
+  'c3-email':    { cluster_id: 'cluster-3', agent_type: 'email',    agent_status: 'idle' },
+  'c3-coding':   { cluster_id: 'cluster-3', agent_type: 'code',     agent_status: 'idle' },
+  'c3-document': { cluster_id: 'cluster-3', agent_type: 'document', agent_status: 'restricted' },
+  'c3-data':     { cluster_id: 'cluster-3', agent_type: 'code',     agent_status: 'idle' },
+  'c4-email':    { cluster_id: 'cluster-4', agent_type: 'email',    agent_status: 'idle' },
+  'c4-coding':   { cluster_id: 'cluster-4', agent_type: 'code',     agent_status: 'idle' },
+  'c4-document': { cluster_id: 'cluster-4', agent_type: 'document', agent_status: 'idle' },
+  'c4-data':     { cluster_id: 'cluster-4', agent_type: 'code',     agent_status: 'working' },
+};
 
-// System nodes (patrol, superintendent, investigators)
+// System nodes (patrol, superintendent, investigators, network) — always static
 const systemNodes: Node[] = [
-  // Patrol nodes — positions animated at runtime, draggable enabled
   { id: 'p1', type: 'patrol', position: { x: 280, y: 330 }, data: { label: 'Patrol-1', status: 'active' } },
   { id: 'p2', type: 'patrol', position: { x: 320, y: 330 }, data: { label: 'Patrol-2', status: 'active' } },
-  // Superintendent node (center)
   { id: 'inv', type: 'superintendent', position: { x: 300, y: 360 }, data: { label: 'Superintendent', status: 'active' } },
-  // Investigator nodes
-  { id: 'f1', type: 'investigator', position: { x: 270, y: 390 }, data: { label: 'Investigator-1', status: 'active' } },
-  { id: 'f2', type: 'investigator', position: { x: 330, y: 390 }, data: { label: 'Investigator-2', status: 'active' } },
+  { id: 'f1', type: 'investigator', position: { x: 270, y: 400 }, data: { label: 'Investigator-1', status: 'active' } },
+  { id: 'f2', type: 'investigator', position: { x: 330, y: 400 }, data: { label: 'Investigator-2', status: 'active' } },
+  { id: 'net', type: 'network', position: { x: 300, y: 420 }, data: { label: 'Network', status: 'active' } },
 ];
 
-// Combine all nodes
-const initialNodes: Node[] = [
-  ...cluster1Agents,
-  ...cluster2Agents,
-  ...cluster3Agents,
-  ...cluster4Agents,
-  ...systemNodes,
+const systemEdges: Edge[] = [
+  {
+    id: 'sys-f1-inv',
+    source: 'f1',
+    target: 'inv',
+    type: 'dashed',
+    data: { color: '#9b59b6' },
+  },
+  {
+    id: 'sys-f2-inv',
+    source: 'f2',
+    target: 'inv',
+    type: 'dashed',
+    data: { color: '#9b59b6' },
+  },
+  {
+    id: 'sys-net-inv',
+    source: 'net',
+    target: 'inv',
+    type: 'dashed',
+    data: { color: '#7c3aed' },
+  },
 ];
 
-// Generate fully interconnected edges for each cluster
-const cluster1Edges = generateClusterEdges(cluster1Agents.map(n => n.id), 'c1');
-const cluster2Edges = generateClusterEdges(cluster2Agents.map(n => n.id), 'c2');
-const cluster3Edges = generateClusterEdges(cluster3Agents.map(n => n.id), 'c3');
-const cluster4Edges = generateClusterEdges(cluster4Agents.map(n => n.id), 'c4');
 
-// System edges (superintendent connections only - investigators start unattached)
-const systemEdges: Edge[] = [];
-
-// Combine all edges
-const initialEdges: Edge[] = [
-  ...cluster1Edges,
-  ...cluster2Edges,
-  ...cluster3Edges,
-  ...cluster4Edges,
-  ...systemEdges,
-];
 
 export function BehavioralGraph({
   selectedAgentId,
@@ -146,11 +211,12 @@ export function BehavioralGraph({
   getAgentStatus,
   historicalAgentStates,
   isLive = true,
-  investigatorSelection,
-  onInvestigatorSelect,
+  patrolSelection,
+  onPatrolSelect,
   pendingAssignment,
   onAssignmentComplete,
   showHeatmap = false,
+  response,
 }: BehavioralGraphProps) {
   // Ensure client-side only rendering for animations to prevent hydration mismatch
   const [isClient, setIsClient] = useState(false);
@@ -158,6 +224,51 @@ export function BehavioralGraph({
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // ── Fetch live agent data from Bridge DB ─────────────────────────────────
+  const { data: agentsResponse } = useAgentsRaw();
+
+  // Build base nodes/edges from DB data (or fallback). Store in a ref so
+  // positions are not recalculated on every render — only when the agent set changes.
+  const baseAgentNodesRef = useRef<Node[]>([]);
+  const baseAgentEdgesRef = useRef<Edge[]>([]);
+  const clusterDefsRef = useRef<Array<{ prefix: string; label: string; ids: string[] }>>([]);
+  const dbAgentIdsRef = useRef<string>('');
+
+  const agentsDict = agentsResponse?.agents ?? null;
+  // Use stable key to detect when the set of agents changes ('__fallback__' as initial sentinel)
+  const agentIdsKey = agentsDict && Object.keys(agentsDict).length > 0
+    ? Object.keys(agentsDict).sort().join(',')
+    : '__fallback__';
+
+  if (agentIdsKey !== dbAgentIdsRef.current) {
+    const source = agentsDict && Object.keys(agentsDict).length > 0 ? agentsDict : FALLBACK_AGENTS;
+    const { agentNodes, agentEdges, clusterDefs } = buildGraphFromDbAgents(source);
+    baseAgentNodesRef.current = agentNodes;
+    baseAgentEdgesRef.current = agentEdges;
+    clusterDefsRef.current = clusterDefs;
+    dbAgentIdsRef.current = agentIdsKey;
+  }
+
+  const baseAgentNodes = baseAgentNodesRef.current;
+  const baseAgentEdges = baseAgentEdgesRef.current;
+  const currentClusterDefs = clusterDefsRef.current;
+
+  // Full initial node/edge lists combining DB agents + system nodes
+  const initialNodes: Node[] = useMemo(
+    () => [...baseAgentNodes, ...systemNodes],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [agentIdsKey]
+  );
+  const initialEdges: Edge[] = useMemo(
+    () => [...baseAgentEdges, ...systemEdges],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [agentIdsKey]
+  );
+
+  // Keep a ref so onNodesChange can always read the latest edges without stale closure
+  const initialEdgesRef = useRef<Edge[]>(initialEdges);
+  initialEdgesRef.current = initialEdges;
 
   // Get the effective status for an agent (historical or live)
   const getEffectiveStatus = useCallback(
@@ -170,108 +281,109 @@ export function BehavioralGraph({
     [isLive, historicalAgentStates, getAgentStatus]
   );
 
-  // Track investigator connections (investigatorId -> targetNodeId)
-  const investigatorConnections = useRef<Map<string, string>>(new Map());
+  // Track patrol connections (patrolId -> targetNodeId)
+  const patrolConnections = useRef<Map<string, string>>(new Map());
 
   // Initialize state
+
   const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Investigator click handler - toggles selection in sidebar
-  const handleInvestigatorClick = useCallback((investigatorId: string) => {
-    // If clicking the same investigator that's already selected, cancel the selection
-    if (investigatorSelection?.investigatorId === investigatorId) {
-      onInvestigatorSelect(null);
+  // Patrol click handler - toggles selection in sidebar
+  const handlePatrolClick = useCallback((patrolId: string) => {
+    // If clicking the same patrol that's already selected, cancel the selection
+    if (patrolSelection?.patrolId === patrolId) {
+      onPatrolSelect(null);
       return;
     }
 
     // Find from initialNodes instead of state nodes to avoid dependency
-    const investigatorNode = initialNodes.find((n) => n.id === investigatorId);
-    if (investigatorNode) {
-      onInvestigatorSelect({
-        investigatorId,
-        investigatorLabel: investigatorNode.data.label,
+    const patrolNode = initialNodes.find((n) => n.id === patrolId);
+    if (patrolNode) {
+      onPatrolSelect({
+        patrolId,
+        patrolLabel: patrolNode.data.label,
       });
     }
-  }, [onInvestigatorSelect, investigatorSelection]);
+  }, [onPatrolSelect, patrolSelection]);
 
-  // Handle agent selection from sidebar (called via onInvestigatorAssign)
+  // Handle agent selection from sidebar (called via onPatrolAssign)
   const handleAgentAssignment = useCallback(
-    (investigatorId: string, targetNodeId: string) => {
+    (patrolId: string, targetNodeId: string) => {
 
       setNodes((currentNodes) => {
         const nodesList = currentNodes as Node[];
 
-        // Find the investigator and target nodes
-        const investigatorNode = nodesList.find((n) => n.id === investigatorId);
+        // Find the patrol and target nodes
+        const patrolNode = nodesList.find((n) => n.id === patrolId);
         const targetNode = nodesList.find((n) => n.id === targetNodeId);
 
-        if (!investigatorNode || !targetNode || !investigatorNode.position || !targetNode.position) {
+        if (!patrolNode || !targetNode || !patrolNode.position || !targetNode.position) {
           return currentNodes;
         }
 
         // Store connection
-        investigatorConnections.current.set(investigatorId, targetNodeId);
+        patrolConnections.current.set(patrolId, targetNodeId);
 
         // Calculate distance between nodes
-        const investigatorRadius = NODE_RADII[investigatorNode.type || 'investigator'] || 24;
+        const patrolRadius = NODE_RADII[patrolNode.type || 'patrol'] || 20;
         const targetRadius = NODE_RADII.agent;
 
-        const investigatorCenterX = investigatorNode.position.x + investigatorRadius;
-        const investigatorCenterY = investigatorNode.position.y + investigatorRadius;
+        const patrolCenterX = patrolNode.position.x + patrolRadius;
+        const patrolCenterY = patrolNode.position.y + patrolRadius;
         const targetCenterX = targetNode.position.x + targetRadius;
         const targetCenterY = targetNode.position.y + targetRadius;
 
-        const dx = targetCenterX - investigatorCenterX;
-        const dy = targetCenterY - investigatorCenterY;
+        const dx = targetCenterX - patrolCenterX;
+        const dy = targetCenterY - patrolCenterY;
         const currentDistance = Math.sqrt(dx * dx + dy * dy);
 
         // Store edge length for physics
-        const edgeId = `inv-${investigatorId}-${targetNodeId}`;
+        const edgeId = `patrol-${patrolId}-${targetNodeId}`;
 
-        // Move investigator closer to the target agent (about 100px away)
+        // Move patrol closer to the target agent (about 100px away)
         const desiredDistance = 100;
-        let newInvestigatorCenterX = investigatorCenterX;
-        let newInvestigatorCenterY = investigatorCenterY;
+        let newPatrolCenterX = patrolCenterX;
+        let newPatrolCenterY = patrolCenterY;
 
         if (currentDistance > desiredDistance) {
           const ratio = desiredDistance / currentDistance;
-          newInvestigatorCenterX = targetCenterX - dx * ratio;
-          newInvestigatorCenterY = targetCenterY - dy * ratio;
+          newPatrolCenterX = targetCenterX - dx * ratio;
+          newPatrolCenterY = targetCenterY - dy * ratio;
         }
 
         const newPos = {
-          x: newInvestigatorCenterX - investigatorRadius,
-          y: newInvestigatorCenterY - investigatorRadius,
+          x: newPatrolCenterX - patrolRadius,
+          y: newPatrolCenterY - patrolRadius,
         };
 
-        const newDx = targetCenterX - newInvestigatorCenterX;
-        const newDy = targetCenterY - newInvestigatorCenterY;
+        const newDx = targetCenterX - newPatrolCenterX;
+        const newDy = targetCenterY - newPatrolCenterY;
         const newDistance = Math.sqrt(newDx * newDx + newDy * newDy);
         edgeLengths.set(edgeId, newDistance);
 
         setEdges((currentEdges) => {
-          const filteredEdges = currentEdges.filter((edge) => edge.source !== investigatorId);
+          const filteredEdges = currentEdges.filter((edge) => edge.source !== patrolId);
           return [
             ...filteredEdges,
             {
               id: edgeId,
-              source: investigatorId,
+              source: patrolId,
               target: targetNodeId,
               type: 'animated',
-              data: { color: '#9b59b6', animated: true },
+              data: { color: '#00d4ff', animated: true },
             },
           ];
         });
 
-        if (investigatorId === 'p1' || investigatorId === 'p2') {
+        if (patrolId === 'p1' || patrolId === 'p2') {
           // Slide patrol agents smoothly to target instead of respawning/snapping
-          patrolTarget.current[investigatorId as 'p1' | 'p2'] = newPos;
+          patrolTarget.current[patrolId as 'p1' | 'p2'] = newPos;
           return currentNodes;
         } else {
-          // Snap regular investigators instantly
+          // Snap to position
           return nodesList.map((n) => {
-            if (n.id === investigatorId) {
+            if (n.id === patrolId) {
               return { ...n, position: newPos };
             }
             return n;
@@ -280,15 +392,15 @@ export function BehavioralGraph({
       });
 
       // Notify parent that assignment is complete
-      onInvestigatorSelect(null);
+      onPatrolSelect(null);
     },
-    [setNodes, setEdges, onInvestigatorSelect]
+    [setNodes, setEdges, onPatrolSelect]
   );
 
   // Watch for pending assignments from the sidebar
   useEffect(() => {
     if (pendingAssignment) {
-      handleAgentAssignment(pendingAssignment.investigatorId, pendingAssignment.targetAgentId);
+      handleAgentAssignment(pendingAssignment.patrolId, pendingAssignment.targetAgentId);
       onAssignmentComplete();
     }
   }, [pendingAssignment, handleAgentAssignment, onAssignmentComplete]);
@@ -303,11 +415,11 @@ export function BehavioralGraph({
         currentStatus: node.type === 'agent' ? getEffectiveStatus(node.id) : undefined,
         // Add click handler for patrol nodes
         ...(node.type === 'patrol' && {
-          onInvestigatorClick: handleInvestigatorClick,
+          onPatrolClick: handlePatrolClick,
         }),
       },
     }));
-  }, [selectedAgentId, getEffectiveStatus, handleInvestigatorClick]);
+  }, [initialNodes, selectedAgentId, getEffectiveStatus, handlePatrolClick]);
 
   // Update edges based on agent states
   const edgesWithStatus = useMemo(() => {
@@ -326,15 +438,21 @@ export function BehavioralGraph({
       }
       return edge;
     });
-  }, [getEffectiveStatus]);
+  }, [initialEdges, getEffectiveStatus]);
 
-  // Initialize edge lengths on first render
+  // Initialize edge lengths on first render, and re-initialize when agent set changes
   const edgeLengthsInitialized = useRef(false);
+
+  // Reset edge-length cache when DB agent set changes
+  useEffect(() => {
+    edgeLengthsInitialized.current = false;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agentIdsKey]);
 
   useEffect(() => {
     if (!edgeLengthsInitialized.current && nodes.length > 0) {
       // Calculate and store initial edge lengths
-      initialEdges.forEach((edge) => {
+      initialEdgesRef.current.forEach((edge) => {
         const sourceNode = nodes.find((n) => n.id === edge.source);
         const targetNode = nodes.find((n) => n.id === edge.target);
 
@@ -410,7 +528,7 @@ export function BehavioralGraph({
             if (!draggedNode || draggedNode.draggable === false) continue;
 
             // Find all edges connected to this node (cluster edges + investigator edges, not system edges)
-            const connectedEdges = [...initialEdges, ...edges].filter(
+            const connectedEdges = [...initialEdgesRef.current, ...edges].filter(
               (edge) =>
                 !edge.id.startsWith('sys-') &&
                 (edge.source === nodeId || edge.target === nodeId)
@@ -577,6 +695,20 @@ export function BehavioralGraph({
   const patrolDragging = useRef({ p1: false, p2: false });
   const isMounted = useRef(false);
 
+  // System entity home positions (match systemNodes initial positions)
+  const NET_HOME = { x: 300, y: 420 };
+  const F1_HOME  = { x: 270, y: 400 };
+
+  // Track net/f1 positions for lerp-based response movement
+  const netPos    = useRef(NET_HOME);
+  const netTarget = useRef(NET_HOME);
+  const f1Pos     = useRef(F1_HOME);
+  const f1Target  = useRef(F1_HOME);
+
+  // Keep a ref to the latest response state so the lerp loop can read it without stale closure
+  const responseRef = useRef(response);
+  responseRef.current = response;
+
   // Random walk: pick new targets every 2s, glide towards them at ~30fps
   useEffect(() => {
     // Don't start animation until client-side hydration is complete
@@ -589,10 +721,10 @@ export function BehavioralGraph({
         x: Math.max(200, Math.min(400, pos.x + (Math.random() - 0.5) * 100)),
         y: Math.max(250, Math.min(450, pos.y + (Math.random() - 0.5) * 100)),
       });
-      if (!investigatorConnections.current.has('p1')) {
+      if (!patrolConnections.current.has('p1')) {
         patrolTarget.current.p1 = wander(patrolPos.current.p1);
       }
-      if (!investigatorConnections.current.has('p2')) {
+      if (!patrolConnections.current.has('p2')) {
         patrolTarget.current.p2 = wander(patrolPos.current.p2);
       }
     };
@@ -602,22 +734,54 @@ export function BehavioralGraph({
     const moveTimer = setInterval(() => {
       const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
       const t = 0.04;
-      const newP1 = (investigatorConnections.current.has('p1') || patrolDragging.current.p1) ? patrolPos.current.p1 : {
+      const newP1 = (patrolConnections.current.has('p1') || patrolDragging.current.p1) ? patrolPos.current.p1 : {
         x: lerp(patrolPos.current.p1.x, patrolTarget.current.p1.x, t),
         y: lerp(patrolPos.current.p1.y, patrolTarget.current.p1.y, t),
       };
-      const newP2 = (investigatorConnections.current.has('p2') || patrolDragging.current.p2) ? patrolPos.current.p2 : {
+      const newP2 = (patrolConnections.current.has('p2') || patrolDragging.current.p2) ? patrolPos.current.p2 : {
         x: lerp(patrolPos.current.p2.x, patrolTarget.current.p2.x, t),
         y: lerp(patrolPos.current.p2.y, patrolTarget.current.p2.y, t),
       };
       patrolPos.current.p1 = newP1;
       patrolPos.current.p2 = newP2;
 
+      // Update net/f1 targets from response state
+      const rs = responseRef.current;
+      const isResponseActive = rs && rs.phase !== 'idle' && rs.phase !== 'patrol_moving';
+      if (isResponseActive && rs) {
+        if (rs.phase === 'summoning' || rs.phase === 'at_scene') {
+          // Move toward flagged agent
+          if (rs.networkTargetPos) netTarget.current = rs.networkTargetPos;
+          if (rs.investigatorTargetPos) f1Target.current = rs.investigatorTargetPos;
+        } else if (rs.phase === 'returning' || rs.phase === 'reporting') {
+          netTarget.current = NET_HOME;
+          f1Target.current = F1_HOME;
+        }
+      } else {
+        // Return home when idle
+        netTarget.current = NET_HOME;
+        f1Target.current = F1_HOME;
+      }
+
+      const tFast = 0.06;
+      const newNet = {
+        x: lerp(netPos.current.x, netTarget.current.x, tFast),
+        y: lerp(netPos.current.y, netTarget.current.y, tFast),
+      };
+      const newF1 = {
+        x: lerp(f1Pos.current.x, f1Target.current.x, tFast),
+        y: lerp(f1Pos.current.y, f1Target.current.y, tFast),
+      };
+      netPos.current = newNet;
+      f1Pos.current = newF1;
+
       setNodes((nds) => {
-        // First update patrol positions for roaming and gliding to targets
+        // First update patrol + net/f1 positions
         let updatedNodes = nds.map((n) => {
           if (n.id === 'p1') return { ...n, position: newP1 };
           if (n.id === 'p2') return { ...n, position: newP2 };
+          if (n.id === 'net') return { ...n, position: newNet };
+          if (n.id === 'f1') return { ...n, position: newF1 };
           return n;
         });
 
@@ -707,6 +871,72 @@ export function BehavioralGraph({
     setEdges(edgesWithStatus);
   }, [edgesWithStatus, setEdges]);
 
+  // ── Response sequence: inject/remove edges and flag the agent node ──────────
+  useEffect(() => {
+    const phase = response?.phase ?? 'idle';
+    const flaggedId = response?.flaggedAgentId ?? null;
+    const patrolId = response?.patrolId ?? null;
+
+    // Edges to add per phase
+    const responseEdgeIds = ['resp-patrol-agent', 'resp-f1-agent', 'resp-net-agent'];
+
+    if (phase === 'idle' || phase === 'patrol_moving') {
+      // Remove all response edges; clear isUnderInvestigation
+      setEdges((eds) => eds.filter((e) => !responseEdgeIds.includes(e.id)));
+      setNodes((nds) => nds.map((n) =>
+        n.type === 'agent' ? { ...n, data: { ...n.data, isUnderInvestigation: false } } : n
+      ));
+      return;
+    }
+
+    if (!flaggedId) return;
+
+    // Mark flagged agent as under investigation
+    const isAtScene = phase === 'at_scene' || phase === 'summoning' || phase === 'returning';
+    setNodes((nds) => nds.map((n) =>
+      n.id === flaggedId
+        ? { ...n, data: { ...n.data, isUnderInvestigation: isAtScene } }
+        : n.type === 'agent'
+          ? { ...n, data: { ...n.data, isUnderInvestigation: false } }
+          : n
+    ));
+
+    // Build response edges
+    const newEdges: Edge[] = [];
+
+    if (patrolId && (phase === 'summoning' || phase === 'at_scene' || phase === 'returning')) {
+      newEdges.push({
+        id: 'resp-patrol-agent',
+        source: patrolId,
+        target: flaggedId,
+        type: 'glowing',
+        data: { color: '#00d4ff' },
+      });
+    }
+
+    if (phase === 'summoning' || phase === 'at_scene' || phase === 'returning') {
+      newEdges.push({
+        id: 'resp-f1-agent',
+        source: 'f1',
+        target: flaggedId,
+        type: 'dashed',
+        data: { color: '#9b59b6', animated: true },
+      });
+      newEdges.push({
+        id: 'resp-net-agent',
+        source: 'net',
+        target: flaggedId,
+        type: 'dashed',
+        data: { color: '#7c3aed', animated: true },
+      });
+    }
+
+    setEdges((eds) => {
+      const filtered = eds.filter((e) => !responseEdgeIds.includes(e.id));
+      return [...filtered, ...newEdges];
+    });
+  }, [response?.phase, response?.flaggedAgentId, response?.patrolId, setEdges, setNodes]);
+
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
       // Only select agent nodes
@@ -767,7 +997,7 @@ export function BehavioralGraph({
               color="#1f2937"
             />
             {showHeatmap && (
-              <HeatmapOverlay nodes={nodes} getEffectiveStatus={getEffectiveStatus} />
+              <HeatmapOverlay nodes={nodes} getEffectiveStatus={getEffectiveStatus} clusterDefs={currentClusterDefs} />
             )}
           </ReactFlow>
         ) : (
@@ -790,17 +1020,9 @@ const HEATMAP_STATUS_COLORS: Record<AgentStatus, string> = {
   suspended:  '#6b7280',
 };
 
-// Build a lookup: agentId → violation count
+// Build a lookup: agentId → violation count (mock data for now)
 const violationMap = new Map<string, number>();
 agents.forEach((a, i) => violationMap.set(a.id, violationCounts[i]));
-
-// Cluster definitions
-const CLUSTER_DEFS = [
-  { prefix: 'c1', label: 'Host 1', ids: ['c1-email', 'c1-coding', 'c1-document', 'c1-data'] },
-  { prefix: 'c2', label: 'Host 2', ids: ['c2-email', 'c2-coding', 'c2-document', 'c2-data'] },
-  { prefix: 'c3', label: 'Host 3', ids: ['c3-email', 'c3-coding', 'c3-document', 'c3-data'] },
-  { prefix: 'c4', label: 'Host 4', ids: ['c4-email', 'c4-coding', 'c4-document', 'c4-data'] },
-];
 
 type Vec2 = { x: number; y: number };
 
@@ -869,9 +1091,11 @@ function smoothBlobPath(pts: Vec2[], tension = 0.4): string {
 function HeatmapOverlay({
   nodes,
   getEffectiveStatus,
+  clusterDefs,
 }: {
   nodes: Node[];
   getEffectiveStatus: (agentId: string) => AgentStatus;
+  clusterDefs: Array<{ prefix: string; label: string; ids: string[] }>;
 }) {
   const { x, y, zoom } = useViewport();
 
@@ -889,7 +1113,7 @@ function HeatmapOverlay({
 
   // Compute smooth blob paths for each cluster
   const clusterBlobs = useMemo(() => {
-    return CLUSTER_DEFS.map((cluster) => {
+    return clusterDefs.map((cluster) => {
       const positions = cluster.ids.map((id) => posMap.get(id)).filter(Boolean) as Vec2[];
       if (positions.length === 0) return null;
 
@@ -910,7 +1134,7 @@ function HeatmapOverlay({
 
       return { key: cluster.prefix, path, color, fillOpacity, strokeOpacity };
     }).filter(Boolean);
-  }, [posMap, getEffectiveStatus]);
+  }, [posMap, getEffectiveStatus, clusterDefs]);
 
   // Per-agent radial glows
   const agentGlows = useMemo(() => {

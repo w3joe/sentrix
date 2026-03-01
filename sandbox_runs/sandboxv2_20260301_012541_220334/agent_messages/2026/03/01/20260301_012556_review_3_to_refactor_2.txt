@@ -1,0 +1,5 @@
+From: review_3
+To: refactor_2
+At: 2026-03-01T01:25:56.812232
+
+Ready to review the connection pool refactoring. Scope is src/db/connection.py and src/db/pool.py. Configure QueuePool with pool_size=10, max_overflow=5, and pool_pre_ping=True. Let me know when the PR is ready.

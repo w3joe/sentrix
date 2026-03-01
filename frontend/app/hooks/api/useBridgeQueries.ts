@@ -156,7 +156,7 @@ export function useCaseFiles() {
             cf = raw as Record<string, unknown>;
           }
           if (!cf) {
-            const status = (inv.status as string) || 'open';
+            // No case_file_json yet (investigation still open/in_progress)
             return {
               investigationId: (inv.investigation_id as string) ?? '',
               flagId: (inv.flag_id as string) ?? '',
@@ -168,40 +168,11 @@ export function useCaseFiles() {
               summary: '',
               keyFindings: [],
               evidenceSummary: '',
-              investigatorReport: {
-                targetAgentId: (inv.target_agent_id as string) ?? '',
-                actionsAnalyzed: 0,
-                crimeClassification: 'unknown',
-                confidence: 0,
-                relevantLogIds: [],
-                evidenceSummary: '',
-                modusOperandi: '',
-                timeline: '',
-                agentProfileAnomalies: '',
-                timestamp: new Date().toISOString(),
-              },
-              networkAnalysis: {
-                targetAgentId: (inv.target_agent_id as string) ?? '',
-                crimeClassificationUsed: 'unknown',
-                flaggedRelevantMessages: [],
-                communicationPattern: '',
-                accompliceSuspicions: [],
-                coordinationEvidence: '',
-                networkRiskLevel: 'isolated',
-                timestamp: new Date().toISOString(),
-              },
-              damageReport: {
-                targetAgentId: (inv.target_agent_id as string) ?? '',
-                damageSeverity: 'none',
-                causalChain: [],
-                affectedAgents: [],
-                dataExposureScope: '',
-                propagationRisk: '',
-                estimatedImpact: '',
-                timestamp: new Date().toISOString(),
-              },
+              investigatorReport: { crimeClassification: 'unknown', relevantLogIds: [], caseFacts: '' },
+              networkAnalysis: { flaggedRelevantMessages: [] },
+              damageReport: { damageSeverity: 'none', causalChain: [], affectedAgents: [], dataExposureScope: '', propagationRisk: '', estimatedImpact: '' },
               concludedAt: (inv.concluded_at as string) ?? null,
-              status: status as 'open' | 'in_progress' | 'concluded',
+              status: ((inv.status as string) || 'open') as 'open' | 'in_progress' | 'concluded',
             };
           }
           return adaptCaseFile(cf) as import('../../types').CaseFile;

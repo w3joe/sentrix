@@ -28,10 +28,12 @@ export const rooms: RoomConfig[] = [
     width: 440 * S,
     height: 280 * S,
     desks: [
-      { agentId: 'c1-email',    x: 320 * S, y: 120 * S },
-      { agentId: 'c1-coding',   x: 480 * S, y: 120 * S },
-      { agentId: 'c1-document', x: 320 * S, y: 230 * S },
-      { agentId: 'c1-data',     x: 480 * S, y: 230 * S },
+      { agentId: 'c1-email',    x: 300 * S, y: 120 * S },
+      { agentId: 'c1-coding',   x: 460 * S, y: 120 * S },
+      { agentId: 'c1-browser',  x: 620 * S, y: 120 * S },
+      { agentId: 'c1-document', x: 300 * S, y: 230 * S },
+      { agentId: 'c1-data',     x: 460 * S, y: 230 * S },
+      { agentId: 'c1-research', x: 620 * S, y: 230 * S },
     ],
   },
   {
@@ -42,10 +44,12 @@ export const rooms: RoomConfig[] = [
     width: 440 * S,
     height: 280 * S,
     desks: [
-      { agentId: 'c2-email',    x: 1000 * S, y: 120 * S },
-      { agentId: 'c2-coding',   x: 1160 * S, y: 120 * S },
-      { agentId: 'c2-document', x: 1000 * S, y: 230 * S },
-      { agentId: 'c2-data',     x: 1160 * S, y: 230 * S },
+      { agentId: 'c2-email',    x: 980 * S, y: 120 * S },
+      { agentId: 'c2-coding',   x: 1140 * S, y: 120 * S },
+      { agentId: 'c2-browser',  x: 1300 * S, y: 120 * S },
+      { agentId: 'c2-document', x: 980 * S, y: 230 * S },
+      { agentId: 'c2-data',     x: 1140 * S, y: 230 * S },
+      { agentId: 'c2-research', x: 1300 * S, y: 230 * S },
     ],
   },
   {
@@ -56,10 +60,12 @@ export const rooms: RoomConfig[] = [
     width: 440 * S,
     height: 280 * S,
     desks: [
-      { agentId: 'c3-email',    x: 320 * S, y: 660 * S },
-      { agentId: 'c3-coding',   x: 480 * S, y: 660 * S },
-      { agentId: 'c3-document', x: 320 * S, y: 770 * S },
-      { agentId: 'c3-data',     x: 480 * S, y: 770 * S },
+      { agentId: 'c3-email',    x: 300 * S, y: 660 * S },
+      { agentId: 'c3-coding',   x: 460 * S, y: 660 * S },
+      { agentId: 'c3-browser',  x: 620 * S, y: 660 * S },
+      { agentId: 'c3-document', x: 300 * S, y: 770 * S },
+      { agentId: 'c3-data',     x: 460 * S, y: 770 * S },
+      { agentId: 'c3-research', x: 620 * S, y: 770 * S },
     ],
   },
   {
@@ -70,10 +76,12 @@ export const rooms: RoomConfig[] = [
     width: 440 * S,
     height: 280 * S,
     desks: [
-      { agentId: 'c4-email',    x: 1000 * S, y: 660 * S },
-      { agentId: 'c4-coding',   x: 1160 * S, y: 660 * S },
-      { agentId: 'c4-document', x: 1000 * S, y: 770 * S },
-      { agentId: 'c4-data',     x: 1160 * S, y: 770 * S },
+      { agentId: 'c4-email',    x: 980 * S, y: 660 * S },
+      { agentId: 'c4-coding',   x: 1140 * S, y: 660 * S },
+      { agentId: 'c4-browser',  x: 1300 * S, y: 660 * S },
+      { agentId: 'c4-document', x: 980 * S, y: 770 * S },
+      { agentId: 'c4-data',     x: 1140 * S, y: 770 * S },
+      { agentId: 'c4-research', x: 1300 * S, y: 770 * S },
     ],
   },
 ];
@@ -234,4 +242,176 @@ export function getDeskPosition(agentId: string): { x: number; y: number } | nul
     if (desk) return { x: desk.x, y: desk.y };
   }
   return null;
+}
+
+/**
+ * Get the room ID that contains a given agent based on their desk assignment
+ */
+export function getAgentRoom(agentId: string): string | null {
+  for (const room of rooms) {
+    if (room.desks.some((d) => d.agentId === agentId)) {
+      return room.id;
+    }
+  }
+  return null;
+}
+
+/**
+ * Navigation graph for pathfinding around walls
+ * Each node has connections to reachable neighboring nodes
+ */
+export interface NavNode {
+  id: string;
+  x: number;
+  y: number;
+  connections: string[];
+}
+
+// Build navigation nodes from existing waypoints and key positions
+const navNodes: NavNode[] = [
+  // Corridor intersection points
+  { id: 'corridor-top', x: 800 * S, y: 180 * S, connections: ['hm1-door-right', 'hm2-door-left', 'corridor-center'] },
+  { id: 'corridor-bottom', x: 800 * S, y: 720 * S, connections: ['hm3-door-right', 'hm4-door-left', 'corridor-center'] },
+  { id: 'corridor-center', x: 800 * S, y: 450 * S, connections: ['corridor-top', 'corridor-bottom', 'corridor-left', 'corridor-right'] },
+  { id: 'corridor-left', x: 460 * S, y: 450 * S, connections: ['corridor-center', 'hm1-door-bottom', 'hm3-door-top'] },
+  { id: 'corridor-right', x: 1140 * S, y: 450 * S, connections: ['corridor-center', 'hm2-door-bottom', 'hm4-door-top'] },
+  
+  // HM1 (cluster-1) doors and interior
+  { id: 'hm1-door-right', x: (240 + 440) * S, y: (40 + 140) * S, connections: ['corridor-top', 'hm1-interior'] },
+  { id: 'hm1-door-bottom', x: (240 + 220) * S, y: (40 + 280) * S, connections: ['corridor-left', 'hm1-interior'] },
+  { id: 'hm1-interior', x: 400 * S, y: 175 * S, connections: ['hm1-door-right', 'hm1-door-bottom'] },
+  
+  // HM2 (cluster-2) doors and interior
+  { id: 'hm2-door-left', x: 920 * S, y: (40 + 140) * S, connections: ['corridor-top', 'hm2-interior'] },
+  { id: 'hm2-door-bottom', x: (920 + 220) * S, y: (40 + 280) * S, connections: ['corridor-right', 'hm2-interior'] },
+  { id: 'hm2-interior', x: 1080 * S, y: 175 * S, connections: ['hm2-door-left', 'hm2-door-bottom'] },
+  
+  // HM3 (cluster-3) doors and interior
+  { id: 'hm3-door-right', x: (240 + 440) * S, y: (580 + 140) * S, connections: ['corridor-bottom', 'hm3-interior'] },
+  { id: 'hm3-door-top', x: (240 + 220) * S, y: 580 * S, connections: ['corridor-left', 'hm3-interior'] },
+  { id: 'hm3-interior', x: 400 * S, y: 715 * S, connections: ['hm3-door-right', 'hm3-door-top'] },
+  
+  // HM4 (cluster-4) doors and interior
+  { id: 'hm4-door-left', x: 920 * S, y: (580 + 140) * S, connections: ['corridor-bottom', 'hm4-interior'] },
+  { id: 'hm4-door-top', x: (920 + 220) * S, y: 580 * S, connections: ['corridor-right', 'hm4-interior'] },
+  { id: 'hm4-interior', x: 1080 * S, y: 715 * S, connections: ['hm4-door-left', 'hm4-door-top'] },
+  
+  // Quarantine area
+  { id: 'quarantine-entrance', x: 800 * S, y: 900 * S, connections: ['corridor-bottom', 'quarantine-interior'] },
+  { id: 'quarantine-interior', x: 800 * S, y: 980 * S, connections: ['quarantine-entrance'] },
+  
+  // Entertainment area (left side)
+  { id: 'entertainment-entrance', x: 200 * S, y: 450 * S, connections: ['corridor-left', 'entertainment-interior'] },
+  { id: 'entertainment-interior', x: 120 * S, y: 450 * S, connections: ['entertainment-entrance'] },
+];
+
+const navNodeMap = new Map(navNodes.map((n) => [n.id, n]));
+
+/**
+ * Get the closest navigation node to a given position
+ */
+export function getClosestNavNode(x: number, y: number): NavNode {
+  let closest = navNodes[0];
+  let minDist = Infinity;
+  
+  for (const node of navNodes) {
+    const dx = node.x - x;
+    const dy = node.y - y;
+    const dist = dx * dx + dy * dy;
+    if (dist < minDist) {
+      minDist = dist;
+      closest = node;
+    }
+  }
+  return closest;
+}
+
+/**
+ * A* pathfinding between two positions using navigation nodes
+ * Returns array of waypoints to follow (including start and end positions)
+ */
+export function findPath(
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+): { x: number; y: number }[] {
+  const startNode = getClosestNavNode(startX, startY);
+  const endNode = getClosestNavNode(endX, endY);
+  
+  // If same node, just go directly
+  if (startNode.id === endNode.id) {
+    return [{ x: startX, y: startY }, { x: endX, y: endY }];
+  }
+  
+  // A* search
+  const openSet = new Set<string>([startNode.id]);
+  const cameFrom = new Map<string, string>();
+  const gScore = new Map<string, number>([[startNode.id, 0]]);
+  const fScore = new Map<string, number>([[startNode.id, heuristic(startNode, endNode)]]);
+  
+  while (openSet.size > 0) {
+    // Get node with lowest fScore
+    let current: string | null = null;
+    let lowestF = Infinity;
+    for (const id of openSet) {
+      const f = fScore.get(id) ?? Infinity;
+      if (f < lowestF) {
+        lowestF = f;
+        current = id;
+      }
+    }
+    
+    if (!current) break;
+    
+    if (current === endNode.id) {
+      // Reconstruct path
+      const nodePath: NavNode[] = [];
+      let curr: string | undefined = current;
+      while (curr) {
+        const node = navNodeMap.get(curr);
+        if (node) nodePath.unshift(node);
+        curr = cameFrom.get(curr);
+      }
+      
+      // Convert to position array, include actual start/end
+      const path: { x: number; y: number }[] = [{ x: startX, y: startY }];
+      for (const node of nodePath) {
+        path.push({ x: node.x, y: node.y });
+      }
+      path.push({ x: endX, y: endY });
+      return path;
+    }
+    
+    openSet.delete(current);
+    const currentNode = navNodeMap.get(current);
+    if (!currentNode) continue;
+    
+    for (const neighborId of currentNode.connections) {
+      const neighbor = navNodeMap.get(neighborId);
+      if (!neighbor) continue;
+      
+      const tentativeG = (gScore.get(current) ?? Infinity) + distance(currentNode, neighbor);
+      
+      if (tentativeG < (gScore.get(neighborId) ?? Infinity)) {
+        cameFrom.set(neighborId, current);
+        gScore.set(neighborId, tentativeG);
+        fScore.set(neighborId, tentativeG + heuristic(neighbor, endNode));
+        openSet.add(neighborId);
+      }
+    }
+  }
+  
+  // No path found, return direct path (fallback)
+  return [{ x: startX, y: startY }, { x: endX, y: endY }];
+}
+
+function heuristic(a: NavNode, b: NavNode): number {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+}
+
+function distance(a: NavNode, b: NavNode): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy);
 }

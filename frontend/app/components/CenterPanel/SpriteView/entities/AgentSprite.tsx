@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import type { AgentStatus, RiskLevel, AgentRecord } from '../../../../types';
 import { STATUS_COLORS, SIZES, SPRITE_SHEETS, RISK_SPRITE_MAP, SPRITE_DISPLAY_SIZES } from '../config/spriteConfig';
 import { CharacterSprite } from './BaseCharacter';
 import { useAgentMovement } from '../hooks/useAgentMovement';
 import { useMovementDirection } from '../hooks/useMovementDirection';
+import { useQuarantineRoaming } from '../hooks/useQuarantineRoaming';
 
 const S = 3;
 
@@ -49,9 +50,19 @@ export function AgentSprite({
 }: AgentSpriteProps) {
   const colors = STATUS_COLORS[status];
   const [isHovered, setIsHovered] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const animatedPos = useAgentMovement(x, y);
+  // Suspended agents roam aimlessly in quarantine
+  const isSuspended = status === 'suspended';
+  const roamingPos = useQuarantineRoaming(isSuspended, x, y);
+  const targetPos = isSuspended ? roamingPos : { x, y };
+  
+  const animatedPos = useAgentMovement(targetPos.x, targetPos.y);
   const direction = useMovementDirection(animatedPos.x, animatedPos.y);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const spriteSheet = status === 'suspended'
     ? SPRITE_SHEETS.restricted
@@ -65,7 +76,7 @@ export function AgentSprite({
       g.clear();
       if (status === 'restricted') {
         // Pulsing orange aura for restricted agents
-        const alpha = 0.1 + Math.sin(Date.now() / 500) * 0.05;
+        const alpha = isMounted ? 0.1 + Math.sin(Date.now() / 500) * 0.05 : 0.1;
         g.setFillStyle({ color: colors.border, alpha });
         g.circle(0, 0, SIZES.auraRadius);
         g.fill();
@@ -81,7 +92,7 @@ export function AgentSprite({
         g.fill();
       }
     },
-    [status, colors.border],
+    [status, colors.border, isMounted],
   );
 
   const drawSelection = useCallback(
@@ -102,7 +113,7 @@ export function AgentSprite({
     (g: any) => {
       g.clear();
       if (status !== 'restricted') return;
-      const bounce = Math.sin(Date.now() / 300) * 3 * S;
+      const bounce = isMounted ? Math.sin(Date.now() / 300) * 3 * S : 0;
 
       // Warning triangle (orange for restricted)
       g.setFillStyle({ color: 0xffaa00 });
@@ -118,7 +129,7 @@ export function AgentSprite({
       g.rect(-1 * S, -31 * S + bounce, 2 * S, 2 * S);
       g.fill();
     },
-    [status],
+    [status, isMounted],
   );
 
   const handleClick = useCallback(() => {

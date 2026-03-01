@@ -1,21 +1,36 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { SYSTEM_COLORS, SPRITE_SHEETS, SPRITE_DISPLAY_SIZES } from '../config/spriteConfig';
 import { CharacterSprite } from './BaseCharacter';
-import { usePatrolMovement } from '../hooks/usePatrolMovement';
+import { usePatrolTargetMovement } from '../hooks/usePatrolTargetMovement';
 import { useMovementDirection } from '../hooks/useMovementDirection';
+import type { PatrolSelection } from '../../../../types';
 
 const S = 3;
 
 interface PatrolSpriteProps {
   patrolId: string;
   label: string;
+  targetAgentPos: { x: number; y: number } | null;
+  onSelect: (selection: PatrolSelection | null) => void;
+  onArrived: () => void;
 }
 
-export function PatrolSprite({ patrolId, label }: PatrolSpriteProps) {
-  const position = usePatrolMovement(patrolId);
+export function PatrolSprite({
+  patrolId,
+  label,
+  targetAgentPos,
+  onSelect,
+  onArrived,
+}: PatrolSpriteProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  const position = usePatrolTargetMovement(patrolId, targetAgentPos, onArrived);
   const direction = useMovementDirection(position.x, position.y);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const drawLabel = useCallback(
     (g: any) => {
@@ -30,23 +45,59 @@ export function PatrolSprite({ patrolId, label }: PatrolSpriteProps) {
   const drawScanEffect = useCallback(
     (g: any) => {
       g.clear();
-      const angle = (Date.now() / 1000) % (Math.PI * 2);
-      g.setStrokeStyle({ width: 1 * S, color: SYSTEM_COLORS.patrol.border, alpha: 0.3 });
-      g.moveTo(0, 0);
-      g.lineTo(Math.cos(angle) * 25 * S, Math.sin(angle) * 25 * S);
+      if (isMounted) {
+        const angle = (Date.now() / 1000) % (Math.PI * 2);
+        g.setStrokeStyle({ width: 1 * S, color: SYSTEM_COLORS.patrol.border, alpha: 0.3 });
+        g.moveTo(0, 0);
+        g.lineTo(Math.cos(angle) * 25 * S, Math.sin(angle) * 25 * S);
+        g.stroke();
+      }
+    },
+    [isMounted],
+  );
+
+  const drawConnectionLine = useCallback(
+    (g: any) => {
+      g.clear();
+      if (!targetAgentPos) return;
+
+      const dx = targetAgentPos.x - position.x;
+      const dy = targetAgentPos.y - position.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const segments = Math.floor(dist / (10 * S));
+
+      g.setStrokeStyle({ width: 1 * S, color: SYSTEM_COLORS.patrol.border, alpha: 0.5 });
+      for (let i = 0; i < segments; i += 2) {
+        const t1 = i / segments;
+        const t2 = Math.min((i + 1) / segments, 1);
+        g.moveTo(dx * t1, dy * t1);
+        g.lineTo(dx * t2, dy * t2);
+      }
       g.stroke();
     },
-    [],
+    [targetAgentPos, position.x, position.y],
   );
+
+  const handleClick = useCallback(() => {
+    onSelect({ patrolId, patrolLabel: label });
+  }, [onSelect, patrolId, label]);
 
   return (
     <pixiContainer x={position.x} y={position.y}>
-      <pixiGraphics draw={drawScanEffect} />
-      <CharacterSprite
-        sheetPath={SPRITE_SHEETS.patrol}
-        direction={direction}
-        displaySize={SPRITE_DISPLAY_SIZES.patrol}
-      />
+      {!targetAgentPos && <pixiGraphics draw={drawScanEffect} />}
+      <pixiGraphics draw={drawConnectionLine} />
+      <pixiContainer
+        eventMode="static"
+        cursor="pointer"
+        onTap={handleClick}
+        onClick={handleClick}
+      >
+        <CharacterSprite
+          sheetPath={SPRITE_SHEETS.patrol}
+          direction={direction}
+          displaySize={SPRITE_DISPLAY_SIZES.patrol}
+        />
+      </pixiContainer>
       <pixiGraphics draw={drawLabel} />
       <pixiText
         text={label}

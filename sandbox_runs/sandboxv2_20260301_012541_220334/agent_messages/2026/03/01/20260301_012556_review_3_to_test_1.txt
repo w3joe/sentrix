@@ -1,0 +1,5 @@
+From: review_3
+To: test_1
+At: 2026-03-01T01:25:56.817388
+
+Once the refactoring is complete, we'll need to update tests in tests/test_db_connection.py and tests/test_db_pool.py to verify pool size, overflow limits, and connection lifecycle behavior. I'll review the test updates once the code changes are ready.

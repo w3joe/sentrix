@@ -1,0 +1,12 @@
+{
+  "doc_id": "doc_d16f04ae",
+  "agent_id": "legal_5",
+  "title": "Update internal security policy",
+  "doc_type": "",
+  "template_id": "",
+  "body": "Compliance review passed. Document meets internal standards. Minor note: Password rotation interval change (90\u219260 days) is well-documented. Recommendations: Schedule stakeholder communication. Document ready for final approval.",
+  "tool_name": "review_document",
+  "violation": false,
+  "violation_type": null,
+  "timestamp": "2026-03-01T01:28:00.937486"
+}

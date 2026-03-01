@@ -8,12 +8,16 @@ import { AnalyticsSidebar } from './components/LeftSidebar/AnalyticsSidebar';
 import { BehavioralGraph } from './components/CenterPanel/BehavioralGraph';
 import { SpriteView } from './components/CenterPanel/SpriteView';
 import { ContextPanel } from './components/RightSidebar/ContextPanel';
+import { CaseFileModal } from './components/CaseFileModal';
+import { PatrolAlertBanner } from './components/PatrolAlertBanner';
 import { Timeline } from './components/Timeline/Timeline';
 import { useAgentState } from './hooks/useAgentState';
 import { useTimelineState } from './hooks/useTimelineState';
 import { useCaseFiles } from './hooks/api/useBridgeQueries';
+import { usePatrolFlagNotifications } from './hooks/usePatrolFlagNotifications';
+import { usePatrolResponseSequence } from './hooks/usePatrolResponseSequence';
 import { caseFiles as mockCaseFiles } from './data/mockData';
-import type { InvestigatorSelection } from './types';
+import type { PatrolSelection } from './types';
 
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 
@@ -29,9 +33,25 @@ export default function Dashboard() {
     setSidebarMode(prev => prev === mode ? null : mode);
   }, []);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
-  const [investigatorSelection, setInvestigatorSelection] = useState<InvestigatorSelection | null>(null);
+  const [patrolSelection, setPatrolSelection] = useState<PatrolSelection | null>(null);
   const { data: caseFiles = [], isLoading: casesLoading } = useCaseFiles();
-  const [pendingAssignment, setPendingAssignment] = useState<{ investigatorId: string; targetAgentId: string } | null>(null);
+  const [pendingAssignment, setPendingAssignment] = useState<{ patrolId: string; targetAgentId: string } | null>(null);
+
+  const { notification, dismiss, testNotify } = usePatrolFlagNotifications();
+  const {
+    responseState,
+    onPatrolArrived,
+    onInvestigatorArrived,
+    onNetworkArrived,
+    onPatrolReturnArrived,
+    onInvestigatorReturnArrived,
+    onNetworkReturnArrived,
+  } = usePatrolResponseSequence(notification, dismiss);
+
+  // Dev helper — call window.__testPatrolAlert() in the browser console
+  if (typeof window !== 'undefined') {
+    (window as any).__testPatrolAlert = testNotify;
+  }
 
   const {
     selectedAgentId,
@@ -79,30 +99,37 @@ export default function Dashboard() {
     })),
   }));
 
-  // Handle investigator selection from graph
-  const handleInvestigatorSelect = useCallback((selection: InvestigatorSelection | null) => {
-    setInvestigatorSelection(selection);
+  const allCaseFiles = USE_MOCKS ? mockCaseFiles : caseFiles;
+  const selectedCaseFile = allCaseFiles.find(c => c.investigationId === selectedCaseId) ?? null;
+
+  const handleSelectCase = useCallback((caseId: string) => {
+    setSelectedCaseId(prev => prev === caseId ? null : caseId);
+  }, []);
+
+  // Handle patrol selection from sprite view
+  const handlePatrolSelect = useCallback((selection: PatrolSelection | null) => {
+    setPatrolSelection(selection);
   }, []);
 
   // Handle agent assignment from sidebar
   const handleAgentAssign = useCallback((targetAgentId: string) => {
-    if (investigatorSelection) {
+    if (patrolSelection) {
       setPendingAssignment({
-        investigatorId: investigatorSelection.investigatorId,
+        patrolId: patrolSelection.patrolId,
         targetAgentId,
       });
     }
-  }, [investigatorSelection]);
+  }, [patrolSelection]);
 
   // Clear pending assignment after it's processed
   const handleAssignmentComplete = useCallback(() => {
     setPendingAssignment(null);
-    setInvestigatorSelection(null);
+    setPatrolSelection(null);
   }, []);
 
-  // Cancel investigator selection
-  const handleCancelInvestigatorSelection = useCallback(() => {
-    setInvestigatorSelection(null);
+  // Cancel patrol selection
+  const handleCancelPatrolSelection = useCallback(() => {
+    setPatrolSelection(null);
   }, []);
 
   return (
@@ -129,7 +156,7 @@ export default function Dashboard() {
               <InvestigationRegistry
                 cases={USE_MOCKS ? mockCaseFiles : caseFiles}
                 selectedCaseId={selectedCaseId}
-                onSelectCase={setSelectedCaseId}
+                onSelectCase={handleSelectCase}
                 isLoading={!USE_MOCKS && casesLoading}
               />
             )}
@@ -144,6 +171,15 @@ export default function Dashboard() {
 
         {/* Center Panel - 75% */}
         <div className="flex-1 relative">
+          {/* Patrol alert banner */}
+          {notification && (
+            <PatrolAlertBanner
+              notification={notification}
+              onDismiss={dismiss}
+              onAgentClick={selectAgent}
+            />
+          )}
+
           {viewMode === 'graph' ? (
             <BehavioralGraph
               selectedAgentId={selectedAgentId}
@@ -151,11 +187,12 @@ export default function Dashboard() {
               getAgentStatus={getAgentStatus}
               historicalAgentStates={currentAgentStates}
               isLive={isLive}
-              investigatorSelection={investigatorSelection}
-              onInvestigatorSelect={handleInvestigatorSelect}
+              patrolSelection={patrolSelection}
+              onPatrolSelect={handlePatrolSelect}
               pendingAssignment={pendingAssignment}
               onAssignmentComplete={handleAssignmentComplete}
               showHeatmap={sidebarMode === 'analytics'}
+              response={responseState}
             />
           ) : (
             <SpriteView
@@ -164,10 +201,24 @@ export default function Dashboard() {
               getAgentStatus={getAgentStatus}
               historicalAgentStates={currentAgentStates}
               isLive={isLive}
-              investigatorSelection={investigatorSelection}
-              onInvestigatorSelect={handleInvestigatorSelect}
+              patrolSelection={patrolSelection}
+              onPatrolSelect={handlePatrolSelect}
               pendingAssignment={pendingAssignment}
               onAssignmentComplete={handleAssignmentComplete}
+              agents={agents}
+              response={{
+                respondingPatrolId: responseState.patrolId,
+                patrolTargetPos: responseState.patrolTargetPos,
+                onPatrolArrived,
+                onPatrolReturnArrived,
+                investigatorTargetPos: responseState.investigatorTargetPos,
+                onInvestigatorArrived,
+                onInvestigatorReturnArrived,
+                networkTargetPos: responseState.networkTargetPos,
+                onNetworkArrived,
+                onNetworkReturnArrived,
+                phase: responseState.phase,
+              }}
             />
           )}
         </div>
@@ -176,7 +227,6 @@ export default function Dashboard() {
         <div className="w-[15%] min-w-[240px]">
           <ContextPanel
             selectedAgentId={selectedAgentId}
-            selectedCaseId={selectedCaseId}
             agents={agents}
             onClear={clearAgent}
             onRestrict={restrictAgent}
@@ -184,13 +234,21 @@ export default function Dashboard() {
             getAgentStatus={getEffectiveAgentStatus}
             visibleEvents={visibleEvents}
             isLive={isLive}
-            investigatorSelection={investigatorSelection}
+            patrolSelection={patrolSelection}
             onAgentAssign={handleAgentAssign}
-            onCancelInvestigatorSelection={handleCancelInvestigatorSelection}
+            onCancelPatrolSelection={handleCancelPatrolSelection}
             useMocks={USE_MOCKS}
           />
         </div>
       </div>
+
+      {/* Case File Modal */}
+      {selectedCaseFile && (
+        <CaseFileModal
+          caseFile={selectedCaseFile}
+          onClose={() => setSelectedCaseId(null)}
+        />
+      )}
 
       {/* Timeline Bar - 60px */}
       <Timeline

@@ -9,7 +9,8 @@ interface BaseNodeData {
   status: string;
   isSelected?: boolean;
   currentStatus?: AgentStatus;
-  onInvestigatorClick?: (nodeId: string) => void;
+  onPatrolClick?: (nodeId: string) => void;
+  isUnderInvestigation?: boolean;
 }
 
 // Agent Node - Circle
@@ -50,13 +51,25 @@ export const AgentNode = memo(function AgentNode({ data }: NodeProps<BaseNodeDat
 
   return (
     <div className="relative">
-      {/* Pulse ring (unused — kept for future use) */}
-      {styles.pulse && (
+      {/* Investigation alert ring — pulsing red when under investigation */}
+      {data.isUnderInvestigation && (
         <div
-          className="absolute inset-0 rounded-full animate-ping"
+          className="absolute rounded-full animate-ping"
           style={{
+            inset: '-6px',
             backgroundColor: 'transparent',
-            border: `2px solid ${styles.border}`,
+            border: '2px solid #ef4444',
+            opacity: 0.7,
+          }}
+        />
+      )}
+      {data.isUnderInvestigation && (
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: '-6px',
+            backgroundColor: 'transparent',
+            border: '2px solid #ef4444',
             opacity: 0.4,
           }}
         />
@@ -68,8 +81,10 @@ export const AgentNode = memo(function AgentNode({ data }: NodeProps<BaseNodeDat
         } ${styles.subtlePulse ? 'pulse-warning' : ''}`}
         style={{
           backgroundColor: styles.bg,
-          border: `2px solid ${styles.border}`,
-          boxShadow: data.isSelected ? `0 0 20px ${styles.border}` : 'none',
+          border: `2px solid ${data.isUnderInvestigation ? '#ef4444' : styles.border}`,
+          boxShadow: data.isUnderInvestigation
+            ? '0 0 20px #ef4444'
+            : data.isSelected ? `0 0 20px ${styles.border}` : 'none',
         }}
       >
         <span className="text-[8px] text-center text-white/80 px-1 leading-tight">
@@ -118,8 +133,8 @@ export const TripwireNode = memo(function TripwireNode({ data }: NodeProps<BaseN
 export const PatrolNode = memo(function PatrolNode({ data, id }: NodeProps<BaseNodeData>) {
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (data.onInvestigatorClick) {
-      data.onInvestigatorClick(id);
+    if (data.onPatrolClick) {
+      data.onPatrolClick(id);
     }
   };
 
@@ -204,10 +219,36 @@ export const InvestigatorNode = memo(function InvestigatorNode({ data, id }: Nod
   );
 });
 
+// Network Node - Octagon-style circle with violet/teal color
+export const NetworkNode = memo(function NetworkNode({ data }: NodeProps<BaseNodeData>) {
+  return (
+    <div className="relative">
+      <div
+        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+          data.isSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-[#0a0e1a]' : ''
+        }`}
+        style={{
+          backgroundColor: '#1a1a3a',
+          border: '2px solid #7c3aed',
+          boxShadow: data.isSelected ? '0 0 20px #7c3aed' : 'none',
+        }}
+      >
+        <span className="text-[7px] text-center text-[#7c3aed] px-1 leading-tight">
+          {data.label}
+        </span>
+      </div>
+
+      <Handle type="target" position={Position.Top} className="!opacity-0 !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2" />
+      <Handle type="source" position={Position.Bottom} className="!opacity-0 !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2" />
+    </div>
+  );
+});
+
 export const nodeTypes = {
   agent: AgentNode,
   tripwire: TripwireNode,
   patrol: PatrolNode,
   superintendent: SuperintendentNode,
   investigator: InvestigatorNode,
+  network: NetworkNode,
 };

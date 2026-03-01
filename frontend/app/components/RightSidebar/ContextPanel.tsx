@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Agent, AgentStatus, TimelineEvent, InvestigatorSelection } from '../../types';
+import type { Agent, AgentStatus, TimelineEvent, PatrolSelection } from '../../types';
 import { investigatorReport, damageAssessment, agents as mockAgents, agentActivities } from '../../data/mockData';
-import { useInvestigationDetail } from '../../hooks/api/useInvestigationQueries';
 import { useAgentActions } from '../../hooks/api/useBridgeQueries';
 
 interface ContextPanelProps {
   selectedAgentId: string | null;
-  selectedCaseId?: string | null;
   agents?: Agent[];
   onClear: (agentId: string) => void;
   onRestrict: (agentId: string) => void;
@@ -16,9 +14,9 @@ interface ContextPanelProps {
   getAgentStatus: (agentId: string) => AgentStatus;
   visibleEvents?: TimelineEvent[];
   isLive?: boolean;
-  investigatorSelection?: InvestigatorSelection | null;
+  patrolSelection?: PatrolSelection | null;
   onAgentAssign?: (targetAgentId: string) => void;
-  onCancelInvestigatorSelection?: () => void;
+  onCancelPatrolSelection?: () => void;
   useMocks?: boolean;
 }
 
@@ -32,6 +30,8 @@ const sourceColors: Record<string, string> = {
   'PATROL-1': '#00d4ff',
   'PATROL-2': '#00d4ff',
   'INVESTIGATOR': '#9b59b6',
+  'SUPERINTENDENT': '#a855f7',
+  'NETWORK': '#14b8a6',
   'FLOATER-2': '#ffaa00',
 };
 
@@ -46,7 +46,6 @@ function formatTimestamp(date: Date): string {
 
 export function ContextPanel({
   selectedAgentId,
-  selectedCaseId = null,
   agents: agentsProp,
   onClear,
   onRestrict,
@@ -54,31 +53,30 @@ export function ContextPanel({
   getAgentStatus,
   visibleEvents = [],
   isLive = true,
-  investigatorSelection,
+  patrolSelection,
   onAgentAssign,
-  onCancelInvestigatorSelection,
+  onCancelPatrolSelection,
   useMocks = false,
 }: ContextPanelProps) {
   const [isClient, setIsClient] = useState(false);
   const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
 
+  // Use agents from database (agentsProp) when available, otherwise fall back to mock agents
   const agents = useMocks ? mockAgents : (agentsProp ?? []);
-  const { data: investigationDetail } = useInvestigationDetail(selectedCaseId);
   const { data: agentActions = [] } = useAgentActions(selectedAgentId);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Reset expanded agent when investigator selection changes
+  // Reset expanded agent when patrol selection changes
   useEffect(() => {
     setExpandedAgentId(null);
-  }, [investigatorSelection]);
+  }, [patrolSelection]);
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId);
   const currentStatus = selectedAgentId ? getAgentStatus(selectedAgentId) : null;
   const activity = useMocks && selectedAgentId ? agentActivities[selectedAgentId] : null;
-  const caseFile = selectedCaseId ? investigationDetail?.caseFile : null;
 
   // Sort events by timestamp descending for display
   const sortedEvents = [...visibleEvents].sort(
@@ -118,28 +116,26 @@ export function ContextPanel({
       {/* Title */}
       <div className="px-3 py-3 border-b border-[#1f2937]">
         <h2 className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">
-          {investigatorSelection
+          {patrolSelection
             ? 'Select Agent to Investigate'
-            : selectedCaseId
-              ? `Case: ${selectedCaseId}`
-              : selectedAgent
-                ? selectedAgent.name
-                : 'Event Log'}
+            : selectedAgent
+              ? selectedAgent.name
+              : 'Event Log'}
         </h2>
-        {investigatorSelection && (
-          <span className="text-[10px] text-[#9b59b6]">{investigatorSelection.investigatorLabel}</span>
+        {patrolSelection && (
+          <span className="text-[10px] text-[#00d4ff]">{patrolSelection.patrolLabel}</span>
         )}
-        {!investigatorSelection && !selectedAgent && !isLive && (
+        {!patrolSelection && !selectedAgent && !isLive && (
           <span className="text-[10px] text-[#ffaa00]">Historical View</span>
         )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {/* Investigator Agent Selection Mode */}
-        {investigatorSelection ? (
+        {/* Patrol Agent Selection Mode */}
+        {patrolSelection ? (
           <div className="space-y-3">
             <p className="text-xs text-[#a0aec0]">
-              Select an agent for {investigatorSelection.investigatorLabel} to investigate:
+              Select an agent for {patrolSelection.patrolLabel} to investigate:
             </p>
             <div className="space-y-1.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
               {agents.map((agent) => {
@@ -257,7 +253,7 @@ export function ContextPanel({
                             color: '#000',
                           }}
                         >
-                          Assign {investigatorSelection.investigatorLabel}
+                          Assign {patrolSelection.patrolLabel}
                         </button>
                       </div>
                     )}
@@ -265,77 +261,6 @@ export function ContextPanel({
                 );
               })}
             </div>
-          </div>
-        ) : selectedCaseId && caseFile ? (
-          <>
-            {/* Case File from Investigation API */}
-            <div className="space-y-4">
-              <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
-                <h3 className="text-xs uppercase tracking-wider text-[#9b59b6] mb-2 font-semibold">
-                  Investigator Report
-                </h3>
-                <div className="space-y-2 text-xs text-[#a0aec0]">
-                  <div>
-                    <span className="text-[#6b7280]">Classification: </span>
-                    {(caseFile.investigatorReport?.crimeClassification ?? 'unknown').replace(/_/g, ' ')}
-                  </div>
-                  <div>
-                    <span className="text-[#6b7280]">Modus Operandi: </span>
-                    {caseFile.investigatorReport?.modusOperandi ?? '—'}
-                  </div>
-                  <div>
-                    <span className="text-[#6b7280]">Confidence: </span>
-                    <span className="text-[#00d4ff]">{((caseFile.investigatorReport?.confidence ?? 0) * 100).toFixed(0)}%</span>
-                  </div>
-                  <div>
-                    <span className="text-[#6b7280]">Evidence: </span>
-                    {caseFile.investigatorReport?.evidenceSummary ?? '—'}
-                  </div>
-                </div>
-              </div>
-              <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
-                <h3 className="text-xs uppercase tracking-wider text-[#ffaa00] mb-2 font-semibold">
-                  Damage Report
-                </h3>
-                <div className="space-y-2 text-xs text-[#a0aec0]">
-                  <div>
-                    <span className="text-[#6b7280]">Severity: </span>
-                    {caseFile.damageReport?.damageSeverity ?? 'none'}
-                  </div>
-                  <div>{caseFile.damageReport?.estimatedImpact ?? '—'}</div>
-                  <div>
-                    <span className="text-[#6b7280]">Propagation: </span>
-                    {caseFile.damageReport?.propagationRisk ?? '—'}
-                  </div>
-                </div>
-              </div>
-              <div className="bg-[#0a0e1a] rounded-lg p-3 border border-[#1f2937]">
-                <h3 className="text-xs uppercase tracking-wider text-[#00c853] mb-2 font-semibold">
-                  Verdict
-                </h3>
-                <div className="text-xs">
-                  <span className="text-[#6b7280]">Status: </span>
-                  <span
-                    className={
-                      caseFile.verdict === 'guilty'
-                        ? 'text-[#ff3355]'
-                        : caseFile.verdict === 'not_guilty'
-                          ? 'text-[#00c853]'
-                          : 'text-[#ffaa00]'
-                    }
-                  >
-                    {caseFile.verdict}
-                  </span>
-                  {' · '}
-                  <span className="text-[#6b7280]">Severity: </span>
-                  <span className="text-[#00d4ff]">{caseFile.severityScore}/10</span>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : selectedCaseId && !caseFile ? (
-          <div className="text-xs text-[#6b7280] py-8 text-center">
-            Loading investigation...
           </div>
         ) : selectedAgent && selectedAgentId ? (
           <>
@@ -401,21 +326,21 @@ export function ContextPanel({
                   </h3>
                   <div className="space-y-2 text-xs text-[#a0aec0]">
                     <div>
-                      <span className="text-[#6b7280]">Root Cause: </span>
-                      {investigatorReport.modusOperandi}
+                      <span className="text-[#6b7280]">Classification: </span>
+                      {investigatorReport.crimeClassification.replace(/_/g, ' ')}
                     </div>
                     <div>
-                      <span className="text-[#6b7280]">Timeline: </span>
-                      {investigatorReport.timeline}
+                      <span className="text-[#6b7280]">Case Facts: </span>
+                      {investigatorReport.caseFacts}
                     </div>
-                    <div>
-                      <span className="text-[#6b7280]">Confidence: </span>
-                      <span className="text-[#00d4ff]">{(investigatorReport.confidence * 100).toFixed(0)}%</span>
-                    </div>
-                    <div>
-                      <span className="text-[#6b7280]">Evidence: </span>
-                      <span className="text-[#ff3355]">{investigatorReport.evidenceSummary}</span>
-                    </div>
+                    {investigatorReport.relevantLogIds.length > 0 && (
+                      <div>
+                        <span className="text-[#6b7280]">Related Logs: </span>
+                        <span className="text-[#9b59b6] font-mono text-[10px]">
+                          {investigatorReport.relevantLogIds.join(', ')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

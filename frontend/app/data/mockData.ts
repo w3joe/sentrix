@@ -38,34 +38,34 @@ export const agentActivityStatuses = seedAgentActivities(allAgentIds);
 
 // Cluster 1 - Top Left
 export const cluster1Agents: Agent[] = [
-  { id: 'c1-email',    name: 'email-agent-01',      role: 'EMAIL_AGENT',      status: 'working',    record: 'high_risk', riskScore: 'high' },
-  { id: 'c1-coding',   name: 'coding-agent-01',     role: 'CODING_AGENT',     status: 'working',    record: 'clear',     riskScore: 'normal' },
-  { id: 'c1-document', name: 'document-agent-01',   role: 'DOCUMENT_AGENT',   status: 'idle',       record: 'low_risk',  riskScore: 'low' },
-  { id: 'c1-data',     name: 'data-query-agent-01', role: 'DATA_QUERY_AGENT', status: 'restricted', record: 'low_risk',  riskScore: 'low' },
+  { id: 'c1-email',    name: 'email-agent-01',      role: 'EMAIL_AGENT',      status: 'working',    record: 'high_risk', riskScore: 'high',  clusterId: 'cluster-1' },
+  { id: 'c1-coding',   name: 'coding-agent-01',     role: 'CODING_AGENT',     status: 'working',    record: 'clear',     riskScore: 'normal', clusterId: 'cluster-1' },
+  { id: 'c1-document', name: 'document-agent-01',   role: 'DOCUMENT_AGENT',   status: 'idle',       record: 'low_risk',  riskScore: 'low',   clusterId: 'cluster-1' },
+  { id: 'c1-data',     name: 'data-query-agent-01', role: 'DATA_QUERY_AGENT', status: 'restricted', record: 'low_risk',  riskScore: 'low',   clusterId: 'cluster-1' },
 ];
 
 // Cluster 2 - Top Right
 export const cluster2Agents: Agent[] = [
-  { id: 'c2-email',    name: 'email-agent-02',      role: 'EMAIL_AGENT',      status: 'working',    record: 'clear',     riskScore: 'normal' },
-  { id: 'c2-coding',   name: 'coding-agent-02',     role: 'CODING_AGENT',     status: 'idle',       record: 'clear',     riskScore: 'normal' },
-  { id: 'c2-document', name: 'document-agent-02',   role: 'DOCUMENT_AGENT',   status: 'restricted', record: 'low_risk',  riskScore: 'low' },
-  { id: 'c2-data',     name: 'data-query-agent-02', role: 'DATA_QUERY_AGENT', status: 'working',    record: 'clear',     riskScore: 'normal' },
+  { id: 'c2-email',    name: 'email-agent-02',      role: 'EMAIL_AGENT',      status: 'working',    record: 'clear',     riskScore: 'normal', clusterId: 'cluster-2' },
+  { id: 'c2-coding',   name: 'coding-agent-02',     role: 'CODING_AGENT',     status: 'idle',       record: 'clear',     riskScore: 'normal', clusterId: 'cluster-2' },
+  { id: 'c2-document', name: 'document-agent-02',   role: 'DOCUMENT_AGENT',   status: 'restricted', record: 'low_risk',  riskScore: 'low',   clusterId: 'cluster-2' },
+  { id: 'c2-data',     name: 'data-query-agent-02', role: 'DATA_QUERY_AGENT', status: 'working',    record: 'clear',     riskScore: 'normal', clusterId: 'cluster-2' },
 ];
 
 // Cluster 3 - Bottom Left
 export const cluster3Agents: Agent[] = [
-  { id: 'c3-email',    name: 'email-agent-03',      role: 'EMAIL_AGENT',      status: 'working',    record: 'clear',     riskScore: 'normal' },
-  { id: 'c3-coding',   name: 'coding-agent-03',     role: 'CODING_AGENT',     status: 'restricted', record: 'high_risk', riskScore: 'high' },
-  { id: 'c3-document', name: 'document-agent-03',   role: 'DOCUMENT_AGENT',   status: 'idle',       record: 'low_risk',  riskScore: 'low' },
-  { id: 'c3-data',     name: 'data-query-agent-03', role: 'DATA_QUERY_AGENT', status: 'working',    record: 'clear',     riskScore: 'normal' },
+  { id: 'c3-email',    name: 'email-agent-03',      role: 'EMAIL_AGENT',      status: 'working',    record: 'clear',     riskScore: 'normal', clusterId: 'cluster-3' },
+  { id: 'c3-coding',   name: 'coding-agent-03',     role: 'CODING_AGENT',     status: 'restricted', record: 'high_risk', riskScore: 'high',  clusterId: 'cluster-3' },
+  { id: 'c3-document', name: 'document-agent-03',   role: 'DOCUMENT_AGENT',   status: 'idle',       record: 'low_risk',  riskScore: 'low',   clusterId: 'cluster-3' },
+  { id: 'c3-data',     name: 'data-query-agent-03', role: 'DATA_QUERY_AGENT', status: 'working',    record: 'clear',     riskScore: 'normal', clusterId: 'cluster-3' },
 ];
 
 // Cluster 4 - Bottom Right
 export const cluster4Agents: Agent[] = [
-  { id: 'c4-email',    name: 'email-agent-04',      role: 'EMAIL_AGENT',      status: 'idle',       record: 'low_risk',  riskScore: 'low' },
-  { id: 'c4-coding',   name: 'coding-agent-04',     role: 'CODING_AGENT',     status: 'working',    record: 'clear',     riskScore: 'normal' },
-  { id: 'c4-document', name: 'document-agent-04',   role: 'DOCUMENT_AGENT',   status: 'suspended',  record: 'high_risk', riskScore: 'high' },
-  { id: 'c4-data',     name: 'data-query-agent-04', role: 'DATA_QUERY_AGENT', status: 'working',    record: 'high_risk', riskScore: 'high' },
+  { id: 'c4-email',    name: 'email-agent-04',      role: 'EMAIL_AGENT',      status: 'idle',       record: 'low_risk',  riskScore: 'low',   clusterId: 'cluster-4' },
+  { id: 'c4-coding',   name: 'coding-agent-04',     role: 'CODING_AGENT',     status: 'working',    record: 'clear',     riskScore: 'normal', clusterId: 'cluster-4' },
+  { id: 'c4-document', name: 'document-agent-04',   role: 'DOCUMENT_AGENT',   status: 'suspended',  record: 'high_risk', riskScore: 'high',  clusterId: 'cluster-4' },
+  { id: 'c4-data',     name: 'data-query-agent-04', role: 'DATA_QUERY_AGENT', status: 'working',    record: 'high_risk', riskScore: 'high',  clusterId: 'cluster-4' },
 ];
 
 // Combined agents array
@@ -367,43 +367,59 @@ const minutesAgo = (minutes: number): Date => {
 };
 
 // Timeline events combining incidents and thoughts with proper timestamps
+// Events are role-specific for each agent type: email, coding, document, data, patrol, investigator, superintendent, network
 import type { TimelineEvent, AgentStateSnapshot } from '../types';
 
 export const timelineEvents: TimelineEvent[] = [
-  // Recent events (last hour)
-  { id: 'te1', timestamp: minutesAgo(2), type: 'incident', severity: 'critical', agentId: 'c1-email', agentName: 'email-agent-01', message: 'PII pattern in outbound email' },
-  { id: 'te2', timestamp: minutesAgo(3), type: 'thought', source: 'PATROL-1', message: 'Analyzing output from email-agent-01...' },
-  { id: 'te3', timestamp: minutesAgo(4), type: 'thought', source: 'PATROL-1', message: 'Detected PII pattern — confidence 91%... escalating.' },
+  // Recent events (last hour) — mixed by agent type
+  { id: 'te1', timestamp: minutesAgo(2), type: 'incident', severity: 'critical', agentId: 'c1-email', agentName: 'email-agent-01', message: 'PII pattern in outbound email draft' },
+  { id: 'te2', timestamp: minutesAgo(3), type: 'thought', source: 'PATROL-1', message: 'Scanning email-agent-01 output for policy violations...' },
+  { id: 'te3', timestamp: minutesAgo(4), type: 'thought', source: 'PATROL-1', message: 'Detected PII pattern — confidence 91%. Escalating to Investigator.' },
   { id: 'te4', timestamp: minutesAgo(5), type: 'thought', source: 'INVESTIGATOR', message: 'Reconstructing causal chain for email-agent-01...' },
-  { id: 'te5', timestamp: minutesAgo(8), type: 'incident', severity: 'warning', agentId: 'c1-data', agentName: 'data-query-agent-01', message: 'Restricted dataset access attempt' },
-  { id: 'te6', timestamp: minutesAgo(10), type: 'thought', source: 'INVESTIGATOR', message: 'Prompt → draft → credential interpolation confirmed.' },
-  { id: 'te7', timestamp: minutesAgo(15), type: 'incident', severity: 'critical', agentId: 'c4-data', agentName: 'data-query-agent-04', message: 'Credential detected in query' },
-  { id: 'te8', timestamp: minutesAgo(18), type: 'thought', source: 'FLOATER-2', message: 'Scanning external surfaces for data fingerprints...' },
-  { id: 'te9', timestamp: minutesAgo(22), type: 'thought', source: 'FLOATER-2', message: 'Match found on paste endpoint. Reporting to dashboard.' },
-  { id: 'te10', timestamp: minutesAgo(30), type: 'incident', severity: 'clear', agentId: 'c2-coding', agentName: 'coding-agent-02', message: 'Test suite completed successfully' },
-  { id: 'te11', timestamp: minutesAgo(45), type: 'incident', severity: 'warning', agentId: 'c3-document', agentName: 'document-agent-03', message: 'Unusual document access pattern' },
+  { id: 'te5', timestamp: minutesAgo(7), type: 'thought', source: 'SUPERINTENDENT', message: 'Case INV-001 assigned. Awaiting Investigator report.' },
+  { id: 'te6', timestamp: minutesAgo(8), type: 'incident', severity: 'warning', agentId: 'c1-data', agentName: 'data-query-agent-01', message: 'Restricted customer_transactions table access attempt' },
+  { id: 'te7', timestamp: minutesAgo(9), type: 'thought', source: 'PATROL-2', message: 'Monitoring data-query-agent-01 for scope boundary violations...' },
+  { id: 'te8', timestamp: minutesAgo(10), type: 'thought', source: 'INVESTIGATOR', message: 'Prompt → draft → credential interpolation confirmed.' },
+  { id: 'te9', timestamp: minutesAgo(12), type: 'thought', source: 'NETWORK', message: 'Analyzing A2A message graph for exfiltration patterns...' },
+  { id: 'te10', timestamp: minutesAgo(15), type: 'incident', severity: 'critical', agentId: 'c4-data', agentName: 'data-query-agent-04', message: 'Credential pattern detected in SQL query result' },
+  { id: 'te11', timestamp: minutesAgo(18), type: 'thought', source: 'NETWORK', message: 'Scanning external surfaces for data fingerprints...' },
+  { id: 'te12', timestamp: minutesAgo(20), type: 'incident', severity: 'clear', agentId: 'c2-coding', agentName: 'coding-agent-02', message: 'PR #156 review completed, 142/142 tests passed' },
+  { id: 'te13', timestamp: minutesAgo(22), type: 'thought', source: 'NETWORK', message: 'Match found on paste endpoint. Reporting to Superintendent.' },
+  { id: 'te14', timestamp: minutesAgo(25), type: 'incident', severity: 'clear', agentId: 'c2-email', agentName: 'email-agent-02', message: 'Support inbox triage completed — 24 emails processed' },
+  { id: 'te15', timestamp: minutesAgo(28), type: 'incident', severity: 'warning', agentId: 'c2-document', agentName: 'document-agent-02', message: 'Sensitive API endpoint detected in OpenAPI spec' },
+  { id: 'te16', timestamp: minutesAgo(35), type: 'thought', source: 'PATROL-1', message: 'Code Patrol: scanning coding-agent-03 diff for backdoors...' },
+  { id: 'te17', timestamp: minutesAgo(40), type: 'incident', severity: 'clear', agentId: 'c1-document', agentName: 'document-agent-01', message: 'Q4 quarterly report generated from template' },
+  { id: 'te18', timestamp: minutesAgo(45), type: 'incident', severity: 'warning', agentId: 'c3-document', agentName: 'document-agent-03', message: 'Unusual compliance doc access pattern — multiple reads' },
+  { id: 'te19', timestamp: minutesAgo(50), type: 'incident', severity: 'clear', agentId: 'c3-email', agentName: 'email-agent-03', message: 'Sprint planning invites sent to 8 recipients' },
+  { id: 'te20', timestamp: minutesAgo(55), type: 'incident', severity: 'clear', agentId: 'c2-data', agentName: 'data-query-agent-02', message: 'Daily dashboard metrics aggregated successfully' },
 
   // Older events (1-6 hours ago)
-  { id: 'te12', timestamp: minutesAgo(75), type: 'incident', severity: 'clear', agentId: 'c1-coding', agentName: 'coding-agent-01', message: 'Code review completed successfully' },
-  { id: 'te13', timestamp: minutesAgo(90), type: 'thought', source: 'PATROL-2', message: 'Monitoring data-query-agent-01 operations...' },
-  { id: 'te14', timestamp: minutesAgo(120), type: 'incident', severity: 'warning', agentId: 'c2-document', agentName: 'document-agent-02', message: 'Sensitive content in API docs' },
-  { id: 'te15', timestamp: minutesAgo(150), type: 'thought', source: 'PATROL-1', message: 'Routine scan of email-agent-01 outputs...' },
-  { id: 'te16', timestamp: minutesAgo(180), type: 'incident', severity: 'clear', agentId: 'c3-email', agentName: 'email-agent-03', message: 'Meeting invites sent successfully' },
-  { id: 'te17', timestamp: minutesAgo(210), type: 'incident', severity: 'critical', agentId: 'c3-coding', agentName: 'coding-agent-03', message: 'Suspicious code injection attempt' },
-  { id: 'te18', timestamp: minutesAgo(240), type: 'thought', source: 'INVESTIGATOR', message: 'Initiating full audit of coding-agent-03...' },
-  { id: 'te19', timestamp: minutesAgo(300), type: 'incident', severity: 'clear', agentId: 'c1-document', agentName: 'document-agent-01', message: 'Report generation completed' },
+  { id: 'te21', timestamp: minutesAgo(75), type: 'incident', severity: 'clear', agentId: 'c1-coding', agentName: 'coding-agent-01', message: 'Auth middleware refactor review — no issues found' },
+  { id: 'te22', timestamp: minutesAgo(90), type: 'thought', source: 'PATROL-2', message: 'Data Patrol: monitoring data-query-agent-01 for restricted table access...' },
+  { id: 'te23', timestamp: minutesAgo(105), type: 'incident', severity: 'warning', agentId: 'c3-coding', agentName: 'coding-agent-03', message: 'Suspicious code pattern in auth module refactor' },
+  { id: 'te24', timestamp: minutesAgo(120), type: 'thought', source: 'INVESTIGATOR', message: 'Initiating full audit of coding-agent-03 code changes.' },
+  { id: 'te25', timestamp: minutesAgo(135), type: 'incident', severity: 'clear', agentId: 'c4-coding', agentName: 'coding-agent-04', message: 'Hotfix v2.3.1 deployed to staging' },
+  { id: 'te26', timestamp: minutesAgo(150), type: 'thought', source: 'PATROL-1', message: 'Email Patrol: routine scan of email-agent-01 outputs...' },
+  { id: 'te27', timestamp: minutesAgo(180), type: 'incident', severity: 'clear', agentId: 'c4-email', agentName: 'email-agent-04', message: 'Campaign #88 — 1,250 recipients loaded for send' },
+  { id: 'te28', timestamp: minutesAgo(200), type: 'incident', severity: 'critical', agentId: 'c3-coding', agentName: 'coding-agent-03', message: 'Bypass condition inserted in token validation' },
+  { id: 'te29', timestamp: minutesAgo(220), type: 'thought', source: 'SUPERINTENDENT', message: 'Verdict: under_watch for coding-agent-03. Awaiting final evidence.' },
+  { id: 'te30', timestamp: minutesAgo(240), type: 'incident', severity: 'clear', agentId: 'c3-data', agentName: 'data-query-agent-03', message: 'Production DB backup completed (2.1 GB)' },
+  { id: 'te31', timestamp: minutesAgo(270), type: 'incident', severity: 'clear', agentId: 'c4-document', agentName: 'document-agent-04', message: '89 documents archived successfully' },
+  { id: 'te32', timestamp: minutesAgo(300), type: 'thought', source: 'NETWORK', message: 'Flagged message flow: email_0 → doc_1 — PII solicitation.' },
 
   // Even older events (6-24 hours ago)
-  { id: 'te20', timestamp: minutesAgo(420), type: 'incident', severity: 'warning', agentId: 'c4-email', agentName: 'email-agent-04', message: 'Large recipient list detected' },
-  { id: 'te21', timestamp: minutesAgo(480), type: 'thought', source: 'PATROL-2', message: 'Verified email-agent-04 campaign was authorized.' },
-  { id: 'te22', timestamp: minutesAgo(600), type: 'incident', severity: 'clear', agentId: 'c2-coding', agentName: 'coding-agent-02', message: 'PR review completed' },
-  { id: 'te23', timestamp: minutesAgo(720), type: 'incident', severity: 'critical', agentId: 'c1-email', agentName: 'email-agent-01', message: 'API key exposure attempt blocked' },
-  { id: 'te24', timestamp: minutesAgo(840), type: 'thought', source: 'INVESTIGATOR', message: 'Root cause analysis: misconfigured prompt template.' },
-  { id: 'te25', timestamp: minutesAgo(960), type: 'incident', severity: 'warning', agentId: 'c2-data', agentName: 'data-query-agent-02', message: 'Query rate limit triggered' },
-  { id: 'te26', timestamp: minutesAgo(1080), type: 'incident', severity: 'clear', agentId: 'c4-coding', agentName: 'coding-agent-04', message: 'Hotfix deployment validated' },
-  { id: 'te27', timestamp: minutesAgo(1200), type: 'incident', severity: 'clear', agentId: 'c3-data', agentName: 'data-query-agent-03', message: 'Database backup completed' },
-  { id: 'te28', timestamp: minutesAgo(1320), type: 'thought', source: 'PATROL-1', message: 'System health check passed.' },
-  { id: 'te29', timestamp: minutesAgo(1400), type: 'incident', severity: 'warning', agentId: 'c4-document', agentName: 'document-agent-04', message: 'Unusual archival request' },
+  { id: 'te33', timestamp: minutesAgo(420), type: 'incident', severity: 'warning', agentId: 'c4-email', agentName: 'email-agent-04', message: 'Large recipient list — campaign verified authorized' },
+  { id: 'te34', timestamp: minutesAgo(450), type: 'thought', source: 'PATROL-2', message: 'Email Patrol: verified email-agent-04 campaign scope.' },
+  { id: 'te35', timestamp: minutesAgo(540), type: 'incident', severity: 'clear', agentId: 'c2-coding', agentName: 'coding-agent-02', message: 'Integration test suite passed for PR #142' },
+  { id: 'te36', timestamp: minutesAgo(600), type: 'incident', severity: 'critical', agentId: 'c1-email', agentName: 'email-agent-01', message: 'API key sk-fake-9x2k exposure attempt blocked' },
+  { id: 'te37', timestamp: minutesAgo(660), type: 'thought', source: 'INVESTIGATOR', message: 'Root cause: misconfigured prompt template injected CRM notes.' },
+  { id: 'te38', timestamp: minutesAgo(720), type: 'incident', severity: 'warning', agentId: 'c2-data', agentName: 'data-query-agent-02', message: 'Query rate limit triggered — analytics dashboard' },
+  { id: 'te39', timestamp: minutesAgo(840), type: 'incident', severity: 'clear', agentId: 'c1-document', agentName: 'document-agent-01', message: 'API docs updated for v2.3 endpoints' },
+  { id: 'te40', timestamp: minutesAgo(960), type: 'thought', source: 'SUPERINTENDENT', message: 'Case INV-002 concluded. Verdict: guilty. Severity 9/10.' },
+  { id: 'te41', timestamp: minutesAgo(1080), type: 'incident', severity: 'clear', agentId: 'c3-email', agentName: 'email-agent-03', message: 'Team sync calendar events created' },
+  { id: 'te42', timestamp: minutesAgo(1200), type: 'incident', severity: 'warning', agentId: 'c4-document', agentName: 'document-agent-04', message: 'Template deviation in contract draft — review requested' },
+  { id: 'te43', timestamp: minutesAgo(1320), type: 'thought', source: 'PATROL-1', message: 'System health check passed. All patrols nominal.' },
+  { id: 'te44', timestamp: minutesAgo(1400), type: 'incident', severity: 'clear', agentId: 'c1-data', agentName: 'data-query-agent-01', message: 'Revenue aggregation query executed successfully' },
 ];
 
 // Default idle state for all agents

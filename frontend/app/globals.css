@@ -119,3 +119,19 @@ body {
 .pulse-warning {
   animation: pulse-warning 2s ease-in-out infinite;
 }
+
+/* Patrol alert banner slide-in animation */
+@keyframes slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.25s ease-out forwards;
+}
